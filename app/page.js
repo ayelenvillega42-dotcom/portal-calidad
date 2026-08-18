@@ -1,85 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const asesores = [
-  "Tello, Marianela",
-  "Contreras, Gilary",
-  "Malqui, Xiomara",
-  "Luna, Oriana",
-  "Gomez, Carla",
-  "Acosta, Pamela",
-  "Bahamonde, Camila",
-  "Vasquez, Agustin",
-  "Bustos, Jesica",
-  "Cabrera, Antonella",
-  "Bustamante, Ailin",
-  "Simonetta, Valentina",
-  "Olmedo, Thomas",
-  "Aguilera, Trinidad",
-  "Viniegra, Agustín",
-  "Ojeda, Luana",
-  "Reartes, Maia",
-  "Cordoba, Tania",
-  "Peralta, Belen",
-  "Mercado, Chiara",
-  "Diaz, Milagros",
-  "Rojek, Luna",
-  "Bustos, Nicolas"
-];
+const API_URL =
+  "https://portal-calidad-api.ayelenvillega42.workers.dev";
 
-const crearUsuario = (nombre) =>
-  nombre
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(", ", "")
-    .replace(/ /g, "");
-
-const usuarios = {
-  admin: {
-    password: "admin123",
-    nombre: "Administradora",
-    rol: "admin"
-  }
-};
-
-asesores.forEach((nombre) => {
-  usuarios[crearUsuario(nombre)] = {
-    password: "123456",
-    nombre,
-    rol: "asesor"
-  };
-});
+const ADMIN_USER = "admin";
+const ADMIN_PASSWORD = "admin123";
 
 export default function Home() {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [sesion, setSesion] = useState(null);
   const [error, setError] = useState("");
+  const [asesores, setAsesores] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
-  const iniciarSesion = (e) => {
+  useEffect(() => {
+    cargarAsesores();
+  }, []);
+
+  async function cargarAsesores() {
+    try {
+      const response = await fetch(`${API_URL}/asesores`);
+
+      if (!response.ok) {
+        throw new Error("No se pudieron cargar los asesores");
+      }
+
+      const data = await response.json();
+      setAsesores(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  function iniciarSesion(e) {
     e.preventDefault();
+    setError("");
 
-    const user = usuarios[usuario.toLowerCase().trim()];
+    const usuarioIngresado = usuario.toLowerCase().trim();
 
-    if (!user || user.password !== password) {
+    // LOGIN ADMINISTRADOR
+    if (
+      usuarioIngresado === ADMIN_USER &&
+      password === ADMIN_PASSWORD
+    ) {
+      setSesion({
+        rol: "admin",
+        nombre: "Administradora",
+        usuario: ADMIN_USER
+      });
+
+      return;
+    }
+
+    // LOGIN ASESOR
+    const asesor = asesores.find(
+      (item) =>
+        item.usuario_login.toLowerCase() === usuarioIngresado
+    );
+
+    if (!asesor || password !== "123456") {
       setError("Usuario o contraseña incorrectos.");
       return;
     }
 
-    setError("");
     setSesion({
-      usuario,
-      ...user
+      rol: "asesor",
+      nombre: asesor.nombre,
+      usuario: asesor.usuario_login,
+      numero_usuario: asesor.numero_usuario,
+      id: asesor.id
     });
-  };
+  }
 
-  const cerrarSesion = () => {
+  function cerrarSesion() {
     setSesion(null);
     setUsuario("");
     setPassword("");
-  };
+    setError("");
+  }
+
+  // =========================
+  // LOGIN
+  // =========================
 
   if (!sesion) {
     return (
@@ -87,37 +94,55 @@ export default function Home() {
         <div style={styles.loginCard}>
           <div style={styles.logoCircle}>Q</div>
 
-          <h1 style={styles.title}>Portal de Calidad</h1>
+          <h1 style={styles.title}>
+            Portal de Calidad
+          </h1>
 
           <p style={styles.subtitle}>
             Seguimiento y evolución de calidad
           </p>
 
           <form onSubmit={iniciarSesion}>
-            <label style={styles.label}>Usuario</label>
+            <label style={styles.label}>
+              Usuario
+            </label>
 
             <input
               style={styles.input}
               type="text"
               placeholder="Ingresá tu usuario"
               value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
+              onChange={(e) =>
+                setUsuario(e.target.value)
+              }
             />
 
-            <label style={styles.label}>Contraseña</label>
+            <label style={styles.label}>
+              Contraseña
+            </label>
 
             <input
               style={styles.input}
               type="password"
               placeholder="Ingresá tu contraseña"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
             />
 
-            {error && <p style={styles.error}>{error}</p>}
+            {error && (
+              <p style={styles.error}>
+                {error}
+              </p>
+            )}
 
-            <button style={styles.button} type="submit">
-              INGRESAR
+            <button
+              style={styles.button}
+              type="submit"
+              disabled={cargando}
+            >
+              {cargando ? "CARGANDO..." : "INGRESAR"}
             </button>
           </form>
 
@@ -129,18 +154,28 @@ export default function Home() {
     );
   }
 
+  // =========================
+  // ADMINISTRADOR
+  // =========================
+
   if (sesion.rol === "admin") {
     return (
       <main style={styles.dashboard}>
         <header style={styles.header}>
           <div>
-            <h1 style={styles.headerTitle}>Portal de Calidad</h1>
+            <h1 style={styles.headerTitle}>
+              Portal de Calidad
+            </h1>
+
             <p style={styles.headerSubtitle}>
               Panel de Administración
             </p>
           </div>
 
-          <button style={styles.logout} onClick={cerrarSesion}>
+          <button
+            style={styles.logout}
+            onClick={cerrarSesion}
+          >
             Cerrar sesión
           </button>
         </header>
@@ -150,25 +185,37 @@ export default function Home() {
             Bienvenida, Administradora
           </h2>
 
+          <p style={styles.welcome}>
+            Desde acá vas a poder administrar los reportes
+            de calidad del equipo.
+          </p>
+
           <div style={styles.cards}>
             <div style={styles.card}>
               <span style={styles.cardNumber}>
                 {asesores.length}
               </span>
+
               <span style={styles.cardText}>
                 Asesores registrados
               </span>
             </div>
 
             <div style={styles.card}>
-              <span style={styles.cardNumber}>0</span>
+              <span style={styles.cardNumber}>
+                0
+              </span>
+
               <span style={styles.cardText}>
                 Reportes cargados
               </span>
             </div>
 
             <div style={styles.card}>
-              <span style={styles.cardNumber}>0</span>
+              <span style={styles.cardNumber}>
+                0
+              </span>
+
               <span style={styles.cardText}>
                 Auditorías
               </span>
@@ -180,28 +227,53 @@ export default function Home() {
               Asesores
             </h2>
 
-            <div style={styles.advisorGrid}>
-              {asesores.map((nombre) => (
-                <div key={nombre} style={styles.advisor}>
-                  <div style={styles.avatar}>
-                    {nombre.charAt(0)}
-                  </div>
+            {cargando ? (
+              <p style={styles.emptyText}>
+                Cargando asesores...
+              </p>
+            ) : (
+              <div style={styles.advisorGrid}>
+                {asesores.map((asesor) => (
+                  <div
+                    key={asesor.id}
+                    style={styles.advisor}
+                  >
+                    <div style={styles.avatar}>
+                      {asesor.nombre.charAt(0)}
+                    </div>
 
-                  <div>
-                    <strong>{nombre}</strong>
+                    <div>
+                      <strong>
+                        {asesor.nombre}
+                      </strong>
 
-                    <p style={styles.username}>
-                      Usuario: {crearUsuario(nombre)}
-                    </p>
+                      <p style={styles.username}>
+                        Usuario:{" "}
+                        {asesor.usuario_login}
+                      </p>
+
+                      <p style={styles.userNumber}>
+                        N° usuario:{" "}
+                        {asesor.numero_usuario}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
     );
   }
+
+  // =========================
+  // PANEL DEL ASESOR
+  // =========================
+
+  const nombreMostrar =
+    sesion.nombre.split(", ")[1] ||
+    sesion.nombre;
 
   return (
     <main style={styles.dashboard}>
@@ -216,40 +288,99 @@ export default function Home() {
           </p>
         </div>
 
-        <button style={styles.logout} onClick={cerrarSesion}>
+        <button
+          style={styles.logout}
+          onClick={cerrarSesion}
+        >
           Cerrar sesión
         </button>
       </header>
 
       <section style={styles.content}>
         <h2 style={styles.sectionTitle}>
-          Hola, {sesion.nombre.split(", ")[1] || sesion.nombre}
+          Hola, {nombreMostrar}
         </h2>
 
         <p style={styles.welcome}>
-          Este es tu espacio personal de seguimiento de calidad.
+          Este es tu espacio personal de seguimiento
+          de calidad.
         </p>
+
+        <div style={styles.infoBar}>
+          <div>
+            <strong>
+              N° de usuario
+            </strong>
+
+            <span>
+              {sesion.numero_usuario}
+            </span>
+          </div>
+
+          <div>
+            <strong>
+              Usuario
+            </strong>
+
+            <span>
+              {sesion.usuario}
+            </span>
+          </div>
+        </div>
 
         <div style={styles.cards}>
           <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>★</span>
-            <h3>Mi nota</h3>
-            <strong>—</strong>
-            <p>Sin datos cargados</p>
+            <span style={styles.metricIcon}>
+              ★
+            </span>
+
+            <h3>
+              Mi nota
+            </h3>
+
+            <strong style={styles.bigNumber}>
+              —
+            </strong>
+
+            <p>
+              Esperando reporte
+            </p>
           </div>
 
           <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>↗</span>
-            <h3>Evolución</h3>
-            <strong>—</strong>
-            <p>Próximamente</p>
+            <span style={styles.metricIcon}>
+              ↗
+            </span>
+
+            <h3>
+              Evolución
+            </h3>
+
+            <strong style={styles.bigNumber}>
+              —
+            </strong>
+
+            <p>
+              Se mostrará semanalmente
+            </p>
           </div>
 
           <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>✓</span>
-            <h3>Objetivos</h3>
-            <strong>—</strong>
-            <p>Próximamente</p>
+            <span style={styles.metricIcon}>
+              ✓
+            </span>
+
+            <h3>
+              Objetivos
+            </h3>
+
+            <strong style={styles.bigNumber}>
+              —
+            </strong>
+
+            <p>
+              Se cargarán con el feedback
+            </p>
           </div>
         </div>
 
@@ -260,10 +391,18 @@ export default function Home() {
             </h2>
 
             <div style={styles.empty}>
-              <div style={styles.emptyIcon}>!</div>
+              <div style={styles.emptyIcon}>
+                !
+              </div>
+
               <p>
                 Todavía no hay desvíos cargados.
               </p>
+
+              <small>
+                Acá aparecerán tus principales
+                oportunidades de mejora.
+              </small>
             </div>
           </div>
 
@@ -273,17 +412,58 @@ export default function Home() {
             </h2>
 
             <div style={styles.empty}>
-              <div style={styles.emptyIcon}>✓</div>
+              <div style={styles.emptyIcon}>
+                ✓
+              </div>
+
               <p>
                 Todavía no hay auditorías cargadas.
               </p>
+
+              <small>
+                Acá vas a poder consultar tus llamadas
+                auditadas.
+              </small>
             </div>
           </div>
+        </div>
+
+        <div style={styles.panel}>
+          <h2 style={styles.panelTitle}>
+            Mis productos
+          </h2>
+
+          <div style={styles.productGrid}>
+            <div style={styles.product}>
+              AP
+            </div>
+
+            <div style={styles.product}>
+              SL
+            </div>
+
+            <div style={styles.product}>
+              BM
+            </div>
+
+            <div style={styles.product}>
+              CP
+            </div>
+          </div>
+
+          <p style={styles.productText}>
+            Los reportes indicarán qué producto
+            corresponde a cada llamada auditada.
+          </p>
         </div>
       </section>
     </main>
   );
 }
+
+// =========================
+// ESTILOS
+// =========================
 
 const styles = {
   loginPage: {
@@ -303,7 +483,8 @@ const styles = {
     background: "#ffffff",
     borderRadius: "24px",
     padding: "45px",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.10)"
+    boxShadow:
+      "0 20px 60px rgba(0,0,0,0.10)"
   },
 
   logoCircle: {
@@ -345,7 +526,8 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     padding: "14px",
-    border: "1px solid #d5ddd8",
+    border:
+      "1px solid #d5ddd8",
     borderRadius: "10px",
     fontSize: "15px",
     outline: "none"
@@ -388,7 +570,8 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.05)"
+    boxShadow:
+      "0 2px 10px rgba(0,0,0,0.05)"
   },
 
   headerTitle: {
@@ -402,7 +585,8 @@ const styles = {
   },
 
   logout: {
-    border: "1px solid #657f70",
+    border:
+      "1px solid #657f70",
     background: "white",
     color: "#657f70",
     padding: "10px 18px",
@@ -425,6 +609,21 @@ const styles = {
     color: "#7b8982"
   },
 
+  infoBar: {
+    background: "#e9f0ec",
+    borderRadius: "14px",
+    padding: "16px 20px",
+    display: "flex",
+    gap: "40px",
+    flexWrap: "wrap",
+    marginTop: "25px"
+  },
+
+  infoBarDiv: {
+    display: "flex",
+    flexDirection: "column"
+  },
+
   cards: {
     display: "grid",
     gridTemplateColumns:
@@ -437,14 +636,16 @@ const styles = {
     background: "white",
     borderRadius: "16px",
     padding: "25px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)"
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
   },
 
   metricCard: {
     background: "white",
     borderRadius: "16px",
     padding: "25px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)"
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
   },
 
   cardNumber: {
@@ -463,8 +664,11 @@ const styles = {
     color: "#657f70"
   },
 
-  metricCardStrong: {
-    fontSize: "30px"
+  bigNumber: {
+    display: "block",
+    fontSize: "32px",
+    color: "#657f70",
+    marginTop: "10px"
   },
 
   panel: {
@@ -472,7 +676,8 @@ const styles = {
     borderRadius: "18px",
     padding: "28px",
     marginTop: "25px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.05)"
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
   },
 
   panelTitle: {
@@ -492,7 +697,8 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "14px",
-    border: "1px solid #edf0ee",
+    border:
+      "1px solid #edf0ee",
     borderRadius: "12px"
   },
 
@@ -512,6 +718,12 @@ const styles = {
     margin: "5px 0 0",
     color: "#929c97",
     fontSize: "12px"
+  },
+
+  userNumber: {
+    margin: "3px 0 0",
+    color: "#a0aaa5",
+    fontSize: "11px"
   },
 
   twoColumns: {
@@ -539,5 +751,32 @@ const styles = {
     margin: "0 auto 10px",
     fontWeight: "bold",
     fontSize: "20px"
+  },
+
+  emptyText: {
+    color: "#89948f"
+  },
+
+  productGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(4, 1fr)",
+    gap: "15px"
+  },
+
+  product: {
+    padding: "20px",
+    background: "#eef4f1",
+    borderRadius: "12px",
+    textAlign: "center",
+    fontWeight: "bold",
+    color: "#40534a",
+    fontSize: "20px"
+  },
+
+  productText: {
+    color: "#89948f",
+    fontSize: "13px",
+    marginBottom: 0
   }
 };
