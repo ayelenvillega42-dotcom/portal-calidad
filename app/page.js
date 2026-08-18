@@ -7,6 +7,7 @@ const API_URL =
 
 const ADMIN_USER = "admin";
 const ADMIN_PASSWORD = "admin123";
+const ASESOR_PASSWORD = "123456";
 
 export default function Home() {
   const [usuario, setUsuario] = useState("");
@@ -43,7 +44,6 @@ export default function Home() {
 
     const usuarioIngresado = usuario.toLowerCase().trim();
 
-    // LOGIN ADMINISTRADOR
     if (
       usuarioIngresado === ADMIN_USER &&
       password === ADMIN_PASSWORD
@@ -51,19 +51,18 @@ export default function Home() {
       setSesion({
         rol: "admin",
         nombre: "Administradora",
-        usuario: ADMIN_USER
+        usuario: ADMIN_USER,
       });
 
       return;
     }
 
-    // LOGIN ASESOR
     const asesor = asesores.find(
       (item) =>
         item.usuario_login.toLowerCase() === usuarioIngresado
     );
 
-    if (!asesor || password !== "123456") {
+    if (!asesor || password !== ASESOR_PASSWORD) {
       setError("Usuario o contraseña incorrectos.");
       return;
     }
@@ -73,7 +72,7 @@ export default function Home() {
       nombre: asesor.nombre,
       usuario: asesor.usuario_login,
       numero_usuario: asesor.numero_usuario,
-      id: asesor.id
+      id: asesor.id,
     });
   }
 
@@ -181,17 +180,29 @@ export default function Home() {
         </header>
 
         <section style={styles.content}>
-          <h2 style={styles.sectionTitle}>
-            Bienvenida, Administradora
-          </h2>
+          <div style={styles.adminWelcome}>
+            <div>
+              <span style={styles.eyebrow}>
+                ADMINISTRACIÓN
+              </span>
 
-          <p style={styles.welcome}>
-            Desde acá vas a poder administrar los reportes
-            de calidad del equipo.
-          </p>
+              <h2 style={styles.sectionTitle}>
+                Bienvenida, Administradora
+              </h2>
+
+              <p style={styles.welcome}>
+                Desde acá vas a poder gestionar la calidad
+                del equipo y sus reportes semanales.
+              </p>
+            </div>
+          </div>
 
           <div style={styles.cards}>
             <div style={styles.card}>
+              <span style={styles.cardIcon}>
+                👥
+              </span>
+
               <span style={styles.cardNumber}>
                 {asesores.length}
               </span>
@@ -202,6 +213,10 @@ export default function Home() {
             </div>
 
             <div style={styles.card}>
+              <span style={styles.cardIcon}>
+                📊
+              </span>
+
               <span style={styles.cardNumber}>
                 0
               </span>
@@ -212,6 +227,10 @@ export default function Home() {
             </div>
 
             <div style={styles.card}>
+              <span style={styles.cardIcon}>
+                🎧
+              </span>
+
               <span style={styles.cardNumber}>
                 0
               </span>
@@ -223,14 +242,26 @@ export default function Home() {
           </div>
 
           <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>
-              Asesores
-            </h2>
+            <div style={styles.panelHeader}>
+              <div>
+                <h2 style={styles.panelTitle}>
+                  Asesores
+                </h2>
+
+                <p style={styles.panelSubtitle}>
+                  Equipo registrado en el portal
+                </p>
+              </div>
+
+              <span style={styles.countBadge}>
+                {asesores.length}
+              </span>
+            </div>
 
             {cargando ? (
-              <p style={styles.emptyText}>
+              <div style={styles.loading}>
                 Cargando asesores...
-              </p>
+              </div>
             ) : (
               <div style={styles.advisorGrid}>
                 {asesores.map((asesor) => (
@@ -242,20 +273,18 @@ export default function Home() {
                       {asesor.nombre.charAt(0)}
                     </div>
 
-                    <div>
-                      <strong>
+                    <div style={styles.advisorInfo}>
+                      <strong style={styles.advisorName}>
                         {asesor.nombre}
                       </strong>
 
-                      <p style={styles.username}>
-                        Usuario:{" "}
-                        {asesor.usuario_login}
-                      </p>
+                      <span style={styles.username}>
+                        @{asesor.usuario_login}
+                      </span>
 
-                      <p style={styles.userNumber}>
-                        N° usuario:{" "}
-                        {asesor.numero_usuario}
-                      </p>
+                      <span style={styles.userNumber}>
+                        N° {asesor.numero_usuario}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -297,44 +326,69 @@ export default function Home() {
       </header>
 
       <section style={styles.content}>
-        <h2 style={styles.sectionTitle}>
-          Hola, {nombreMostrar}
-        </h2>
-
-        <p style={styles.welcome}>
-          Este es tu espacio personal de seguimiento
-          de calidad.
-        </p>
-
-        <div style={styles.infoBar}>
+        <div style={styles.hero}>
           <div>
-            <strong>
-              N° de usuario
-            </strong>
-
-            <span>
-              {sesion.numero_usuario}
+            <span style={styles.eyebrow}>
+              MI ESPACIO
             </span>
+
+            <h2 style={styles.sectionTitle}>
+              Hola, {nombreMostrar}
+            </h2>
+
+            <p style={styles.welcome}>
+              Acá vas a encontrar tu evolución,
+              tus resultados y los puntos que tenés
+              que trabajar.
+            </p>
           </div>
 
-          <div>
-            <strong>
-              Usuario
-            </strong>
-
-            <span>
-              {sesion.usuario}
-            </span>
+          <div style={styles.userCircle}>
+            {nombreMostrar.charAt(0)}
           </div>
         </div>
 
-        <div style={styles.cards}>
-          <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>
-              ★
+        <div style={styles.infoBar}>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>
+              N° DE USUARIO
             </span>
 
-            <h3>
+            <strong style={styles.infoValue}>
+              {sesion.numero_usuario}
+            </strong>
+          </div>
+
+          <div style={styles.infoDivider}></div>
+
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>
+              USUARIO
+            </span>
+
+            <strong style={styles.infoValue}>
+              {sesion.usuario}
+            </strong>
+          </div>
+        </div>
+
+        {/* =========================
+            MÉTRICAS
+        ========================= */}
+
+        <div style={styles.cards}>
+          <div style={styles.metricCard}>
+            <div style={styles.metricTop}>
+              <span style={styles.metricIcon}>
+                ★
+              </span>
+
+              <span style={styles.metricTag}>
+                SEMANAL
+              </span>
+            </div>
+
+            <h3 style={styles.metricTitle}>
               Mi nota
             </h3>
 
@@ -342,17 +396,23 @@ export default function Home() {
               —
             </strong>
 
-            <p>
-              Esperando reporte
+            <p style={styles.metricDescription}>
+              Tu resultado aparecerá acá.
             </p>
           </div>
 
           <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>
-              ↗
-            </span>
+            <div style={styles.metricTop}>
+              <span style={styles.metricIcon}>
+                ↗
+              </span>
 
-            <h3>
+              <span style={styles.metricTag}>
+                EVOLUCIÓN
+              </span>
+            </div>
+
+            <h3 style={styles.metricTitle}>
               Evolución
             </h3>
 
@@ -360,17 +420,23 @@ export default function Home() {
               —
             </strong>
 
-            <p>
-              Se mostrará semanalmente
+            <p style={styles.metricDescription}>
+              Vas a poder comparar tus semanas.
             </p>
           </div>
 
           <div style={styles.metricCard}>
-            <span style={styles.metricIcon}>
-              ✓
-            </span>
+            <div style={styles.metricTop}>
+              <span style={styles.metricIcon}>
+                ✓
+              </span>
 
-            <h3>
+              <span style={styles.metricTag}>
+                OBJETIVOS
+              </span>
+            </div>
+
+            <h3 style={styles.metricTitle}>
               Objetivos
             </h3>
 
@@ -378,83 +444,167 @@ export default function Home() {
               —
             </strong>
 
-            <p>
-              Se cargarán con el feedback
+            <p style={styles.metricDescription}>
+              Tus objetivos de mejora.
             </p>
           </div>
         </div>
 
+        {/* =========================
+            DESVÍOS Y AUDITORÍAS
+        ========================= */}
+
         <div style={styles.twoColumns}>
           <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>
-              ¿Qué tengo que trabajar?
-            </h2>
+            <div style={styles.panelHeader}>
+              <div>
+                <h2 style={styles.panelTitle}>
+                  ¿Qué tengo que trabajar?
+                </h2>
 
-            <div style={styles.empty}>
-              <div style={styles.emptyIcon}>
-                !
+                <p style={styles.panelSubtitle}>
+                  Tus principales oportunidades de mejora
+                </p>
               </div>
 
-              <p>
-                Todavía no hay desvíos cargados.
-              </p>
-
-              <small>
-                Acá aparecerán tus principales
-                oportunidades de mejora.
-              </small>
+              <div style={styles.sectionIcon}>
+                !
+              </div>
             </div>
-          </div>
-
-          <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>
-              Últimas auditorías
-            </h2>
 
             <div style={styles.empty}>
               <div style={styles.emptyIcon}>
                 ✓
               </div>
 
-              <p>
-                Todavía no hay auditorías cargadas.
-              </p>
+              <h3 style={styles.emptyTitle}>
+                Todo listo para empezar
+              </h3>
 
-              <small>
-                Acá vas a poder consultar tus llamadas
-                auditadas.
-              </small>
+              <p style={styles.emptyText}>
+                Cuando se cargue tu reporte semanal,
+                acá vas a encontrar los desvíos y
+                recomendaciones específicas para vos.
+              </p>
+            </div>
+          </div>
+
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <div>
+                <h2 style={styles.panelTitle}>
+                  Últimas auditorías
+                </h2>
+
+                <p style={styles.panelSubtitle}>
+                  Tus llamadas auditadas
+                </p>
+              </div>
+
+              <div style={styles.sectionIcon}>
+                🎧
+              </div>
+            </div>
+
+            <div style={styles.empty}>
+              <div style={styles.emptyIcon}>
+                🎧
+              </div>
+
+              <h3 style={styles.emptyTitle}>
+                Aún no hay auditorías
+              </h3>
+
+              <p style={styles.emptyText}>
+                Cuando se carguen tus escuchas,
+                vas a poder consultar cada llamada
+                y su devolución.
+              </p>
             </div>
           </div>
         </div>
 
+        {/* =========================
+            PRODUCTOS
+        ========================= */}
+
         <div style={styles.panel}>
-          <h2 style={styles.panelTitle}>
-            Mis productos
-          </h2>
+          <div style={styles.panelHeader}>
+            <div>
+              <h2 style={styles.panelTitle}>
+                Mis productos
+              </h2>
 
-          <div style={styles.productGrid}>
-            <div style={styles.product}>
-              AP
-            </div>
-
-            <div style={styles.product}>
-              SL
-            </div>
-
-            <div style={styles.product}>
-              BM
-            </div>
-
-            <div style={styles.product}>
-              CP
+              <p style={styles.panelSubtitle}>
+                Campañas que vas a poder consultar
+              </p>
             </div>
           </div>
 
-          <p style={styles.productText}>
-            Los reportes indicarán qué producto
-            corresponde a cada llamada auditada.
-          </p>
+          <div style={styles.productGrid}>
+            <div style={styles.product}>
+              <span style={styles.productCode}>
+                AP
+              </span>
+
+              <span style={styles.productName}>
+                Accidentes Personales
+              </span>
+            </div>
+
+            <div style={styles.product}>
+              <span style={styles.productCode}>
+                BM
+              </span>
+
+              <span style={styles.productName}>
+                Bienes Móviles
+              </span>
+            </div>
+
+            <div style={styles.product}>
+              <span style={styles.productCode}>
+                SL
+              </span>
+
+              <span style={styles.productName}>
+                Seguro de Vida
+              </span>
+            </div>
+
+            <div style={styles.product}>
+              <span style={styles.productCode}>
+                CP
+              </span>
+
+              <span style={styles.productName}>
+                Protección
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* =========================
+            PRÓXIMAMENTE
+        ========================= */}
+
+        <div style={styles.nextPanel}>
+          <div style={styles.nextIcon}>
+            ✦
+          </div>
+
+          <div>
+            <h3 style={styles.nextTitle}>
+              Tu portal de calidad
+            </h3>
+
+            <p style={styles.nextText}>
+              Próximamente vas a poder ver tus reportes
+              semanales, evolución, objetivos, auditorías
+              y recomendaciones personalizadas desde un
+              solo lugar.
+            </p>
+          </div>
         </div>
       </section>
     </main>
@@ -473,8 +623,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "Arial, sans-serif",
-    padding: "20px"
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+    padding: "20px",
   },
 
   loginCard: {
@@ -484,7 +635,7 @@ const styles = {
     borderRadius: "24px",
     padding: "45px",
     boxShadow:
-      "0 20px 60px rgba(0,0,0,0.10)"
+      "0 20px 60px rgba(0,0,0,0.10)",
   },
 
   logoCircle: {
@@ -498,20 +649,20 @@ const styles = {
     justifyContent: "center",
     fontSize: "28px",
     fontWeight: "bold",
-    margin: "0 auto 20px"
+    margin: "0 auto 20px",
   },
 
   title: {
     textAlign: "center",
-    margin: "0",
+    margin: 0,
     color: "#30463b",
-    fontSize: "28px"
+    fontSize: "28px",
   },
 
   subtitle: {
     textAlign: "center",
     color: "#7b8982",
-    marginBottom: "35px"
+    marginBottom: "35px",
   },
 
   label: {
@@ -519,7 +670,7 @@ const styles = {
     marginBottom: "8px",
     marginTop: "18px",
     color: "#40534a",
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
 
   input: {
@@ -530,7 +681,7 @@ const styles = {
       "1px solid #d5ddd8",
     borderRadius: "10px",
     fontSize: "15px",
-    outline: "none"
+    outline: "none",
   },
 
   button: {
@@ -542,26 +693,27 @@ const styles = {
     background: "#657f70",
     color: "white",
     fontWeight: "bold",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   error: {
     color: "#b44b4b",
     fontSize: "14px",
-    marginTop: "12px"
+    marginTop: "12px",
   },
 
   help: {
     textAlign: "center",
     color: "#89948f",
     fontSize: "13px",
-    marginTop: "25px"
+    marginTop: "25px",
   },
 
   dashboard: {
     minHeight: "100vh",
     background: "#f4f7f5",
-    fontFamily: "Arial, sans-serif"
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
   },
 
   header: {
@@ -571,17 +723,22 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     boxShadow:
-      "0 2px 10px rgba(0,0,0,0.05)"
+      "0 2px 10px rgba(0,0,0,0.05)",
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
   },
 
   headerTitle: {
     margin: 0,
-    color: "#30463b"
+    color: "#30463b",
+    fontSize: "24px",
   },
 
   headerSubtitle: {
     margin: "5px 0 0",
-    color: "#89948f"
+    color: "#89948f",
+    fontSize: "14px",
   },
 
   logout: {
@@ -591,37 +748,96 @@ const styles = {
     color: "#657f70",
     padding: "10px 18px",
     borderRadius: "8px",
-    cursor: "pointer"
+    cursor: "pointer",
+    fontWeight: "bold",
   },
 
   content: {
     maxWidth: "1200px",
     margin: "0 auto",
-    padding: "45px 25px"
+    padding: "45px 25px 70px",
+  },
+
+  hero: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+  },
+
+  adminWelcome: {
+    marginBottom: "10px",
+  },
+
+  eyebrow: {
+    display: "block",
+    color: "#657f70",
+    fontSize: "12px",
+    fontWeight: "bold",
+    letterSpacing: "1.5px",
+    marginBottom: "8px",
   },
 
   sectionTitle: {
     color: "#30463b",
-    marginBottom: "8px"
+    margin: "0 0 8px",
+    fontSize: "30px",
   },
 
   welcome: {
-    color: "#7b8982"
+    color: "#7b8982",
+    fontSize: "15px",
+    lineHeight: 1.6,
+    maxWidth: "700px",
+  },
+
+  userCircle: {
+    width: "62px",
+    height: "62px",
+    minWidth: "62px",
+    borderRadius: "50%",
+    background: "#657f70",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "24px",
+    fontWeight: "bold",
   },
 
   infoBar: {
     background: "#e9f0ec",
     borderRadius: "14px",
-    padding: "16px 20px",
+    padding: "18px 22px",
     display: "flex",
-    gap: "40px",
+    alignItems: "center",
+    gap: "35px",
     flexWrap: "wrap",
-    marginTop: "25px"
+    marginTop: "25px",
   },
 
-  infoBarDiv: {
+  infoItem: {
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    gap: "5px",
+  },
+
+  infoLabel: {
+    color: "#7b8982",
+    fontSize: "10px",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+  },
+
+  infoValue: {
+    color: "#30463b",
+    fontSize: "15px",
+  },
+
+  infoDivider: {
+    width: "1px",
+    height: "35px",
+    background: "#cbd8d1",
   },
 
   cards: {
@@ -629,46 +845,79 @@ const styles = {
     gridTemplateColumns:
       "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "20px",
-    margin: "30px 0"
+    margin: "30px 0",
   },
 
   card: {
     background: "white",
-    borderRadius: "16px",
+    borderRadius: "18px",
     padding: "25px",
     boxShadow:
-      "0 5px 20px rgba(0,0,0,0.05)"
+      "0 5px 20px rgba(0,0,0,0.05)",
   },
 
-  metricCard: {
-    background: "white",
-    borderRadius: "16px",
-    padding: "25px",
-    boxShadow:
-      "0 5px 20px rgba(0,0,0,0.05)"
+  cardIcon: {
+    display: "block",
+    fontSize: "22px",
+    marginBottom: "12px",
   },
 
   cardNumber: {
     display: "block",
     fontSize: "34px",
     fontWeight: "bold",
-    color: "#657f70"
+    color: "#657f70",
   },
 
   cardText: {
-    color: "#7b8982"
+    color: "#7b8982",
+    fontSize: "14px",
+  },
+
+  metricCard: {
+    background: "white",
+    borderRadius: "18px",
+    padding: "25px",
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)",
+  },
+
+  metricTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   metricIcon: {
     fontSize: "24px",
-    color: "#657f70"
+    color: "#657f70",
+  },
+
+  metricTag: {
+    fontSize: "9px",
+    color: "#89948f",
+    background: "#eef4f1",
+    padding: "5px 8px",
+    borderRadius: "6px",
+    fontWeight: "bold",
+  },
+
+  metricTitle: {
+    color: "#30463b",
+    marginBottom: "8px",
   },
 
   bigNumber: {
     display: "block",
-    fontSize: "32px",
+    fontSize: "38px",
     color: "#657f70",
-    marginTop: "10px"
+    marginTop: "10px",
+  },
+
+  metricDescription: {
+    color: "#89948f",
+    fontSize: "13px",
+    lineHeight: 1.5,
   },
 
   panel: {
@@ -677,106 +926,209 @@ const styles = {
     padding: "28px",
     marginTop: "25px",
     boxShadow:
-      "0 5px 20px rgba(0,0,0,0.05)"
+      "0 5px 20px rgba(0,0,0,0.05)",
+  },
+
+  panelHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "15px",
+    marginBottom: "20px",
   },
 
   panelTitle: {
     color: "#30463b",
-    marginTop: 0
+    margin: 0,
+    fontSize: "20px",
   },
 
-  advisorGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: "12px"
+  panelSubtitle: {
+    color: "#89948f",
+    fontSize: "13px",
+    margin: "6px 0 0",
   },
 
-  advisor: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "14px",
-    border:
-      "1px solid #edf0ee",
-    borderRadius: "12px"
+  countBadge: {
+    background: "#e9f0ec",
+    color: "#657f70",
+    borderRadius: "20px",
+    padding: "7px 12px",
+    fontWeight: "bold",
   },
 
-  avatar: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "50%",
-    background: "#dce8e2",
-    color: "#40534a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold"
-  },
-
-  username: {
-    margin: "5px 0 0",
-    color: "#929c97",
-    fontSize: "12px"
-  },
-
-  userNumber: {
-    margin: "3px 0 0",
-    color: "#a0aaa5",
-    fontSize: "11px"
-  },
-
-  twoColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(300px, 1fr))",
-    gap: "20px"
-  },
-
-  empty: {
-    textAlign: "center",
-    padding: "25px",
-    color: "#89948f"
-  },
-
-  emptyIcon: {
-    width: "42px",
-    height: "42px",
+  sectionIcon: {
+    width: "40px",
+    height: "40px",
     borderRadius: "50%",
     background: "#edf2ef",
     color: "#657f70",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    margin: "0 auto 10px",
     fontWeight: "bold",
-    fontSize: "20px"
+  },
+
+  loading: {
+    textAlign: "center",
+    padding: "30px",
+    color: "#89948f",
+  },
+
+  advisorGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "12px",
+  },
+
+  advisor: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "15px",
+    border:
+      "1px solid #edf0ee",
+    borderRadius: "12px",
+    background: "#fcfdfc",
+  },
+
+  advisorInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "3px",
+  },
+
+  avatar: {
+    width: "45px",
+    height: "45px",
+    minWidth: "45px",
+    borderRadius: "50%",
+    background: "#dce8e2",
+    color: "#40534a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "bold",
+  },
+
+  advisorName: {
+    color: "#30463b",
+    fontSize: "14px",
+  },
+
+  username: {
+    color: "#657f70",
+    fontSize: "12px",
+  },
+
+  userNumber: {
+    color: "#a0aaa5",
+    fontSize: "11px",
+  },
+
+  twoColumns: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "20px",
+  },
+
+  empty: {
+    textAlign: "center",
+    padding: "25px 15px",
+    color: "#89948f",
+  },
+
+  emptyIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "50%",
+    background: "#edf2ef",
+    color: "#657f70",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 12px",
+    fontWeight: "bold",
+    fontSize: "20px",
+  },
+
+  emptyTitle: {
+    color: "#40534a",
+    fontSize: "16px",
+    margin: "5px 0 8px",
   },
 
   emptyText: {
-    color: "#89948f"
+    color: "#89948f",
+    fontSize: "13px",
+    lineHeight: 1.6,
+    maxWidth: "450px",
+    margin: "0 auto",
   },
 
   productGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(4, 1fr)",
-    gap: "15px"
+      "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "15px",
   },
 
   product: {
-    padding: "20px",
+    padding: "22px",
     background: "#eef4f1",
-    borderRadius: "12px",
+    borderRadius: "14px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
     textAlign: "center",
-    fontWeight: "bold",
-    color: "#40534a",
-    fontSize: "20px"
   },
 
-  productText: {
+  productCode: {
+    color: "#40534a",
+    fontSize: "22px",
+    fontWeight: "bold",
+  },
+
+  productName: {
     color: "#89948f",
+    fontSize: "12px",
+  },
+
+  nextPanel: {
+    marginTop: "25px",
+    padding: "24px",
+    background: "#e9f0ec",
+    borderRadius: "18px",
+    display: "flex",
+    alignItems: "center",
+    gap: "18px",
+  },
+
+  nextIcon: {
+    width: "45px",
+    height: "45px",
+    minWidth: "45px",
+    borderRadius: "50%",
+    background: "#657f70",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+  },
+
+  nextTitle: {
+    color: "#30463b",
+    margin: "0 0 5px",
+  },
+
+  nextText: {
+    color: "#657f70",
+    margin: 0,
     fontSize: "13px",
-    marginBottom: 0
-  }
+    lineHeight: 1.6,
+  },
 };
