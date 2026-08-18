@@ -7,7 +7,6 @@ const API_URL =
 
 const ADMIN_USER = "admin";
 const ADMIN_PASSWORD = "admin123";
-const ASESOR_PASSWORD = "123456";
 
 export default function Home() {
   const [usuario, setUsuario] = useState("");
@@ -17,7 +16,6 @@ export default function Home() {
   const [asesores, setAsesores] = useState([]);
   const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [cargandoReportes, setCargandoReportes] = useState(false);
 
   useEffect(() => {
     cargarAsesores();
@@ -41,8 +39,6 @@ export default function Home() {
   }
 
   async function cargarReportes(asesorId) {
-    setCargandoReportes(true);
-
     try {
       const response = await fetch(
         `${API_URL}/reportes?asesor_id=${asesorId}`
@@ -57,8 +53,6 @@ export default function Home() {
     } catch (error) {
       console.error(error);
       setReportes([]);
-    } finally {
-      setCargandoReportes(false);
     }
   }
 
@@ -67,10 +61,6 @@ export default function Home() {
     setError("");
 
     const usuarioIngresado = usuario.toLowerCase().trim();
-
-    // =========================
-    // LOGIN ADMINISTRADOR
-    // =========================
 
     if (
       usuarioIngresado === ADMIN_USER &&
@@ -85,29 +75,24 @@ export default function Home() {
       return;
     }
 
-    // =========================
-    // LOGIN ASESOR
-    // =========================
-
     const asesor = asesores.find(
       (item) =>
         item.usuario_login.toLowerCase() === usuarioIngresado
     );
 
-    if (!asesor || password !== ASESOR_PASSWORD) {
+    if (!asesor || password !== "123456") {
       setError("Usuario o contraseña incorrectos.");
       return;
     }
 
-    const nuevaSesion = {
+    setSesion({
       rol: "asesor",
       nombre: asesor.nombre,
       usuario: asesor.usuario_login,
       numero_usuario: asesor.numero_usuario,
       id: asesor.id
-    };
+    });
 
-    setSesion(nuevaSesion);
     cargarReportes(asesor.id);
   }
 
@@ -127,10 +112,7 @@ export default function Home() {
     return (
       <main style={styles.loginPage}>
         <div style={styles.loginCard}>
-
-          <div style={styles.logoCircle}>
-            Q
-          </div>
+          <div style={styles.logoCircle}>Q</div>
 
           <h1 style={styles.title}>
             Portal de Calidad
@@ -141,7 +123,6 @@ export default function Home() {
           </p>
 
           <form onSubmit={iniciarSesion}>
-
             <label style={styles.label}>
               Usuario
             </label>
@@ -190,7 +171,6 @@ export default function Home() {
           <p style={styles.help}>
             ¿Necesitás ayuda? Contactá al equipo de Calidad.
           </p>
-
         </div>
       </main>
     );
@@ -203,9 +183,7 @@ export default function Home() {
   if (sesion.rol === "admin") {
     return (
       <main style={styles.dashboard}>
-
         <header style={styles.header}>
-
           <div>
             <h1 style={styles.headerTitle}>
               Portal de Calidad
@@ -222,22 +200,19 @@ export default function Home() {
           >
             Cerrar sesión
           </button>
-
         </header>
 
         <section style={styles.content}>
-
           <h2 style={styles.sectionTitle}>
             Bienvenida, Administradora
           </h2>
 
           <p style={styles.welcome}>
-            Desde acá vas a poder administrar los reportes
-            de calidad del equipo.
+            Desde acá vas a poder administrar los
+            reportes de calidad del equipo.
           </p>
 
           <div style={styles.cards}>
-
             <div style={styles.card}>
               <span style={styles.cardNumber}>
                 {asesores.length}
@@ -267,13 +242,72 @@ export default function Home() {
                 Auditorías
               </span>
             </div>
-
           </div>
 
-          <div style={styles.panel}>
+          {/* CARGADOR SEMANAL */}
+
+          <div style={styles.uploadPanel}>
+            <div style={styles.uploadIcon}>
+              +
+            </div>
 
             <h2 style={styles.panelTitle}>
-              Asesores
+              Cargar reporte semanal
+            </h2>
+
+            <p style={styles.uploadDescription}>
+              En esta sección vamos a poder cargar
+              todos los reportes de la semana de una
+              sola vez.
+            </p>
+
+            <label style={styles.label}>
+              Semana del reporte
+            </label>
+
+            <input
+              style={styles.input}
+              type="text"
+              placeholder="Ejemplo: Semana 4 - Agosto"
+              id="semanaReporte"
+            />
+
+            <label style={styles.label}>
+              Datos del reporte
+            </label>
+
+            <textarea
+              style={styles.textarea}
+              placeholder={`Pegá acá el contenido generado a partir del análisis semanal.
+
+Ejemplo:
+
+CARLA GOMEZ
+Nota: 88
+Evolución: +3 puntos
+Desvío principal: Validación de datos
+Objetivo: Mejorar validación de datos
+Recomendación: Validar DNI y correo electrónico de forma completa.
+Producto: AP`}
+            />
+
+            <button
+              style={styles.primaryButton}
+              onClick={() =>
+                alert(
+                  "La carga automática de reportes será activada en el próximo paso."
+                )
+              }
+            >
+              PREVISUALIZAR REPORTES
+            </button>
+          </div>
+
+          {/* ASESORES */}
+
+          <div style={styles.panel}>
+            <h2 style={styles.panelTitle}>
+              Asesores registrados
             </h2>
 
             {cargando ? (
@@ -281,22 +315,17 @@ export default function Home() {
                 Cargando asesores...
               </p>
             ) : (
-
               <div style={styles.advisorGrid}>
-
                 {asesores.map((asesor) => (
-
                   <div
                     key={asesor.id}
                     style={styles.advisor}
                   >
-
                     <div style={styles.avatar}>
                       {asesor.nombre.charAt(0)}
                     </div>
 
                     <div>
-
                       <strong>
                         {asesor.nombre}
                       </strong>
@@ -310,21 +339,13 @@ export default function Home() {
                         N° usuario:{" "}
                         {asesor.numero_usuario}
                       </p>
-
                     </div>
-
                   </div>
-
                 ))}
-
               </div>
-
             )}
-
           </div>
-
         </section>
-
       </main>
     );
   }
@@ -344,13 +365,8 @@ export default function Home() {
 
   return (
     <main style={styles.dashboard}>
-
-      {/* HEADER */}
-
       <header style={styles.header}>
-
         <div>
-
           <h1 style={styles.headerTitle}>
             Portal de Calidad
           </h1>
@@ -358,7 +374,6 @@ export default function Home() {
           <p style={styles.headerSubtitle}>
             Mi espacio de calidad
           </p>
-
         </div>
 
         <button
@@ -367,13 +382,9 @@ export default function Home() {
         >
           Cerrar sesión
         </button>
-
       </header>
 
-      {/* CONTENIDO */}
-
       <section style={styles.content}>
-
         <h2 style={styles.sectionTitle}>
           Hola, {nombreMostrar}
         </h2>
@@ -383,375 +394,257 @@ export default function Home() {
           de calidad.
         </p>
 
-        {/* DATOS DEL ASESOR */}
-
         <div style={styles.infoBar}>
-
-          <div style={styles.infoItem}>
-            <strong>
-              N° de usuario
-            </strong>
-
-            <span>
-              {sesion.numero_usuario}
-            </span>
+          <div>
+            <strong>N° de usuario</strong>
+            <span>{sesion.numero_usuario}</span>
           </div>
 
-          <div style={styles.infoItem}>
-            <strong>
-              Usuario
-            </strong>
-
-            <span>
-              {sesion.usuario}
-            </span>
+          <div>
+            <strong>Usuario</strong>
+            <span>{sesion.usuario}</span>
           </div>
 
           {ultimoReporte && (
-            <div style={styles.infoItem}>
-              <strong>
-                Último reporte
-              </strong>
-
-              <span>
-                {ultimoReporte.semana}
-              </span>
+            <div>
+              <strong>Último reporte</strong>
+              <span>{ultimoReporte.semana}</span>
             </div>
           )}
-
         </div>
 
-        {cargandoReportes ? (
+        <div style={styles.cards}>
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ★
+            </span>
 
-          <div style={styles.loadingBox}>
-            <div style={styles.loadingCircle}>
-              ...
-            </div>
+            <h3>Mi nota</h3>
+
+            <strong style={styles.bigNumber}>
+              {ultimoReporte?.nota ?? "—"}
+            </strong>
 
             <p>
-              Cargando tu reporte de calidad...
+              {ultimoReporte
+                ? "Resultado de calidad"
+                : "Esperando reporte"}
             </p>
           </div>
 
-        ) : ultimoReporte ? (
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ↗
+            </span>
 
+            <h3>Evolución</h3>
+
+            <strong
+              style={styles.evolutionText}
+            >
+              {ultimoReporte?.evolucion ?? "—"}
+            </strong>
+
+            <p>
+              Comparación semanal
+            </p>
+          </div>
+
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ✓
+            </span>
+
+            <h3>Semana</h3>
+
+            <strong
+              style={styles.weekText}
+            >
+              {ultimoReporte?.semana ?? "—"}
+            </strong>
+
+            <p>
+              Último reporte cargado
+            </p>
+          </div>
+        </div>
+
+        {ultimoReporte && (
           <>
-            {/* =========================
-                RESUMEN
-            ========================= */}
-
-            <div style={styles.cards}>
-
-              <div style={styles.metricCard}>
-
-                <span style={styles.metricIcon}>
-                  ★
-                </span>
-
-                <h3>
-                  Mi nota
-                </h3>
-
-                <strong style={styles.score}>
-                  {ultimoReporte.nota}
-                </strong>
-
-                <p>
-                  Resultado de calidad
-                </p>
-
-              </div>
-
-              <div style={styles.metricCard}>
-
-                <span style={styles.metricIcon}>
-                  ↗
-                </span>
-
-                <h3>
-                  Evolución
-                </h3>
-
-                <strong style={styles.evolution}>
-                  {ultimoReporte.evolucion || "—"}
-                </strong>
-
-                <p>
-                  Comparación semanal
-                </p>
-
-              </div>
-
-              <div style={styles.metricCard}>
-
-                <span style={styles.metricIcon}>
-                  ✓
-                </span>
-
-                <h3>
-                  Semana
-                </h3>
-
-                <strong style={styles.week}>
-                  {ultimoReporte.semana}
-                </strong>
-
-                <p>
-                  Último reporte cargado
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* =========================
-                OBJETIVOS
-            ========================= */}
-
             <div style={styles.panel}>
-
-              <div style={styles.panelHeader}>
-                <div>
-                  <span style={styles.panelEyebrow}>
-                    PLAN DE ACCIÓN
-                  </span>
-
-                  <h2 style={styles.panelTitle}>
-                    Objetivos
-                  </h2>
-                </div>
-
-                <div style={styles.targetIcon}>
-                  🎯
-                </div>
+              <div style={styles.sectionBadge}>
+                PLAN DE ACCIÓN
               </div>
+
+              <h2 style={styles.panelTitle}>
+                Objetivos
+              </h2>
 
               <div style={styles.objectiveBox}>
-                <p>
-                  {ultimoReporte.objetivos ||
-                    "No hay objetivos cargados."}
-                </p>
-              </div>
+                <span style={styles.targetIcon}>
+                  🎯
+                </span>
 
+                <strong>
+                  {ultimoReporte.objetivos ||
+                    "Sin objetivos cargados"}
+                </strong>
+              </div>
             </div>
 
-            {/* =========================
-                DESVÍO Y RECOMENDACIÓN
-            ========================= */}
-
             <div style={styles.twoColumns}>
-
               <div style={styles.panel}>
-
-                <span style={styles.panelEyebrow}>
+                <div style={styles.sectionBadge}>
                   ATENCIÓN
-                </span>
+                </div>
 
                 <h2 style={styles.panelTitle}>
                   ¿Qué tengo que trabajar?
                 </h2>
 
-                <div style={styles.deviationBox}>
-
-                  <div style={styles.deviationIcon}>
+                <div style={styles.focusBox}>
+                  <div style={styles.emptyIcon}>
                     !
                   </div>
 
-                  <div>
-                    <strong>
-                      {ultimoReporte.desvio_principal ||
-                        "Sin desvíos principales"}
-                    </strong>
+                  <strong>
+                    {ultimoReporte.desvio_principal ||
+                      "Sin desvíos cargados"}
+                  </strong>
 
-                    <p>
-                      Este es el principal punto
-                      a trabajar en el período.
-                    </p>
-                  </div>
-
+                  <p>
+                    Este es el principal punto a
+                    trabajar en el período.
+                  </p>
                 </div>
-
               </div>
 
               <div style={styles.panel}>
-
-                <span style={styles.panelEyebrow}>
+                <div style={styles.sectionBadge}>
                   RECOMENDACIÓN
-                </span>
+                </div>
 
                 <h2 style={styles.panelTitle}>
                   ¿Cómo mejorarlo?
                 </h2>
 
-                <div style={styles.recommendationBox}>
-
-                  <div style={styles.recommendationIcon}>
+                <div style={styles.focusBox}>
+                  <div style={styles.emptyIcon}>
                     ✓
                   </div>
 
                   <p>
                     {ultimoReporte.recomendaciones ||
-                      "No hay recomendaciones cargadas."}
+                      "Sin recomendaciones cargadas"}
                   </p>
-
                 </div>
-
               </div>
-
             </div>
 
-            {/* =========================
-                ÚLTIMA AUDITORÍA
-            ========================= */}
-
             <div style={styles.panel}>
-
-              <div style={styles.panelHeader}>
-
-                <div>
-                  <span style={styles.panelEyebrow}>
-                    CALIDAD
-                  </span>
-
-                  <h2 style={styles.panelTitle}>
-                    Última auditoría
-                  </h2>
-                </div>
-
-                <div style={styles.auditIcon}>
-                  ✓
-                </div>
-
+              <div style={styles.sectionBadge}>
+                CALIDAD
               </div>
 
-              <div style={styles.auditGrid}>
+              <h2 style={styles.panelTitle}>
+                Última auditoría
+              </h2>
 
+              <div style={styles.auditBox}>
                 <div>
-                  <span style={styles.detailLabel}>
-                    Auditoría
-                  </span>
+                  <strong>
+                    ✓ Auditoría
+                  </strong>
 
-                  <p style={styles.detailText}>
+                  <p>
                     {ultimoReporte.auditoria ||
-                      "Sin detalle"}
+                      "Sin auditoría cargada"}
                   </p>
                 </div>
 
                 <div>
-                  <span style={styles.detailLabel}>
-                    Producto
-                  </span>
+                  <strong>Producto</strong>
 
-                  <p style={styles.productBadge}>
+                  <p>
                     {ultimoReporte.producto ||
                       "—"}
                   </p>
                 </div>
 
                 <div>
-                  <span style={styles.detailLabel}>
-                    Observaciones
-                  </span>
+                  <strong>Observaciones</strong>
 
-                  <p style={styles.detailText}>
+                  <p>
                     {ultimoReporte.observaciones ||
                       "Sin observaciones"}
                   </p>
                 </div>
-
               </div>
-
             </div>
+          </>
+        )}
 
-            {/* =========================
-                HISTORIAL
-            ========================= */}
+        {/* HISTORIAL */}
 
-            <div style={styles.panel}>
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            SEGUIMIENTO
+          </div>
 
-              <div style={styles.panelHeader}>
+          <h2 style={styles.panelTitle}>
+            Historial de reportes
+          </h2>
 
-                <div>
-                  <span style={styles.panelEyebrow}>
-                    SEGUIMIENTO
-                  </span>
-
-                  <h2 style={styles.panelTitle}>
-                    Historial de reportes
-                  </h2>
-                </div>
-
+          {reportes.length === 0 ? (
+            <div style={styles.empty}>
+              <div style={styles.emptyIcon}>
+                ✓
               </div>
 
+              <p>
+                Todavía no hay reportes cargados.
+              </p>
+            </div>
+          ) : (
+            <div style={styles.history}>
               {reportes.map((reporte) => (
-
                 <div
                   key={reporte.id}
                   style={styles.historyItem}
                 >
-
-                  <div style={styles.historyWeek}>
-                    {reporte.semana}
-                  </div>
-
-                  <div style={styles.historyScore}>
-                    {reporte.nota ?? "—"}
-                  </div>
-
-                  <div style={styles.historyInfo}>
+                  <div>
                     <strong>
-                      {reporte.desvio_principal ||
-                        "Sin desvío principal"}
+                      {reporte.semana}
                     </strong>
 
-                    <span>
-                      {reporte.producto ||
-                        "Sin producto"}
-                    </span>
+                    <p>
+                      {reporte.desvio_principal ||
+                        "Sin desvío"}
+                    </p>
                   </div>
 
+                  <strong style={styles.historyScore}>
+                    {reporte.nota ?? "—"}
+                  </strong>
+
+                  <span>
+                    {reporte.producto || "—"}
+                  </span>
                 </div>
-
               ))}
-
             </div>
-
-          </>
-
-        ) : (
-
-          <div style={styles.noReport}>
-
-            <div style={styles.noReportIcon}>
-              ✓
-            </div>
-
-            <h2>
-              Todavía no hay reportes cargados
-            </h2>
-
-            <p>
-              Cuando el equipo de Calidad cargue
-              tu reporte semanal, vas a poder verlo
-              acá.
-            </p>
-
-          </div>
-
-        )}
-
+          )}
+        </div>
       </section>
-
     </main>
   );
 }
 
-// ==========================================
+// =========================
 // ESTILOS
-// ==========================================
+// =========================
 
 const styles = {
-
   loginPage: {
     minHeight: "100vh",
     background:
@@ -819,10 +712,36 @@ const styles = {
     outline: "none"
   },
 
+  textarea: {
+    width: "100%",
+    minHeight: "280px",
+    boxSizing: "border-box",
+    padding: "15px",
+    border:
+      "1px solid #d5ddd8",
+    borderRadius: "10px",
+    fontSize: "14px",
+    outline: "none",
+    resize: "vertical",
+    fontFamily: "Arial, sans-serif",
+    lineHeight: "1.5"
+  },
+
   button: {
     width: "100%",
     marginTop: "25px",
     padding: "15px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#657f70",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer"
+  },
+
+  primaryButton: {
+    marginTop: "25px",
+    padding: "15px 25px",
     border: "none",
     borderRadius: "10px",
     background: "#657f70",
@@ -898,17 +817,11 @@ const styles = {
   infoBar: {
     background: "#e9f0ec",
     borderRadius: "14px",
-    padding: "18px 20px",
+    padding: "16px 20px",
     display: "flex",
-    gap: "45px",
+    gap: "40px",
     flexWrap: "wrap",
     marginTop: "25px"
-  },
-
-  infoItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px"
   },
 
   cards: {
@@ -929,8 +842,8 @@ const styles = {
 
   metricCard: {
     background: "white",
-    borderRadius: "18px",
-    padding: "28px",
+    borderRadius: "16px",
+    padding: "25px",
     boxShadow:
       "0 5px 20px rgba(0,0,0,0.05)"
   },
@@ -951,27 +864,26 @@ const styles = {
     color: "#657f70"
   },
 
-  score: {
+  bigNumber: {
     display: "block",
-    fontSize: "48px",
+    fontSize: "42px",
     color: "#657f70",
     marginTop: "10px"
   },
 
-  evolution: {
+  evolutionText: {
     display: "block",
-    fontSize: "18px",
     color: "#657f70",
-    marginTop: "18px",
-    minHeight: "48px"
+    marginTop: "10px",
+    fontSize: "18px",
+    lineHeight: "1.4"
   },
 
-  week: {
+  weekText: {
     display: "block",
-    fontSize: "20px",
     color: "#657f70",
-    marginTop: "18px",
-    minHeight: "48px"
+    marginTop: "10px",
+    fontSize: "18px"
   },
 
   panel: {
@@ -983,156 +895,39 @@ const styles = {
       "0 5px 20px rgba(0,0,0,0.05)"
   },
 
-  panelHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px"
+  uploadPanel: {
+    background:
+      "linear-gradient(135deg, #ffffff 0%, #edf4f0 100%)",
+    borderRadius: "18px",
+    padding: "32px",
+    marginTop: "25px",
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)",
+    border:
+      "1px solid #dce8e2"
   },
 
-  panelEyebrow: {
-    fontSize: "11px",
-    fontWeight: "bold",
-    letterSpacing: "1.5px",
-    color: "#8b9992"
+  uploadIcon: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "50%",
+    background: "#657f70",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "28px",
+    fontWeight: "bold"
+  },
+
+  uploadDescription: {
+    color: "#7b8982",
+    lineHeight: "1.6"
   },
 
   panelTitle: {
     color: "#30463b",
-    marginTop: "6px",
-    marginBottom: "18px"
-  },
-
-  targetIcon: {
-    fontSize: "28px"
-  },
-
-  auditIcon: {
-    width: "45px",
-    height: "45px",
-    borderRadius: "50%",
-    background: "#e9f0ec",
-    color: "#657f70",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold"
-  },
-
-  objectiveBox: {
-    background: "#eef4f1",
-    borderRadius: "12px",
-    padding: "18px",
-    color: "#40534a",
-    lineHeight: "1.6"
-  },
-
-  twoColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(300px, 1fr))",
-    gap: "20px"
-  },
-
-  deviationBox: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "15px",
-    background: "#fff6f0",
-    borderRadius: "12px",
-    padding: "18px"
-  },
-
-  deviationIcon: {
-    minWidth: "38px",
-    height: "38px",
-    borderRadius: "50%",
-    background: "#f2d6c5",
-    color: "#9b5c3c",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold",
-    fontSize: "20px"
-  },
-
-  recommendationBox: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "15px",
-    background: "#eef4f1",
-    borderRadius: "12px",
-    padding: "18px"
-  },
-
-  recommendationIcon: {
-    minWidth: "38px",
-    height: "38px",
-    borderRadius: "50%",
-    background: "#dce8e2",
-    color: "#657f70",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold"
-  },
-
-  auditGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "25px"
-  },
-
-  detailLabel: {
-    display: "block",
-    fontSize: "12px",
-    color: "#89948f",
-    marginBottom: "8px"
-  },
-
-  detailText: {
-    color: "#40534a",
-    lineHeight: "1.5",
-    marginTop: 0
-  },
-
-  productBadge: {
-    display: "inline-block",
-    background: "#e9f0ec",
-    color: "#40534a",
-    padding: "8px 18px",
-    borderRadius: "20px",
-    fontWeight: "bold"
-  },
-
-  historyItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "20px",
-    padding: "16px 0",
-    borderBottom:
-      "1px solid #edf0ee"
-  },
-
-  historyWeek: {
-    minWidth: "150px",
-    color: "#657f70",
-    fontWeight: "bold"
-  },
-
-  historyScore: {
-    fontSize: "22px",
-    fontWeight: "bold",
-    color: "#30463b",
-    minWidth: "50px"
-  },
-
-  historyInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-    color: "#40534a"
+    marginTop: "10px"
   },
 
   advisorGrid: {
@@ -1176,48 +971,119 @@ const styles = {
     fontSize: "11px"
   },
 
-  emptyText: {
+  twoColumns: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "20px"
+  },
+
+  sectionBadge: {
+    display: "inline-block",
+    fontSize: "11px",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    color: "#657f70",
+    marginBottom: "5px"
+  },
+
+  objectiveBox: {
+    background: "#f2f6f3",
+    borderRadius: "14px",
+    padding: "20px",
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    color: "#40534a"
+  },
+
+  targetIcon: {
+    fontSize: "28px"
+  },
+
+  focusBox: {
+    textAlign: "center",
+    padding: "20px",
+    color: "#40534a"
+  },
+
+  empty: {
+    textAlign: "center",
+    padding: "25px",
     color: "#89948f"
   },
 
-  loadingBox: {
-    background: "white",
-    borderRadius: "18px",
-    padding: "50px",
-    marginTop: "30px",
-    textAlign: "center",
-    color: "#89948f",
-    boxShadow:
-      "0 5px 20px rgba(0,0,0,0.05)"
-  },
-
-  loadingCircle: {
-    fontSize: "30px",
-    color: "#657f70",
-    fontWeight: "bold"
-  },
-
-  noReport: {
-    background: "white",
-    borderRadius: "18px",
-    padding: "60px 30px",
-    marginTop: "30px",
-    textAlign: "center",
-    boxShadow:
-      "0 5px 20px rgba(0,0,0,0.05)"
-  },
-
-  noReportIcon: {
-    width: "55px",
-    height: "55px",
+  emptyIcon: {
+    width: "42px",
+    height: "42px",
     borderRadius: "50%",
-    background: "#e9f0ec",
+    background: "#edf2ef",
     color: "#657f70",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    margin: "0 auto 15px",
-    fontSize: "25px",
-    fontWeight: "bold"
+    margin: "0 auto 10px",
+    fontWeight: "bold",
+    fontSize: "20px"
+  },
+
+  emptyText: {
+    color: "#89948f"
+  },
+
+  auditBox: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "20px",
+    background: "#f7f9f8",
+    borderRadius: "14px",
+    padding: "20px"
+  },
+
+  history: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px"
+  },
+
+  historyItem: {
+    display: "grid",
+    gridTemplateColumns:
+      "1fr auto 70px",
+    alignItems: "center",
+    gap: "15px",
+    padding: "15px",
+    border:
+      "1px solid #edf0ee",
+    borderRadius: "12px"
+  },
+
+  historyScore: {
+    fontSize: "22px",
+    color: "#657f70"
+  },
+
+  productGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(4, 1fr)",
+    gap: "15px"
+  },
+
+  product: {
+    padding: "20px",
+    background: "#eef4f1",
+    borderRadius: "12px",
+    textAlign: "center",
+    fontWeight: "bold",
+    color: "#40534a",
+    fontSize: "20px"
+  },
+
+  productText: {
+    color: "#89948f",
+    fontSize: "13px",
+    marginBottom: 0
   }
 };
