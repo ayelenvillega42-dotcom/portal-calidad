@@ -1,12 +1,784 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal de Calidad</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background: #f4f7fb;
+      color: #172033;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #123c69, #1f6aa5);
+      color: white;
+      padding: 25px 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
+    }
+
+    .header h1 {
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: .85;
+      font-size: 14px;
+    }
+
+    .logout {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.35);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 1150px;
+      margin: 35px auto;
+      padding: 0 20px;
+    }
+
+    .login {
+      max-width: 430px;
+      margin: 70px auto;
+      background: white;
+      padding: 35px;
+      border-radius: 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.08);
+    }
+
+    .login h2 {
+      margin-bottom: 10px;
+      color: #123c69;
+    }
+
+    .login p {
+      color: #687386;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #d7dce5;
+      border-radius: 9px;
+      background: white;
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      background: #1f6aa5;
+      color: white;
+      padding: 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .btn:hover {
+      background: #174f7e;
+    }
+
+    .welcome {
+      margin-bottom: 25px;
+    }
+
+    .welcome h2 {
+      font-size: 28px;
+      margin-bottom: 7px;
+    }
+
+    .welcome p {
+      color: #697386;
+    }
+
+    .profile {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      margin-bottom: 25px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.05);
+      display: flex;
+      gap: 35px;
+      flex-wrap: wrap;
+    }
+
+    .profile-item span {
+      display: block;
+      color: #788397;
+      font-size: 12px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .profile-item strong {
+      font-size: 16px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 22px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.05);
+    }
+
+    .card-title {
+      color: #758096;
+      font-size: 13px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    .nota {
+      font-size: 42px;
+      font-weight: bold;
+      color: #1f6aa5;
+    }
+
+    .evolucion {
+      font-size: 17px;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+
+    .semana {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .section {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 22px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.05);
+    }
+
+    .section h2 {
+      color: #123c69;
+      margin-bottom: 20px;
+      font-size: 21px;
+    }
+
+    .highlight {
+      background: #f1f6fb;
+      border-left: 5px solid #1f6aa5;
+      padding: 18px;
+      border-radius: 8px;
+      line-height: 1.6;
+    }
+
+    .attention {
+      background: #fff7e8;
+      border-left: 5px solid #e6a23c;
+      padding: 18px;
+      border-radius: 8px;
+    }
+
+    .recommendation {
+      background: #eef9f2;
+      border-left: 5px solid #3a9d5d;
+      padding: 18px;
+      border-radius: 8px;
+      line-height: 1.6;
+    }
+
+    .audit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .audit-box {
+      background: #f7f9fc;
+      padding: 17px;
+      border-radius: 9px;
+    }
+
+    .audit-box span {
+      display: block;
+      color: #7a8495;
+      font-size: 12px;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+    }
+
+    .history {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .history th,
+    .history td {
+      padding: 14px 10px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+    }
+
+    .history th {
+      color: #6d7789;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .history td {
+      font-size: 14px;
+    }
+
+    .score {
+      font-weight: bold;
+      color: #1f6aa5;
+    }
+
+    .loading,
+    .error {
+      text-align: center;
+      padding: 25px;
+      color: #667085;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff4f2;
+      border-radius: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 800px) {
+      .cards,
+      .audit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        padding: 20px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .container {
+        margin-top: 25px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Portal de Calidad</h1>
-  <p>La página está funcionando correctamente.</p>
+
+  <div id="loginScreen" class="login">
+    <h2>Portal de Calidad</h2>
+    <p>
+      Bienvenido a tu espacio personal de seguimiento de calidad.
+      Seleccioná tu usuario para consultar tus resultados.
+    </p>
+
+    <label for="asesorSelect">Seleccioná tu usuario</label>
+
+    <select id="asesorSelect">
+      <option value="">Cargando asesores...</option>
+    </select>
+
+    <button class="btn" onclick="entrar()">
+      Ingresar a mi portal
+    </button>
+
+    <div id="loginError"></div>
+  </div>
+
+  <div id="portal" class="hidden">
+
+    <div class="header">
+      <div>
+        <h1>Portal de Calidad</h1>
+        <p>Mi espacio personal de seguimiento de calidad</p>
+      </div>
+
+      <button class="logout" onclick="cerrarSesion()">
+        Cerrar sesión
+      </button>
+    </div>
+
+    <main class="container">
+
+      <div class="welcome">
+        <h2>Hola, <span id="nombreAsesor">Asesor</span></h2>
+        <p>
+          Este es tu espacio personal de seguimiento de calidad.
+        </p>
+      </div>
+
+      <div class="profile">
+        <div class="profile-item">
+          <span>N° de usuario</span>
+          <strong id="numeroUsuario">-</strong>
+        </div>
+
+        <div class="profile-item">
+          <span>Usuario</span>
+          <strong id="usuarioLogin">-</strong>
+        </div>
+
+        <div class="profile-item">
+          <span>Último reporte</span>
+          <strong id="ultimaSemana">-</strong>
+        </div>
+      </div>
+
+      <div id="contenidoReporte">
+
+        <div class="loading">
+          Cargando reporte...
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+<script>
+
+  const API = "https://portal-calidad-api.ayelenvillega42.workers.dev";
+
+  let asesores = [];
+  let asesorActual = null;
+  let reportes = [];
+
+  async function cargarAsesores() {
+
+    const select = document.getElementById("asesorSelect");
+
+    try {
+
+      const respuesta = await fetch(API + "/asesores");
+
+      if (!respuesta.ok) {
+        throw new Error("No se pudieron obtener los asesores");
+      }
+
+      asesores = await respuesta.json();
+
+      select.innerHTML =
+        '<option value="">Seleccioná tu usuario</option>';
+
+      asesores.forEach(asesor => {
+
+        const option = document.createElement("option");
+
+        option.value = asesor.id;
+
+        option.textContent =
+          `${asesor.nombre} — ${asesor.usuario_login || asesor.numero_usuario}`;
+
+        select.appendChild(option);
+
+      });
+
+    } catch (error) {
+
+      select.innerHTML =
+        '<option value="">Error al cargar usuarios</option>';
+
+      document.getElementById("loginError").innerHTML =
+        `<div class="error">No se pudo conectar con el servidor.</div>`;
+
+      console.error(error);
+
+    }
+
+  }
+
+
+  async function entrar() {
+
+    const id = document.getElementById("asesorSelect").value;
+
+    if (!id) {
+
+      document.getElementById("loginError").innerHTML =
+        `<div class="error">Seleccioná tu usuario para continuar.</div>`;
+
+      return;
+
+    }
+
+    asesorActual =
+      asesores.find(a => String(a.id) === String(id));
+
+    if (!asesorActual) return;
+
+    document.getElementById("loginScreen")
+      .classList.add("hidden");
+
+    document.getElementById("portal")
+      .classList.remove("hidden");
+
+    document.getElementById("nombreAsesor").textContent =
+      asesorActual.nombre;
+
+    document.getElementById("numeroUsuario").textContent =
+      asesorActual.numero_usuario || "-";
+
+    document.getElementById("usuarioLogin").textContent =
+      asesorActual.usuario_login || "-";
+
+    await cargarReportes(asesorActual.id);
+
+  }
+
+
+  async function cargarReportes(asesorId) {
+
+    const contenedor =
+      document.getElementById("contenidoReporte");
+
+    contenedor.innerHTML =
+      `<div class="loading">Cargando tu información de calidad...</div>`;
+
+    try {
+
+      const respuesta =
+        await fetch(`${API}/reportes?asesor_id=${asesorId}`);
+
+      if (!respuesta.ok) {
+        throw new Error("No se pudieron obtener los reportes");
+      }
+
+      reportes = await respuesta.json();
+
+      if (!reportes.length) {
+
+        contenedor.innerHTML = `
+          <div class="section">
+            <h2>Aún no tenés reportes cargados</h2>
+            <p>
+              Cuando se cargue tu primer reporte semanal,
+              aparecerá automáticamente en este espacio.
+            </p>
+          </div>
+        `;
+
+        return;
+      }
+
+      mostrarReporte(reportes[0]);
+
+    } catch (error) {
+
+      contenedor.innerHTML = `
+        <div class="error">
+          No se pudo cargar tu reporte.
+          <br>
+          Intentá nuevamente en unos minutos.
+        </div>
+      `;
+
+      console.error(error);
+
+    }
+
+  }
+
+
+  function mostrarReporte(reporte) {
+
+    document.getElementById("ultimaSemana").textContent =
+      reporte.semana || "-";
+
+    const historial = reportes.map(r => `
+
+      <tr>
+
+        <td>${escapeHTML(r.semana || "-")}</td>
+
+        <td class="score">
+          ${r.nota ?? "-"}
+        </td>
+
+        <td>
+          ${escapeHTML(r.desvio_principal || "-")}
+        </td>
+
+        <td>
+          ${escapeHTML(r.producto || "-")}
+        </td>
+
+      </tr>
+
+    `).join("");
+
+    document.getElementById("contenidoReporte").innerHTML = `
+
+      <div class="cards">
+
+        <div class="card">
+
+          <div class="card-title">
+            Mi nota
+          </div>
+
+          <div class="nota">
+            ${reporte.nota ?? "-"}
+          </div>
+
+          <p>
+            Resultado de calidad
+          </p>
+
+        </div>
+
+
+        <div class="card">
+
+          <div class="card-title">
+            Evolución
+          </div>
+
+          <div class="evolucion">
+            ${escapeHTML(reporte.evolucion || "-")}
+          </div>
+
+          <p>
+            Comparación semanal
+          </p>
+
+        </div>
+
+
+        <div class="card">
+
+          <div class="card-title">
+            Semana
+          </div>
+
+          <div class="semana">
+            ${escapeHTML(reporte.semana || "-")}
+          </div>
+
+          <p>
+            Último reporte cargado
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h2>PLAN DE ACCIÓN</h2>
+
+        <div class="highlight">
+
+          <strong>Objetivos</strong>
+
+          <p>
+            ${escapeHTML(reporte.objetivos || "Sin objetivos cargados.")}
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h2>¿Qué tengo que trabajar?</h2>
+
+        <div class="attention">
+
+          <strong>Principal punto de atención</strong>
+
+          <p>
+            ${escapeHTML(
+              reporte.desvio_principal ||
+              "No se registraron desvíos principales."
+            )}
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h2>¿Cómo mejorarlo?</h2>
+
+        <div class="recommendation">
+
+          <strong>Recomendación</strong>
+
+          <p>
+            ${escapeHTML(
+              reporte.recomendaciones ||
+              "No se registraron recomendaciones."
+            )}
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h2>CALIDAD</h2>
+
+        <div class="audit-grid">
+
+          <div class="audit-box">
+
+            <span>Auditoría</span>
+
+            <strong>
+              ${escapeHTML(reporte.auditoria || "-")}
+            </strong>
+
+          </div>
+
+
+          <div class="audit-box">
+
+            <span>Producto</span>
+
+            <strong>
+              ${escapeHTML(reporte.producto || "-")}
+            </strong>
+
+          </div>
+
+
+          <div class="audit-box">
+
+            <span>Observaciones</span>
+
+            <strong>
+              ${escapeHTML(reporte.observaciones || "-")}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <h2>SEGUIMIENTO</h2>
+
+        <table class="history">
+
+          <thead>
+
+            <tr>
+
+              <th>Semana</th>
+
+              <th>Nota</th>
+
+              <th>Desvío principal</th>
+
+              <th>Producto</th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${historial}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    `;
+
+  }
+
+
+  function cerrarSesion() {
+
+    asesorActual = null;
+    reportes = [];
+
+    document.getElementById("portal")
+      .classList.add("hidden");
+
+    document.getElementById("loginScreen")
+      .classList.remove("hidden");
+
+    document.getElementById("asesorSelect").value = "";
+
+  }
+
+
+  function escapeHTML(valor) {
+
+    if (valor === null || valor === undefined) {
+      return "";
+    }
+
+    return String(valor)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+  }
+
+
+  cargarAsesores();
+
+</script>
+
 </body>
 </html>
+```
