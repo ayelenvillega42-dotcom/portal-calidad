@@ -14,15 +14,18 @@ export default function Home() {
   const [sesion, setSesion] = useState(null);
   const [error, setError] = useState("");
   const [asesores, setAsesores] = useState([]);
-  const [datos, setDatos] = useState({
-    reportes: [],
-    productividad: [],
-    tipificaciones: [],
-    gestion: [],
-    noVenta: [],
-    comentarios: []
-  });
   const [cargando, setCargando] = useState(true);
+
+  const [reportes, setReportes] = useState([]);
+  const [productividad, setProductividad] = useState([]);
+  const [tipificaciones, setTipificaciones] = useState([]);
+  const [gestionCalidad, setGestionCalidad] = useState([]);
+  const [auditoriasNoVenta, setAuditoriasNoVenta] = useState([]);
+  const [comentarios, setComentarios] = useState([]);
+
+  const [nuevoComentario, setNuevoComentario] = useState("");
+  const [enviandoComentario, setEnviandoComentario] = useState(false);
+  const [mensajeComentario, setMensajeComentario] = useState("");
 
   useEffect(() => {
     cargarAsesores();
@@ -47,40 +50,37 @@ export default function Home() {
 
   async function cargarDatosAsesor(asesorId) {
     try {
-      const [
-        reportes,
-        productividad,
-        tipificaciones,
-        gestion,
-        noVenta
-      ] = await Promise.all([
-        fetch(`${API_URL}/reportes?asesor_id=${asesorId}`).then(r => r.json()),
-        fetch(`${API_URL}/productividad?asesor_id=${asesorId}`).then(r => r.json()),
-        fetch(`${API_URL}/tipificaciones?asesor_id=${asesorId}`).then(r => r.json()),
-        fetch(`${API_URL}/gestion-calidad?asesor_id=${asesorId}`).then(r => r.json()),
-        fetch(`${API_URL}/auditorias-no-venta?asesor_id=${asesorId}`).then(r => r.json())
+      const resultados = await Promise.all([
+        fetch(`${API_URL}/reportes?asesor_id=${asesorId}`),
+        fetch(`${API_URL}/productividad?asesor_id=${asesorId}`),
+        fetch(`${API_URL}/tipificaciones?asesor_id=${asesorId}`),
+        fetch(`${API_URL}/gestion-calidad?asesor_id=${asesorId}`),
+        fetch(`${API_URL}/auditorias-no-venta?asesor_id=${asesorId}`),
+        fetch(`${API_URL}/comentarios?asesor_id=${asesorId}`)
       ]);
 
-      setDatos({
-        reportes: Array.isArray(reportes) ? reportes : [],
-        productividad: Array.isArray(productividad) ? productividad : [],
-        tipificaciones: Array.isArray(tipificaciones) ? tipificaciones : [],
-        gestion: Array.isArray(gestion) ? gestion : [],
-        noVenta: Array.isArray(noVenta) ? noVenta : [],
-        comentarios: []
-      });
+      const datos = await Promise.all(
+        resultados.map(async (response) => {
+          if (!response.ok) return [];
+          return response.json();
+        })
+      );
 
+      setReportes(datos[0]);
+      setProductividad(datos[1]);
+      setTipificaciones(datos[2]);
+      setGestionCalidad(datos[3]);
+      setAuditoriasNoVenta(datos[4]);
+      setComentarios(datos[5]);
     } catch (error) {
       console.error(error);
 
-      setDatos({
-        reportes: [],
-        productividad: [],
-        tipificaciones: [],
-        gestion: [],
-        noVenta: [],
-        comentarios: []
-      });
+      setReportes([]);
+      setProductividad([]);
+      setTipificaciones([]);
+      setGestionCalidad([]);
+      setAuditoriasNoVenta([]);
+      setComentarios([]);
     }
   }
 
@@ -104,7 +104,7 @@ export default function Home() {
     }
 
     const asesor = asesores.find(
-      item =>
+      (item) =>
         item.usuario_login.toLowerCase() === usuarioIngresado
     );
 
@@ -130,15 +130,78 @@ export default function Home() {
     setPassword("");
     setError("");
 
-    setDatos({
-      reportes: [],
-      productividad: [],
-      tipificaciones: [],
-      gestion: [],
-      noVenta: [],
-      comentarios: []
-    });
+    setReportes([]);
+    setProductividad([]);
+    setTipificaciones([]);
+    setGestionCalidad([]);
+    setAuditoriasNoVenta([]);
+    setComentarios([]);
   }
+
+  async function enviarComentario() {
+    if (!nuevoComentario.trim()) {
+      return;
+    }
+
+    const ultimoReporte =
+      reportes.length > 0 ? reportes[0] : null;
+
+    if (!ultimoReporte) {
+      setMensajeComentario(
+        "Todavía no hay un reporte semanal disponible."
+      );
+      return;
+    }
+
+    setEnviandoComentario(true);
+    setMensajeComentario("");
+
+    try {
+      const response = await fetch(`${API_URL}/comentarios`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          asesor_id: sesion.id,
+          semana: ultimoReporte.semana,
+          tipo: "asesor",
+          comentario: nuevoComentario.trim(),
+          estado: "pendiente"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No se pudo guardar el comentario"
+        );
+      }
+
+      setNuevoComentario("");
+      setMensajeComentario(
+        "Comentario enviado correctamente."
+      );
+
+      await cargarDatosAsesor(sesion.id);
+    } catch (error) {
+      console.error(error);
+      setMensajeComentario(
+        "No se pudo enviar el comentario."
+      );
+    } finally {
+      setEnviandoComentario(false);
+    }
+  }
+
+  function imprimirInforme() {
+    window.print();
+  }
+
+  // =========================================================
+  // LOGIN
+  // =========================================================
 
   if (!sesion) {
     return (
@@ -151,7 +214,8 @@ export default function Home() {
           </h1>
 
           <p style={styles.subtitle}>
-            Seguimiento y evolución de calidad
+            Bienvenido a tu espacio personal de
+            seguimiento de calidad.
           </p>
 
           <form onSubmit={iniciarSesion}>
@@ -164,7 +228,9 @@ export default function Home() {
               type="text"
               placeholder="Ingresá tu usuario"
               value={usuario}
-              onChange={e => setUsuario(e.target.value)}
+              onChange={(e) =>
+                setUsuario(e.target.value)
+              }
             />
 
             <label style={styles.label}>
@@ -176,7 +242,9 @@ export default function Home() {
               type="password"
               placeholder="Ingresá tu contraseña"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
             />
 
             {error && (
@@ -190,17 +258,24 @@ export default function Home() {
               type="submit"
               disabled={cargando}
             >
-              {cargando ? "CARGANDO..." : "INGRESAR"}
+              {cargando
+                ? "CARGANDO..."
+                : "INGRESAR A MI PORTAL"}
             </button>
           </form>
 
           <p style={styles.help}>
-            ¿Necesitás ayuda? Contactá al equipo de Calidad.
+            ¿Necesitás ayuda? Contactá al equipo
+            de Calidad.
           </p>
         </div>
       </main>
     );
   }
+
+  // =========================================================
+  // ADMINISTRADOR
+  // =========================================================
 
   if (sesion.rol === "admin") {
     return (
@@ -217,6 +292,7 @@ export default function Home() {
           </div>
 
           <button
+            className="no-print"
             style={styles.logout}
             onClick={cerrarSesion}
           >
@@ -230,61 +306,85 @@ export default function Home() {
           </h2>
 
           <p style={styles.welcome}>
-            Desde acá vamos a administrar los reportes semanales
-            de Calidad y Productividad.
+            Desde acá vas a poder administrar la
+            información semanal del equipo.
           </p>
 
           <div style={styles.cards}>
-            <Metric
-              numero={asesores.length}
-              texto="Asesores registrados"
-            />
+            <div style={styles.card}>
+              <span style={styles.cardNumber}>
+                {asesores.length}
+              </span>
 
-            <Metric
-              numero="—"
-              texto="Reportes cargados"
-            />
+              <span style={styles.cardText}>
+                Asesores registrados
+              </span>
+            </div>
 
-            <Metric
-              numero="—"
-              texto="Auditorías"
-            />
+            <div style={styles.card}>
+              <span style={styles.cardNumber}>
+                —
+              </span>
+
+              <span style={styles.cardText}>
+                Reportes cargados
+              </span>
+            </div>
+
+            <div style={styles.card}>
+              <span style={styles.cardNumber}>
+                —
+              </span>
+
+              <span style={styles.cardText}>
+                Auditorías
+              </span>
+            </div>
           </div>
 
           <div style={styles.panel}>
             <div style={styles.sectionBadge}>
-              PRÓXIMAMENTE
+              PRÓXIMO PASO
             </div>
 
             <h2 style={styles.panelTitle}>
               Carga semanal
             </h2>
 
-            <p style={styles.welcome}>
-              Acá vamos a incorporar el cargador del archivo
-              semanal para actualizar automáticamente a todo
-              el equipo.
+            <p style={styles.paragraph}>
+              La base de datos y la API ya están
+              preparadas para recibir Calidad,
+              Productividad, Tipificaciones, Gestión
+              de Calidad, Auditorías de No Venta y
+              Comentarios.
             </p>
 
-            <div style={styles.futureBox}>
+            <div style={styles.notice}>
               <strong>
-                Carga masiva de reportes
+                Carga masiva semanal
               </strong>
 
               <p>
-                Calidad + Productividad + Tipificaciones +
-                Gestión + No Ventas.
+                En el siguiente paso vamos a crear
+                la pantalla donde vas a poder cargar
+                el archivo semanal que me pases y
+                distribuir automáticamente la
+                información a cada asesor.
               </p>
             </div>
           </div>
 
           <div style={styles.panel}>
+            <div style={styles.sectionBadge}>
+              EQUIPO
+            </div>
+
             <h2 style={styles.panelTitle}>
               Asesores registrados
             </h2>
 
             <div style={styles.advisorGrid}>
-              {asesores.map(asesor => (
+              {asesores.map((asesor) => (
                 <div
                   key={asesor.id}
                   style={styles.advisor}
@@ -299,11 +399,13 @@ export default function Home() {
                     </strong>
 
                     <p style={styles.username}>
+                      Usuario:{" "}
                       {asesor.usuario_login}
                     </p>
 
                     <p style={styles.userNumber}>
-                      N° {asesor.numero_usuario}
+                      N° usuario:{" "}
+                      {asesor.numero_usuario}
                     </p>
                   </div>
                 </div>
@@ -315,33 +417,37 @@ export default function Home() {
     );
   }
 
+  // =========================================================
+  // DATOS DEL ASESOR
+  // =========================================================
+
   const nombreMostrar =
-    sesion.nombre.split(", ")[1] || sesion.nombre;
+    sesion.nombre.split(", ")[1] ||
+    sesion.nombre;
 
-  const reporte =
-    datos.reportes.length > 0
-      ? datos.reportes[0]
+  const ultimoReporte =
+    reportes.length > 0
+      ? reportes[0]
       : null;
 
-  const productividad =
-    datos.productividad.length > 0
-      ? datos.productividad[0]
+  const ultimaProductividad =
+    productividad.length > 0
+      ? productividad[0]
       : null;
 
-  const tipificacion =
-    datos.tipificaciones.length > 0
-      ? datos.tipificaciones[0]
+  const ultimaGestion =
+    gestionCalidad.length > 0
+      ? gestionCalidad[0]
       : null;
 
-  const gestion =
-    datos.gestion.length > 0
-      ? datos.gestion[0]
+  const ultimaNoVenta =
+    auditoriasNoVenta.length > 0
+      ? auditoriasNoVenta[0]
       : null;
 
-  const noVenta =
-    datos.noVenta.length > 0
-      ? datos.noVenta[0]
-      : null;
+  // =========================================================
+  // PANEL DEL ASESOR
+  // =========================================================
 
   return (
     <main style={styles.dashboard}>
@@ -356,443 +462,820 @@ export default function Home() {
           </p>
         </div>
 
-        <button
-          style={styles.logout}
-          onClick={cerrarSesion}
-        >
-          Cerrar sesión
-        </button>
+        <div style={styles.headerButtons}>
+          <button
+            className="no-print"
+            style={styles.printButton}
+            onClick={imprimirInforme}
+          >
+            🖨️ Imprimir informe
+          </button>
+
+          <button
+            className="no-print"
+            style={styles.logout}
+            onClick={cerrarSesion}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
       <section style={styles.content}>
-        <div style={styles.topRow}>
-          <div>
-            <h2 style={styles.sectionTitle}>
-              Hola, {nombreMostrar}
-            </h2>
+        <div style={styles.printHeader}>
+          <h1>Informe semanal de desempeño</h1>
 
-            <p style={styles.welcome}>
-              Acá vas a encontrar tu evolución semanal
-              de Calidad y Productividad.
+          <p>
+            {sesion.nombre}
+          </p>
+
+          {ultimoReporte && (
+            <p>
+              {ultimoReporte.semana}
             </p>
-          </div>
-
-          <button
-            style={styles.printButton}
-            onClick={() => window.print()}
-          >
-            🖨 IMPRIMIR INFORME
-          </button>
+          )}
         </div>
+
+        <h2 style={styles.sectionTitle}>
+          Hola, {nombreMostrar}
+        </h2>
+
+        <p style={styles.welcome}>
+          Este es tu espacio personal de seguimiento
+          de calidad y desempeño.
+        </p>
+
+        {/* INFORMACIÓN */}
 
         <div style={styles.infoBar}>
           <div>
             <strong>N° de usuario</strong>
-            <span>{sesion.numero_usuario}</span>
+            <span>
+              {sesion.numero_usuario}
+            </span>
           </div>
 
           <div>
             <strong>Usuario</strong>
-            <span>{sesion.usuario}</span>
+            <span>
+              {sesion.usuario}
+            </span>
           </div>
 
           <div>
             <strong>Semana</strong>
             <span>
-              {reporte?.semana ||
-                productividad?.semana ||
-                "Sin reporte"}
+              {ultimoReporte?.semana ||
+                ultimaProductividad?.semana ||
+                "—"}
             </span>
           </div>
         </div>
 
-        <SectionTitle
-          badge="CALIDAD"
-          title="Mi resultado de calidad"
-        />
+        {/* RESUMEN */}
 
         <div style={styles.cards}>
-          <Metric
-            numero={reporte?.nota ?? "—"}
-            texto="Nota de calidad"
-          />
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ★
+            </span>
 
-          <Metric
-            numero={reporte?.evolucion ?? "—"}
-            texto="Evolución semanal"
-          />
+            <h3>Mi nota</h3>
 
-          <Metric
-            numero={reporte?.producto ?? "—"}
-            texto="Producto"
-          />
-        </div>
+            <strong style={styles.bigNumber}>
+              {ultimoReporte?.nota ?? "—"}
+            </strong>
 
-        <div style={styles.twoColumns}>
-          <Panel
-            badge="PLAN DE ACCIÓN"
-            title="Objetivos"
-          >
-            <div style={styles.highlightBox}>
-              {reporte?.objetivos ||
-                "Todavía no hay objetivos cargados."}
-            </div>
-          </Panel>
-
-          <Panel
-            badge="ATENCIÓN"
-            title="Principal punto de atención"
-          >
-            <div style={styles.highlightBox}>
-              {reporte?.desvio_principal ||
-                "Sin desvíos cargados."}
-            </div>
-          </Panel>
-        </div>
-
-        <Panel
-          badge="RECOMENDACIÓN"
-          title="¿Cómo mejorarlo?"
-        >
-          <div style={styles.textBox}>
-            {reporte?.recomendaciones ||
-              "Sin recomendaciones cargadas."}
-          </div>
-        </Panel>
-
-        <SectionTitle
-          badge="PRODUCTIVIDAD"
-          title="Mi evolución semanal"
-        />
-
-        <div style={styles.productivityGrid}>
-          <ProductivityCard
-            title="SPH"
-            resultado={productividad?.sph}
-            objetivo={productividad?.sph_objetivo}
-            estado={productividad?.estado_sph}
-          />
-
-          <ProductivityCard
-            title="VENTAS"
-            resultado={productividad?.ventas}
-            objetivo={productividad?.ventas_objetivo}
-            estado={productividad?.estado_ventas}
-          />
-
-          <ProductivityCard
-            title="OBJETIVO DE CAMPAÑA"
-            resultado={productividad?.objetivo_campana_descripcion}
-            objetivo={productividad?.objetivo_campana}
-            estado={productividad?.estado_objetivo_campana}
-          />
-        </div>
-
-        <Panel
-          badge="GESTIÓN SEMANAL"
-          title="¿Qué se realizó durante la semana?"
-        >
-          <div style={styles.textBox}>
-            {productividad?.gestion_semana ||
-              "Sin gestión registrada."}
-          </div>
-        </Panel>
-
-        <SectionTitle
-          badge="TIPIFICACIONES"
-          title="Seguimiento de desvíos"
-        />
-
-        <div style={styles.table}>
-          <div style={styles.tableHeader}>
-            <strong>Tipificación</strong>
-            <strong>% Desvío</strong>
-            <strong>Objetivo</strong>
-            <strong>Compromiso esperado</strong>
+            <p>
+              Resultado de calidad
+            </p>
           </div>
 
-          {tipificacion ? (
-            <div style={styles.tableRow}>
-              <span>
-                {tipificacion.tipificacion || "—"}
-              </span>
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ↗
+            </span>
 
-              <span>
-                {tipificacion.porcentaje_desvio != null
-                  ? `${tipificacion.porcentaje_desvio}%`
-                  : "—"}
-              </span>
+            <h3>Evolución</h3>
 
-              <span>
-                {tipificacion.objetivo ?? "—"}
-              </span>
+            <strong style={styles.evolutionText}>
+              {ultimoReporte?.evolucion || "—"}
+            </strong>
 
-              <span>
-                {tipificacion.compromiso_esperado || "—"}
-              </span>
+            <p>
+              Comparación semanal
+            </p>
+          </div>
+
+          <div style={styles.metricCard}>
+            <span style={styles.metricIcon}>
+              ✓
+            </span>
+
+            <h3>Semana</h3>
+
+            <strong style={styles.weekText}>
+              {ultimoReporte?.semana || "—"}
+            </strong>
+
+            <p>
+              Último reporte cargado
+            </p>
+          </div>
+        </div>
+
+        {/* =================================================
+            PRODUCTIVIDAD
+        ================================================= */}
+
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            PRODUCTIVIDAD
+          </div>
+
+          <h2 style={styles.panelTitle}>
+            Mi desempeño semanal
+          </h2>
+
+          {!ultimaProductividad ? (
+            <div style={styles.empty}>
+              Todavía no hay datos de productividad
+              cargados.
             </div>
           ) : (
-            <div style={styles.empty}>
-              No hay tipificaciones cargadas.
+            <div style={styles.productivityGrid}>
+              <MetricBox
+                titulo="SPH"
+                resultado={ultimaProductividad.sph}
+                objetivo={ultimaProductividad.sph_objetivo}
+                estado={ultimaProductividad.estado_sph}
+              />
+
+              <MetricBox
+                titulo="VENTAS"
+                resultado={ultimaProductividad.ventas}
+                objetivo={ultimaProductividad.ventas_objetivo}
+                estado={ultimaProductividad.estado_ventas}
+              />
+
+              <MetricBox
+                titulo="OBJETIVO DE CAMPAÑA"
+                resultado={
+                  ultimaProductividad.objetivo_campana_descripcion ||
+                  ultimaProductividad.objetivo_campana
+                }
+                objetivo={ultimaProductividad.objetivo_campana}
+                estado={
+                  ultimaProductividad.estado_objetivo_campana
+                }
+              />
+            </div>
+          )}
+
+          {ultimaProductividad?.gestion_semana && (
+            <div style={styles.managementBox}>
+              <strong>
+                ¿Qué se realizó durante la semana?
+              </strong>
+
+              <p>
+                {ultimaProductividad.gestion_semana}
+              </p>
             </div>
           )}
         </div>
 
-        <SectionTitle
-          badge="GESTIÓN DE CALIDAD"
-          title="Seguimiento realizado"
-        />
+        {/* =================================================
+            CALIDAD
+        ================================================= */}
 
-        <div style={styles.table}>
-          <div style={styles.tableHeader}>
-            <strong>Indicador</strong>
-            <strong>Resultado</strong>
+        {ultimoReporte && (
+          <>
+            <div style={styles.panel}>
+              <div style={styles.sectionBadge}>
+                PLAN DE ACCIÓN
+              </div>
+
+              <h2 style={styles.panelTitle}>
+                Objetivos de calidad
+              </h2>
+
+              <div style={styles.objectiveBox}>
+                <span style={styles.targetIcon}>
+                  🎯
+                </span>
+
+                <strong>
+                  {ultimoReporte.objetivos ||
+                    "Sin objetivos cargados"}
+                </strong>
+              </div>
+            </div>
+
+            <div style={styles.twoColumns}>
+              <div style={styles.panel}>
+                <div style={styles.sectionBadge}>
+                  ATENCIÓN
+                </div>
+
+                <h2 style={styles.panelTitle}>
+                  ¿Qué tengo que trabajar?
+                </h2>
+
+                <div style={styles.focusBox}>
+                  <div style={styles.emptyIcon}>
+                    !
+                  </div>
+
+                  <strong>
+                    {ultimoReporte.desvio_principal ||
+                      "Sin desvíos cargados"}
+                  </strong>
+
+                  <p>
+                    Principal punto de atención
+                    del período.
+                  </p>
+                </div>
+              </div>
+
+              <div style={styles.panel}>
+                <div style={styles.sectionBadge}>
+                  RECOMENDACIÓN
+                </div>
+
+                <h2 style={styles.panelTitle}>
+                  ¿Cómo mejorarlo?
+                </h2>
+
+                <div style={styles.focusBox}>
+                  <div style={styles.emptyIcon}>
+                    ✓
+                  </div>
+
+                  <p>
+                    {ultimoReporte.recomendaciones ||
+                      "Sin recomendaciones cargadas"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.panel}>
+              <div style={styles.sectionBadge}>
+                CALIDAD
+              </div>
+
+              <h2 style={styles.panelTitle}>
+                Última auditoría
+              </h2>
+
+              <div style={styles.auditBox}>
+                <div>
+                  <strong>
+                    Auditoría
+                  </strong>
+
+                  <p>
+                    {ultimoReporte.auditoria ||
+                      "Sin auditoría cargada"}
+                  </p>
+                </div>
+
+                <div>
+                  <strong>
+                    Producto
+                  </strong>
+
+                  <p>
+                    {ultimoReporte.producto || "—"}
+                  </p>
+                </div>
+
+                <div>
+                  <strong>
+                    Observaciones
+                  </strong>
+
+                  <p>
+                    {ultimoReporte.observaciones ||
+                      "Sin observaciones"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* =================================================
+            TIPIFICACIONES
+        ================================================= */}
+
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            TIPIFICACIONES
           </div>
 
-          <InfoRow
-            label="Cantidad de auditorías realizadas"
-            value={gestion?.cantidad_auditorias ?? "—"}
-          />
+          <h2 style={styles.panelTitle}>
+            Seguimiento de tipificaciones
+          </h2>
 
-          <InfoRow
-            label="Oportunidades de mejora"
-            value={gestion?.oportunidades_mejora || "—"}
-          />
+          {tipificaciones.length === 0 ? (
+            <div style={styles.empty}>
+              No hay tipificaciones cargadas.
+            </div>
+          ) : (
+            <div style={styles.dataList}>
+              {tipificaciones.map((item) => (
+                <div
+                  key={item.id}
+                  style={styles.dataCard}
+                >
+                  <div>
+                    <strong>
+                      {item.tipificacion ||
+                        "Sin tipificación"}
+                    </strong>
 
-          <InfoRow
-            label="Coaching brindado"
-            value={gestion?.coaching_brindado || "—"}
-          />
+                    <p>
+                      Semana: {item.semana}
+                    </p>
+                  </div>
 
-          <InfoRow
-            label="Registro en sistema"
-            value={gestion?.registro_sistema || "—"}
-          />
+                  <div style={styles.dataValue}>
+                    <small>
+                      % DESVÍO
+                    </small>
 
-          <InfoRow
-            label="Compromiso esperado"
-            value={gestion?.compromiso_esperado || "—"}
-          />
+                    <strong>
+                      {item.porcentaje_desvio ??
+                        "—"}
+                      {item.porcentaje_desvio !== null
+                        ? "%"
+                        : ""}
+                    </strong>
+                  </div>
 
-          <InfoRow
-            label="Fortalezas destacadas"
-            value={gestion?.fortalezas_destacadas || "—"}
-          />
+                  <div style={styles.dataValue}>
+                    <small>
+                      OBJETIVO
+                    </small>
+
+                    <strong>
+                      {item.objetivo ?? "—"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <small>
+                      COMPROMISO ESPERADO
+                    </small>
+
+                    <p>
+                      {item.compromiso_esperado ||
+                        "—"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <SectionTitle
-          badge="NO VENTA"
-          title="Auditoría de no ventas"
-        />
+        {/* =================================================
+            GESTIÓN DE CALIDAD
+        ================================================= */}
 
-        <Panel
-          badge="AUDITORÍA"
-          title="Resultado"
-        >
-          <div style={styles.auditGrid}>
-            <div>
-              <strong>Auditorías</strong>
-              <p>
-                {noVenta?.cantidad_auditorias ?? "—"}
-              </p>
-            </div>
-
-            <div>
-              <strong>Oportunidades detectadas</strong>
-              <p>
-                {noVenta?.oportunidades_detectadas || "—"}
-              </p>
-            </div>
-
-            <div>
-              <strong>Desvío principal</strong>
-              <p>
-                {noVenta?.desvio_principal || "—"}
-              </p>
-            </div>
-
-            <div>
-              <strong>Compromiso esperado</strong>
-              <p>
-                {noVenta?.compromiso_esperado || "—"}
-              </p>
-            </div>
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            GESTIÓN DE CALIDAD
           </div>
 
-          <div style={styles.textBox}>
-            <strong>Recomendaciones</strong>
-            <p>
-              {noVenta?.recomendaciones || "—"}
-            </p>
+          <h2 style={styles.panelTitle}>
+            Seguimiento de la gestión
+          </h2>
+
+          {!ultimaGestion ? (
+            <div style={styles.empty}>
+              No hay información de gestión cargada.
+            </div>
+          ) : (
+            <div style={styles.qualityGrid}>
+              <InfoItem
+                titulo="Cantidad de auditorías realizadas"
+                valor={
+                  ultimaGestion.cantidad_auditorias
+                }
+              />
+
+              <InfoItem
+                titulo="Oportunidades de mejora"
+                valor={
+                  ultimaGestion.oportunidades_mejora
+                }
+              />
+
+              <InfoItem
+                titulo="Coaching brindado"
+                valor={
+                  ultimaGestion.coaching_brindado
+                }
+              />
+
+              <InfoItem
+                titulo="Registro en sistema"
+                valor={
+                  ultimaGestion.registro_sistema
+                }
+              />
+
+              <InfoItem
+                titulo="Compromiso esperado"
+                valor={
+                  ultimaGestion.compromiso_esperado
+                }
+              />
+
+              <InfoItem
+                titulo="Fortalezas destacadas"
+                valor={
+                  ultimaGestion.fortalezas_destacadas
+                }
+              />
+            </div>
+          )}
+        </div>
+
+        {/* =================================================
+            AUDITORÍAS NO VENTA
+        ================================================= */}
+
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            AUDITORÍAS DE NO VENTA
           </div>
-        </Panel>
 
-        <SectionTitle
-          badge="CALIDAD"
-          title="Última auditoría"
-        />
+          <h2 style={styles.panelTitle}>
+            Oportunidades detectadas
+          </h2>
 
-        <Panel
-          badge="AUDITORÍA"
-          title="Detalle"
-        >
-          <div style={styles.auditGrid}>
-            <div>
-              <strong>Auditoría</strong>
-              <p>{reporte?.auditoria || "—"}</p>
+          {!ultimaNoVenta ? (
+            <div style={styles.empty}>
+              No hay auditorías de no venta
+              cargadas.
             </div>
+          ) : (
+            <div style={styles.auditNoVenta}>
+              <InfoItem
+                titulo="Cantidad de auditorías"
+                valor={
+                  ultimaNoVenta.cantidad_auditorias
+                }
+              />
 
-            <div>
-              <strong>Producto</strong>
-              <p>{reporte?.producto || "—"}</p>
-            </div>
+              <InfoItem
+                titulo="Oportunidades detectadas"
+                valor={
+                  ultimaNoVenta.oportunidades_detectadas
+                }
+              />
 
-            <div>
-              <strong>Observaciones</strong>
-              <p>{reporte?.observaciones || "—"}</p>
+              <InfoItem
+                titulo="Desvío principal"
+                valor={
+                  ultimaNoVenta.desvio_principal
+                }
+              />
+
+              <InfoItem
+                titulo="Recomendaciones"
+                valor={
+                  ultimaNoVenta.recomendaciones
+                }
+              />
+
+              <InfoItem
+                titulo="Compromiso esperado"
+                valor={
+                  ultimaNoVenta.compromiso_esperado
+                }
+              />
+
+              <InfoItem
+                titulo="Observaciones"
+                valor={
+                  ultimaNoVenta.observaciones
+                }
+              />
             </div>
+          )}
+        </div>
+
+        {/* =================================================
+            DEVOLUCIONES
+        ================================================= */}
+
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            DEVOLUCIÓN
           </div>
-        </Panel>
 
-        <SectionTitle
-          badge="SEGUIMIENTO"
-          title="Historial de reportes"
-        />
+          <h2 style={styles.panelTitle}>
+            Comunicación con Calidad
+          </h2>
 
-        <div style={styles.history}>
-          {datos.reportes.length === 0 ? (
+          <div style={styles.commentArea}>
+            <h3>
+              Devolución de Calidad
+            </h3>
+
+            {comentarios.filter(
+              (item) => item.tipo === "calidad"
+            ).length === 0 ? (
+              <p style={styles.muted}>
+                Todavía no hay una devolución
+                cargada.
+              </p>
+            ) : (
+              comentarios
+                .filter(
+                  (item) =>
+                    item.tipo === "calidad"
+                )
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    style={styles.commentQuality}
+                  >
+                    <strong>
+                      Calidad
+                    </strong>
+
+                    <p>
+                      {item.comentario}
+                    </p>
+
+                    <small>
+                      {item.fecha_carga}
+                    </small>
+                  </div>
+                ))
+            )}
+          </div>
+
+          <div style={styles.commentArea}>
+            <h3>
+              Mi comentario
+            </h3>
+
+            <textarea
+              className="no-print"
+              style={styles.textarea}
+              placeholder="Podés dejar acá tus comentarios, dudas, compromisos o consultas sobre la devolución..."
+              value={nuevoComentario}
+              onChange={(e) =>
+                setNuevoComentario(
+                  e.target.value
+                )
+              }
+            />
+
+            <button
+              className="no-print"
+              style={styles.primaryButton}
+              onClick={enviarComentario}
+              disabled={enviandoComentario}
+            >
+              {enviandoComentario
+                ? "ENVIANDO..."
+                : "ENVIAR COMENTARIO"}
+            </button>
+
+            {mensajeComentario && (
+              <p style={styles.successMessage}>
+                {mensajeComentario}
+              </p>
+            )}
+          </div>
+
+          {comentarios.filter(
+            (item) => item.tipo === "asesor"
+          ).length > 0 && (
+            <div style={styles.commentArea}>
+              <h3>
+                Mis comentarios anteriores
+              </h3>
+
+              {comentarios
+                .filter(
+                  (item) =>
+                    item.tipo === "asesor"
+                )
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    style={styles.commentAdvisor}
+                  >
+                    <strong>
+                      Mi comentario
+                    </strong>
+
+                    <p>
+                      {item.comentario}
+                    </p>
+
+                    <small>
+                      {item.fecha_carga}
+                    </small>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* =================================================
+            HISTORIAL
+        ================================================= */}
+
+        <div style={styles.panel}>
+          <div style={styles.sectionBadge}>
+            SEGUIMIENTO
+          </div>
+
+          <h2 style={styles.panelTitle}>
+            Historial de reportes
+          </h2>
+
+          {reportes.length === 0 ? (
             <div style={styles.empty}>
               Todavía no hay reportes cargados.
             </div>
           ) : (
-            datos.reportes.map(item => (
-              <div
-                key={item.id}
-                style={styles.historyItem}
-              >
-                <div>
-                  <strong>{item.semana}</strong>
-                  <p>
-                    {item.desvio_principal ||
-                      "Sin desvío"}
-                  </p>
+            <div style={styles.history}>
+              {reportes.map((reporte) => (
+                <div
+                  key={reporte.id}
+                  style={styles.historyItem}
+                >
+                  <div>
+                    <strong>
+                      {reporte.semana}
+                    </strong>
+
+                    <p>
+                      {reporte.desvio_principal ||
+                        "Sin desvío"}
+                    </p>
+                  </div>
+
+                  <strong
+                    style={styles.historyScore}
+                  >
+                    {reporte.nota ?? "—"}
+                  </strong>
+
+                  <span>
+                    {reporte.producto || "—"}
+                  </span>
                 </div>
-
-                <strong style={styles.score}>
-                  {item.nota ?? "—"}
-                </strong>
-
-                <span>
-                  {item.producto || "—"}
-                </span>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
-
-        <div style={styles.printFooter}>
-          Portal de Calidad · Informe individual
-        </div>
       </section>
+
+      <style jsx global>{`
+        @media print {
+          body {
+            background: white !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          header {
+            display: none !important;
+          }
+
+          .printHeader {
+            display: block !important;
+          }
+
+          main {
+            background: white !important;
+          }
+
+          section {
+            padding: 20px !important;
+          }
+
+          .panel {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+          }
+        }
+
+        @media screen {
+          .printHeader {
+            display: none;
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
-function Metric({ numero, texto }) {
-  return (
-    <div style={styles.metricCard}>
-      <strong style={styles.bigNumber}>
-        {numero}
-      </strong>
+// =========================================================
+// COMPONENTES
+// =========================================================
 
-      <p style={styles.metricLabel}>
-        {texto}
-      </p>
-    </div>
-  );
-}
-
-function SectionTitle({ badge, title }) {
-  return (
-    <div style={styles.sectionHeading}>
-      <span>{badge}</span>
-      <h2>{title}</h2>
-    </div>
-  );
-}
-
-function Panel({ badge, title, children }) {
-  return (
-    <div style={styles.panel}>
-      <div style={styles.sectionBadge}>
-        {badge}
-      </div>
-
-      <h2 style={styles.panelTitle}>
-        {title}
-      </h2>
-
-      {children}
-    </div>
-  );
-}
-
-function ProductivityCard({
-  title,
+function MetricBox({
+  titulo,
   resultado,
   objetivo,
   estado
 }) {
+  const alcanzado =
+    estado &&
+    (
+      estado.toLowerCase().includes("alcanz") ||
+      estado.toLowerCase().includes("cumpl")
+    );
+
   return (
-    <div style={styles.productivityCard}>
-      <span style={styles.productivityTitle}>
-        {title}
+    <div style={styles.metricBox}>
+      <span style={styles.metricBoxTitle}>
+        {titulo}
       </span>
 
-      <strong style={styles.productivityResult}>
+      <strong style={styles.metricResult}>
         {resultado ?? "—"}
       </strong>
 
-      <p>
+      <div style={styles.metricTarget}>
         Objetivo:{" "}
-        <strong>{objetivo ?? "—"}</strong>
-      </p>
+        <strong>
+          {objetivo ?? "—"}
+        </strong>
+      </div>
 
-      <div style={styles.status}>
+      <div
+        style={{
+          ...styles.status,
+          background: alcanzado
+            ? "#e3f1e8"
+            : "#f7ece8",
+          color: alcanzado
+            ? "#3d7452"
+            : "#a05b4b"
+        }}
+      >
         {estado || "Sin estado"}
       </div>
     </div>
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoItem({ titulo, valor }) {
   return (
-    <div style={styles.infoRow}>
-      <strong>{label}</strong>
-      <span>{value}</span>
+    <div style={styles.infoItem}>
+      <small>
+        {titulo}
+      </small>
+
+      <strong>
+        {valor || "—"}
+      </strong>
     </div>
   );
 }
+
+// =========================================================
+// ESTILOS
+// =========================================================
 
 const styles = {
   loginPage: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg,#eef4f1,#dce8e2)",
+      "linear-gradient(135deg, #eef4f1 0%, #dce8e2 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "20px",
-    fontFamily: "Arial,sans-serif"
+    fontFamily: "Arial, sans-serif",
+    padding: "20px"
   },
 
   loginCard: {
     width: "100%",
     maxWidth: "420px",
-    background: "#fff",
+    background: "#ffffff",
     borderRadius: "24px",
     padding: "45px",
-    boxShadow: "0 20px 60px rgba(0,0,0,.10)"
+    boxShadow:
+      "0 20px 60px rgba(0,0,0,0.10)"
   },
 
   logoCircle: {
@@ -800,7 +1283,7 @@ const styles = {
     height: "65px",
     borderRadius: "50%",
     background: "#657f70",
-    color: "#fff",
+    color: "white",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -811,19 +1294,22 @@ const styles = {
 
   title: {
     textAlign: "center",
-    color: "#30463b"
+    margin: "0",
+    color: "#30463b",
+    fontSize: "28px"
   },
 
   subtitle: {
     textAlign: "center",
     color: "#7b8982",
-    marginBottom: "35px"
+    marginBottom: "35px",
+    lineHeight: "1.5"
   },
 
   label: {
     display: "block",
-    marginTop: "18px",
     marginBottom: "8px",
+    marginTop: "18px",
     color: "#40534a",
     fontWeight: "bold"
   },
@@ -832,9 +1318,26 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     padding: "14px",
-    border: "1px solid #d5ddd8",
+    border:
+      "1px solid #d5ddd8",
     borderRadius: "10px",
-    fontSize: "15px"
+    fontSize: "15px",
+    outline: "none"
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "150px",
+    boxSizing: "border-box",
+    padding: "15px",
+    border:
+      "1px solid #d5ddd8",
+    borderRadius: "10px",
+    fontSize: "14px",
+    outline: "none",
+    resize: "vertical",
+    fontFamily: "Arial, sans-serif",
+    lineHeight: "1.5"
   },
 
   button: {
@@ -844,13 +1347,36 @@ const styles = {
     border: "none",
     borderRadius: "10px",
     background: "#657f70",
-    color: "#fff",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer"
+  },
+
+  primaryButton: {
+    marginTop: "15px",
+    padding: "13px 22px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#657f70",
+    color: "white",
+    fontWeight: "bold",
+    cursor: "pointer"
+  },
+
+  printButton: {
+    padding: "11px 18px",
+    border: "none",
+    borderRadius: "9px",
+    background: "#657f70",
+    color: "white",
     fontWeight: "bold",
     cursor: "pointer"
   },
 
   error: {
-    color: "#b44b4b"
+    color: "#b44b4b",
+    fontSize: "14px",
+    marginTop: "12px"
   },
 
   help: {
@@ -863,16 +1389,24 @@ const styles = {
   dashboard: {
     minHeight: "100vh",
     background: "#f4f7f5",
-    fontFamily: "Arial,sans-serif"
+    fontFamily: "Arial, sans-serif"
   },
 
   header: {
-    background: "#fff",
+    background: "#ffffff",
     padding: "22px 6%",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    boxShadow: "0 2px 10px rgba(0,0,0,.05)"
+    boxShadow:
+      "0 2px 10px rgba(0,0,0,0.05)"
+  },
+
+  headerButtons: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+    flexWrap: "wrap"
   },
 
   headerTitle: {
@@ -881,12 +1415,14 @@ const styles = {
   },
 
   headerSubtitle: {
+    margin: "5px 0 0",
     color: "#89948f"
   },
 
   logout: {
-    border: "1px solid #657f70",
-    background: "#fff",
+    border:
+      "1px solid #657f70",
+    background: "white",
     color: "#657f70",
     padding: "10px 18px",
     borderRadius: "8px",
@@ -899,49 +1435,28 @@ const styles = {
     padding: "45px 25px"
   },
 
-  topRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px",
-    flexWrap: "wrap"
+  printHeader: {
+    background: "#eef4f1",
+    padding: "20px",
+    borderRadius: "12px",
+    marginBottom: "25px"
   },
 
   sectionTitle: {
-    color: "#30463b"
+    color: "#30463b",
+    marginBottom: "8px"
   },
 
   welcome: {
-    color: "#7b8982",
-    lineHeight: "1.6"
-  },
-
-  printButton: {
-    background: "#657f70",
-    color: "#fff",
-    border: "none",
-    borderRadius: "10px",
-    padding: "13px 20px",
-    fontWeight: "bold",
-    cursor: "pointer"
+    color: "#7b8982"
   },
 
   infoBar: {
     background: "#e9f0ec",
     borderRadius: "14px",
-    padding: "18px 20px",
+    padding: "16px 20px",
     display: "flex",
-    gap: "45px",
-    flexWrap: "wrap",
-    marginTop: "25px"
-  },
-
-  infoBar: {
-    background: "#e9f0ec",
-    borderRadius: "14px",
-    padding: "18px 20px",
-    display: "flex",
-    gap: "45px",
+    gap: "40px",
     flexWrap: "wrap",
     marginTop: "25px"
   },
@@ -949,204 +1464,109 @@ const styles = {
   cards: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit,minmax(220px,1fr))",
+      "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "20px",
-    margin: "25px 0"
+    margin: "30px 0"
+  },
+
+  card: {
+    background: "white",
+    borderRadius: "16px",
+    padding: "25px",
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
   },
 
   metricCard: {
-    background: "#fff",
+    background: "white",
     borderRadius: "16px",
     padding: "25px",
-    boxShadow: "0 5px 20px rgba(0,0,0,.05)"
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
+  },
+
+  cardNumber: {
+    display: "block",
+    fontSize: "34px",
+    fontWeight: "bold",
+    color: "#657f70"
+  },
+
+  cardText: {
+    color: "#7b8982"
+  },
+
+  metricIcon: {
+    fontSize: "24px",
+    color: "#657f70"
   },
 
   bigNumber: {
     display: "block",
-    fontSize: "34px",
+    fontSize: "42px",
     color: "#657f70",
-    marginBottom: "8px"
+    marginTop: "10px"
   },
 
-  metricLabel: {
-    color: "#7b8982"
-  },
-
-  sectionHeading: {
-    marginTop: "40px",
-    marginBottom: "10px"
-  },
-
-  sectionHeading span: {
+  evolutionText: {
+    display: "block",
     color: "#657f70",
-    fontSize: "11px",
-    fontWeight: "bold",
-    letterSpacing: "1px"
+    marginTop: "10px",
+    fontSize: "18px",
+    lineHeight: "1.4"
   },
 
-  sectionHeading h2: {
-    color: "#30463b"
+  weekText: {
+    display: "block",
+    color: "#657f70",
+    marginTop: "10px",
+    fontSize: "18px"
   },
 
   panel: {
-    background: "#fff",
+    background: "white",
     borderRadius: "18px",
     padding: "28px",
-    marginTop: "20px",
-    boxShadow: "0 5px 20px rgba(0,0,0,.05)"
-  },
-
-  sectionBadge: {
-    color: "#657f70",
-    fontSize: "11px",
-    fontWeight: "bold",
-    letterSpacing: "1px"
+    marginTop: "25px",
+    boxShadow:
+      "0 5px 20px rgba(0,0,0,0.05)"
   },
 
   panelTitle: {
-    color: "#30463b"
-  },
-
-  highlightBox: {
-    background: "#f2f6f3",
-    borderRadius: "14px",
-    padding: "20px",
-    color: "#40534a",
-    lineHeight: "1.6"
-  },
-
-  textBox: {
-    background: "#f7f9f8",
-    borderRadius: "14px",
-    padding: "20px",
-    color: "#40534a",
-    lineHeight: "1.6"
-  },
-
-  twoColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit,minmax(300px,1fr))",
-    gap: "20px"
-  },
-
-  productivityGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit,minmax(250px,1fr))",
-    gap: "20px"
-  },
-
-  productivityCard: {
-    background: "#fff",
-    borderRadius: "18px",
-    padding: "25px",
-    boxShadow: "0 5px 20px rgba(0,0,0,.05)"
-  },
-
-  productivityTitle: {
-    color: "#657f70",
-    fontWeight: "bold",
-    fontSize: "12px",
-    letterSpacing: "1px"
-  },
-
-  productivityResult: {
-    display: "block",
     color: "#30463b",
-    fontSize: "34px",
-    margin: "15px 0"
+    marginTop: "10px"
   },
 
-  status: {
-    background: "#eef4f1",
-    color: "#40534a",
-    padding: "10px",
-    borderRadius: "8px",
-    fontWeight: "bold"
+  sectionBadge: {
+    display: "inline-block",
+    fontSize: "11px",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    color: "#657f70",
+    marginBottom: "5px"
   },
 
-  table: {
-    background: "#fff",
-    borderRadius: "16px",
-    overflow: "hidden",
-    boxShadow: "0 5px 20px rgba(0,0,0,.05)",
-    marginTop: "20px"
+  paragraph: {
+    color: "#65736c",
+    lineHeight: "1.6"
   },
 
-  tableHeader: {
-    display: "grid",
-    gridTemplateColumns:
-      "1.5fr 1fr 1fr 2fr",
-    gap: "15px",
-    padding: "16px",
-    background: "#e9f0ec",
-    color: "#40534a"
-  },
-
-  tableRow: {
-    display: "grid",
-    gridTemplateColumns:
-      "1.5fr 1fr 1fr 2fr",
-    gap: "15px",
-    padding: "18px",
-    color: "#40534a"
-  },
-
-  infoRow: {
-    display: "grid",
-    gridTemplateColumns:
-      "1fr 2fr",
-    gap: "20px",
-    padding: "16px",
-    borderBottom: "1px solid #edf0ee",
-    color: "#40534a"
-  },
-
-  auditGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit,minmax(220px,1fr))",
-    gap: "20px",
-    background: "#f7f9f8",
+  notice: {
+    background: "#f2f6f3",
+    padding: "20px",
     borderRadius: "14px",
-    padding: "20px"
-  },
-
-  history: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
+    color: "#40534a",
     marginTop: "20px"
   },
 
-  historyItem: {
-    display: "grid",
-    gridTemplateColumns:
-      "1fr auto 70px",
-    alignItems: "center",
-    gap: "15px",
-    padding: "15px",
-    background: "#fff",
-    border: "1px solid #edf0ee",
-    borderRadius: "12px"
-  },
-
-  score: {
-    fontSize: "22px",
-    color: "#657f70"
-  },
-
-  empty: {
-    padding: "25px",
-    textAlign: "center",
-    color: "#89948f"
+  notice p: {
+    color: "#65736c"
   },
 
   advisorGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit,minmax(260px,1fr))",
+      "repeat(auto-fit, minmax(260px, 1fr))",
     gap: "12px"
   },
 
@@ -1155,7 +1575,8 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "14px",
-    border: "1px solid #edf0ee",
+    border:
+      "1px solid #edf0ee",
     borderRadius: "12px"
   },
 
@@ -1168,33 +1589,245 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "bold"
+    fontWeight: "bold",
+    flexShrink: 0
   },
 
   username: {
-    margin: "5px 0",
+    margin: "5px 0 0",
     color: "#929c97",
     fontSize: "12px"
   },
 
   userNumber: {
-    margin: 0,
+    margin: "3px 0 0",
     color: "#a0aaa5",
     fontSize: "11px"
   },
 
-  futureBox: {
-    background: "#eef4f1",
+  productivityGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "18px",
+    marginTop: "20px"
+  },
+
+  metricBox: {
+    border:
+      "1px solid #e5ebe7",
+    borderRadius: "15px",
+    padding: "22px",
+    background: "#fafcfb"
+  },
+
+  metricBoxTitle: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: "bold",
+    color: "#657f70",
+    letterSpacing: "1px"
+  },
+
+  metricResult: {
+    display: "block",
+    fontSize: "32px",
+    color: "#30463b",
+    margin: "10px 0"
+  },
+
+  metricTarget: {
+    color: "#89948f",
+    fontSize: "14px"
+  },
+
+  status: {
+    display: "inline-block",
+    marginTop: "15px",
+    padding: "7px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "bold"
+  },
+
+  managementBox: {
+    background: "#f2f6f3",
     borderRadius: "14px",
+    padding: "20px",
+    marginTop: "20px",
+    color: "#40534a"
+  },
+
+  twoColumns: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "20px"
+  },
+
+  objectiveBox: {
+    background: "#f2f6f3",
+    borderRadius: "14px",
+    padding: "20px",
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    color: "#40534a"
+  },
+
+  targetIcon: {
+    fontSize: "28px"
+  },
+
+  focusBox: {
+    textAlign: "center",
     padding: "20px",
     color: "#40534a"
   },
 
-  printFooter: {
+  emptyIcon: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "50%",
+    background: "#edf2ef",
+    color: "#657f70",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 10px",
+    fontWeight: "bold",
+    fontSize: "20px"
+  },
+
+  empty: {
     textAlign: "center",
-    color: "#a0aaa5",
-    fontSize: "12px",
-    marginTop: "40px",
-    paddingBottom: "30px"
+    padding: "25px",
+    color: "#89948f"
+  },
+
+  auditBox: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "20px",
+    background: "#f7f9f8",
+    borderRadius: "14px",
+    padding: "20px"
+  },
+
+  auditNoVenta: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "15px"
+  },
+
+  qualityGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "15px"
+  },
+
+  infoItem: {
+    padding: "18px",
+    background: "#f7f9f8",
+    borderRadius: "12px"
+  },
+
+  infoItem small: {
+    display: "block",
+    color: "#89948f",
+    fontSize: "11px",
+    fontWeight: "bold",
+    marginBottom: "8px",
+    textTransform: "uppercase"
+  },
+
+  infoItem strong: {
+    display: "block",
+    color: "#40534a",
+    lineHeight: "1.5"
+  },
+
+  dataList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px"
+  },
+
+  dataCard: {
+    display: "grid",
+    gridTemplateColumns:
+      "1.5fr .7fr .7fr 1.5fr",
+    gap: "20px",
+    alignItems: "center",
+    padding: "18px",
+    border:
+      "1px solid #e7ece9",
+    borderRadius: "13px",
+    background: "#fafcfb"
+  },
+
+  dataValue: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px"
+  },
+
+  commentArea: {
+    background: "#f7f9f8",
+    borderRadius: "14px",
+    padding: "20px",
+    marginTop: "18px"
+  },
+
+  commentQuality: {
+    background: "#eaf2ed",
+    borderRadius: "12px",
+    padding: "16px",
+    marginTop: "10px"
+  },
+
+  commentAdvisor: {
+    background: "#ffffff",
+    border:
+      "1px solid #dce8e2",
+    borderRadius: "12px",
+    padding: "16px",
+    marginTop: "10px"
+  },
+
+  muted: {
+    color: "#89948f"
+  },
+
+  successMessage: {
+    color: "#3d7452",
+    fontWeight: "bold",
+    fontSize: "14px"
+  },
+
+  history: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px"
+  },
+
+  historyItem: {
+    display: "grid",
+    gridTemplateColumns:
+      "1fr auto 70px",
+    alignItems: "center",
+    gap: "15px",
+    padding: "15px",
+    border:
+      "1px solid #edf0ee",
+    borderRadius: "12px"
+  },
+
+  historyScore: {
+    fontSize: "22px",
+    color: "#657f70"
   }
 };
