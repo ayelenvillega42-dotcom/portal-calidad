@@ -5,7 +5,8 @@ import { useState } from "react";
 
 const asesores = [
   ["Acosta, Pamela", "8134", "acostapamela"],
-  ["Aguilera, Trinidad", "8196", "aguileratrinidad"],
+  ["Aguilera, T
+rinidad", "8196", "aguileratrinidad"],
   ["Bahamonde, Camila", "8135", "bahamondecamila"],
   ["Bustamante, Ailin", "8188", "bustamanteailin"],
   ["Bustos, Jesica", "8141", "bustosjesica"],
