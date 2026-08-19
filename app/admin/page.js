@@ -1,4 +1,3 @@
-```jsx
 "use client";
 
 import { useState } from "react";
@@ -68,24 +67,16 @@ export default function AdminPage() {
     setMensaje("");
 
     try {
-      const { createClient } = await import("@supabase/supabase-js");
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey =
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
+      if (!url || !key) {
         setMensaje(
-          "❌ Faltan las variables de conexión de Supabase en Vercel."
+          "❌ No están configuradas las variables de Supabase en Vercel."
         );
         setGuardando(false);
         return;
       }
-
-      const supabase = createClient(
-        supabaseUrl,
-        supabaseKey
-      );
 
       const asesorSeleccionado = asesores.find(
         ([, usuario]) => usuario === asesor
@@ -94,19 +85,17 @@ export default function AdminPage() {
       const datos = {
         asesor: asesorSeleccionado?.[0] || asesor,
         usuario: asesor,
-        semana,
+        semana: semana,
         nota: Number(nota),
-        evolucion,
-        objetivo,
-        desvio,
-        recomendacion,
-        auditoria,
-        producto,
-        observaciones,
+        evolucion: evolucion,
+        objetivo: objetivo,
+        desvio: desvio,
+        recomendacion: recomendacion,
+        auditoria: auditoria,
+        producto: producto,
+        observaciones: observaciones,
         sph: sph ? Number(sph) : null,
-        objetivo_sph: objetivoSph
-          ? Number(objetivoSph)
-          : null,
+        objetivo_sph: objetivoSph ? Number(objetivoSph) : null,
         ventas: ventas ? Number(ventas) : null,
         objetivo_ventas: objetivoVentas
           ? Number(objetivoVentas)
@@ -116,35 +105,87 @@ export default function AdminPage() {
         estado_sph: estadoSph,
         estado_ventas: estadoVentas,
         estado_campania: estadoCampania,
-        gestion,
+        gestion: gestion,
       };
 
-      const { error } = await supabase
-        .from("reportes")
-        .upsert(datos, {
-          onConflict: "usuario,semana",
-        });
+      const headers = {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      };
 
-      if (error) {
-        console.error(error);
+      /*
+       * Primero buscamos si ya existe un reporte
+       * para ese asesor y esa semana.
+       */
 
-        setMensaje(
-          "❌ No se pudo guardar el reporte: " +
-            error.message
-        );
+      const buscarUrl =
+        `${url}/rest/v1/reportes` +
+        `?usuario=eq.${encodeURIComponent(asesor)}` +
+        `&semana=eq.${encodeURIComponent(semana)}` +
+        `&select=id`;
 
-        setGuardando(false);
-        return;
+      const buscar = await fetch(buscarUrl, {
+        method: "GET",
+        headers,
+      });
+
+      if (!buscar.ok) {
+        const texto = await buscar.text();
+        throw new Error(texto || "No se pudo consultar Supabase.");
       }
 
-      setMensaje(
-        "✓ Reporte guardado correctamente."
-      );
+      const existentes = await buscar.json();
+
+      /*
+       * Si existe, actualizamos.
+       * Si no existe, creamos uno nuevo.
+       */
+
+      if (existentes.length > 0) {
+        const id = existentes[0].id;
+
+        const actualizarUrl =
+          `${url}/rest/v1/reportes?id=eq.${id}`;
+
+        const actualizar = await fetch(actualizarUrl, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(datos),
+        });
+
+        if (!actualizar.ok) {
+          const texto = await actualizar.text();
+          throw new Error(
+            texto || "No se pudo actualizar el reporte."
+          );
+        }
+
+        setMensaje("✓ Reporte actualizado correctamente.");
+      } else {
+        const crearUrl = `${url}/rest/v1/reportes`;
+
+        const crear = await fetch(crearUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(datos),
+        });
+
+        if (!crear.ok) {
+          const texto = await crear.text();
+          throw new Error(
+            texto || "No se pudo crear el reporte."
+          );
+        }
+
+        setMensaje("✓ Reporte guardado correctamente.");
+      }
     } catch (error) {
       console.error(error);
 
       setMensaje(
-        "❌ Error de conexión con Supabase."
+        "❌ No se pudo guardar el reporte. " +
+          (error?.message || "")
       );
     }
 
@@ -235,9 +276,9 @@ export default function AdminPage() {
             </div>
 
             <button
-              onClick={() =>
-                (window.location.href = "/")
-              }
+              onClick={() => {
+                window.location.href = "/";
+              }}
               style={{
                 padding: "11px 18px",
                 border: "none",
@@ -295,34 +336,25 @@ export default function AdminPage() {
 
           <select
             value={asesor}
-            onChange={(e) =>
-              setAsesor(e.target.value)
-            }
+            onChange={(e) => setAsesor(e.target.value)}
             style={inputStyle}
           >
             <option value="">
               Seleccionar asesor
             </option>
 
-            {asesores.map(
-              ([nombre, usuario]) => (
-                <option
-                  key={usuario}
-                  value={usuario}
-                >
-                  {nombre} — {usuario}
-                </option>
-              )
-            )}
+            {asesores.map(([nombre, usuario]) => (
+              <option key={usuario} value={usuario}>
+                {nombre} — {usuario}
+              </option>
+            ))}
           </select>
 
           <label>Semana</label>
 
           <input
             value={semana}
-            onChange={(e) =>
-              setSemana(e.target.value)
-            }
+            onChange={(e) => setSemana(e.target.value)}
             style={inputStyle}
           />
 
@@ -333,9 +365,7 @@ export default function AdminPage() {
             min="0"
             max="100"
             value={nota}
-            onChange={(e) =>
-              setNota(e.target.value)
-            }
+            onChange={(e) => setNota(e.target.value)}
             placeholder="Ejemplo: 85"
             style={inputStyle}
           />
@@ -344,9 +374,7 @@ export default function AdminPage() {
 
           <input
             value={evolucion}
-            onChange={(e) =>
-              setEvolucion(e.target.value)
-            }
+            onChange={(e) => setEvolucion(e.target.value)}
             placeholder="Ejemplo: Mejora respecto de la semana anterior"
             style={inputStyle}
           />
@@ -355,9 +383,7 @@ export default function AdminPage() {
 
           <textarea
             value={objetivo}
-            onChange={(e) =>
-              setObjetivo(e.target.value)
-            }
+            onChange={(e) => setObjetivo(e.target.value)}
             placeholder="¿Qué debe trabajar?"
             style={{
               ...inputStyle,
@@ -369,9 +395,7 @@ export default function AdminPage() {
 
           <input
             value={desvio}
-            onChange={(e) =>
-              setDesvio(e.target.value)
-            }
+            onChange={(e) => setDesvio(e.target.value)}
             placeholder="Ejemplo: Validación de datos"
             style={inputStyle}
           />
@@ -394,9 +418,7 @@ export default function AdminPage() {
 
           <input
             value={auditoria}
-            onChange={(e) =>
-              setAuditoria(e.target.value)
-            }
+            onChange={(e) => setAuditoria(e.target.value)}
             placeholder="Ejemplo: Llamada auditada"
             style={inputStyle}
           />
@@ -405,9 +427,7 @@ export default function AdminPage() {
 
           <select
             value={producto}
-            onChange={(e) =>
-              setProducto(e.target.value)
-            }
+            onChange={(e) => setProducto(e.target.value)}
             style={inputStyle}
           >
             <option>AP</option>
@@ -460,9 +480,7 @@ export default function AdminPage() {
 
           <input
             value={sph}
-            onChange={(e) =>
-              setSph(e.target.value)
-            }
+            onChange={(e) => setSph(e.target.value)}
             placeholder="Ejemplo: 1.25"
             style={inputStyle}
           />
@@ -482,9 +500,7 @@ export default function AdminPage() {
 
           <input
             value={ventas}
-            onChange={(e) =>
-              setVentas(e.target.value)
-            }
+            onChange={(e) => setVentas(e.target.value)}
             placeholder="Cantidad de ventas"
             style={inputStyle}
           />
@@ -588,9 +604,7 @@ export default function AdminPage() {
 
           <textarea
             value={gestion}
-            onChange={(e) =>
-              setGestion(e.target.value)
-            }
+            onChange={(e) => setGestion(e.target.value)}
             placeholder="Contanos qué acciones se realizaron durante la semana."
             style={{
               ...inputStyle,
@@ -649,36 +663,32 @@ export default function AdminPage() {
               gap: "12px",
             }}
           >
-            {asesores.map(
-              ([nombre, usuario]) => (
+            {asesores.map(([nombre, usuario]) => (
+              <div
+                key={usuario}
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  background: "#fafafa",
+                }}
+              >
+                <strong>{nombre}</strong>
+
                 <div
-                  key={usuario}
                   style={{
-                    padding: "16px",
-                    border:
-                      "1px solid #e5e7eb",
-                    borderRadius: "12px",
-                    background: "#fafafa",
+                    fontSize: "13px",
+                    color: "#68707b",
+                    marginTop: "5px",
                   }}
                 >
-                  <strong>{nombre}</strong>
-
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#68707b",
-                      marginTop: "5px",
-                    }}
-                  >
-                    Usuario: {usuario}
-                  </div>
+                  Usuario: {usuario}
                 </div>
-              )
-            )}
+              </div>
+            ))}
           </div>
         </section>
       </div>
     </main>
   );
 }
-```
