@@ -1,41 +1,34 @@
 export default {
   async fetch(request, env) {
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders,
-      });
-    }
-
     try {
       const url = new URL(request.url);
 
       // =========================
-      // ESTADO
+      // PRUEBA DE CONEXIÓN D1
       // =========================
-
-      if (url.pathname === "/estado") {
+      if (url.pathname === "/test-db") {
         const resultado = await env.DB
           .prepare("SELECT COUNT(*) AS cantidad FROM asesores")
           .first();
 
-        return json({
-          estado: "ok",
-          base: "portal-calidad",
-          asesores: resultado?.cantidad ?? 0,
-        }, corsHeaders);
+        return new Response(
+          JSON.stringify({
+            estado: "ok",
+            base: "portal-calidad",
+            asesores: resultado?.cantidad ?? 0
+          }),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        );
       }
 
       // =========================
-      // ASESORES
+      // API ASESORES
       // =========================
-
       if (url.pathname === "/asesores") {
         const resultado = await env.DB
           .prepare(`
@@ -47,25 +40,39 @@ export default {
               activo
             FROM asesores
             WHERE activo = 1
-            ORDER BY nombre ASC
+            ORDER BY nombre
           `)
           .all();
 
-        return json(resultado.results ?? [], corsHeaders);
+        return new Response(
+          JSON.stringify(resultado.results || []),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        );
       }
 
       // =========================
-      // REPORTES
+      // API REPORTES
       // =========================
-
       if (url.pathname === "/reportes") {
         const asesorId = url.searchParams.get("asesor_id");
 
         if (!asesorId) {
-          return json(
-            { error: "Falta asesor_id" },
-            corsHeaders,
-            400
+          return new Response(
+            JSON.stringify({
+              error: "Falta asesor_id"
+            }),
+            {
+              status: 400,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+              }
+            }
           );
         }
 
@@ -88,105 +95,131 @@ export default {
             WHERE asesor_id = ?
             ORDER BY id DESC
           `)
-          .bind(asesorId)
+          .bind(Number(asesorId))
           .all();
 
-        return json(resultado.results ?? [], corsHeaders);
-      }
-
-      // =========================
-      // CARGAR REPORTE
-      // =========================
-
-      if (url.pathname === "/reportes" && request.method === "POST") {
-        const datos = await request.json();
-
-        if (!datos.asesor_id || !datos.semana) {
-          return json(
-            {
-              error: "asesor_id y semana son obligatorios",
-            },
-            corsHeaders,
-            400
-          );
-        }
-
-        const resultado = await env.DB
-          .prepare(`
-            INSERT INTO reportes (
-              asesor_id,
-              semana,
-              nota,
-              evolucion,
-              objetivos,
-              desvio_principal,
-              recomendaciones,
-              auditoria,
-              producto,
-              observaciones
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `)
-          .bind(
-            datos.asesor_id,
-            datos.semana,
-            datos.nota ?? null,
-            datos.evolucion ?? null,
-            datos.objetivos ?? null,
-            datos.desvio_principal ?? null,
-            datos.recomendaciones ?? null,
-            datos.auditoria ?? null,
-            datos.producto ?? null,
-            datos.observaciones ?? null
-          )
-          .run();
-
-        return json(
+        return new Response(
+          JSON.stringify(resultado.results || []),
           {
-            ok: true,
-            mensaje: "Reporte cargado correctamente",
-            id: resultado.meta?.last_row_id ?? null,
-          },
-          corsHeaders,
-          201
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
         );
       }
 
       // =========================
-      // RESPUESTA PRINCIPAL
+      // PÁGINA PRINCIPAL
       // =========================
+      if (url.pathname === "/" || url.pathname === "") {
+        return new Response(
+          `
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Portal de Calidad</title>
+            <style>
+              body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background: #f4f7f5;
+                color: #30463b;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
 
-      return json(
-        {
-          mensaje: "Portal de Calidad API funcionando",
-          endpoints: [
-            "/estado",
-            "/asesores",
-            "/reportes?asesor_id=5"
-          ],
-        },
-        corsHeaders
-      );
+              .card {
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                box-shadow: 0 10px 40px rgba(0,0,0,.08);
+                text-align: center;
+                max-width: 500px;
+                width: 90%;
+              }
+
+              .logo {
+                width: 65px;
+                height: 65px;
+                border-radius: 50%;
+                background: #657f70;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 20px;
+                font-size: 28px;
+                font-weight: bold;
+              }
+
+              h1 {
+                margin-bottom: 10px;
+              }
+
+              p {
+                color: #7b8982;
+              }
+
+              .ok {
+                margin-top: 25px;
+                padding: 15px;
+                background: #eef4f1;
+                border-radius: 12px;
+                color: #40534a;
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="card">
+              <div class="logo">Q</div>
+
+              <h1>Portal de Calidad</h1>
+
+              <p>
+                Seguimiento y evolución de calidad
+              </p>
+
+              <div class="ok">
+                ✓ Portal conectado correctamente
+              </div>
+            </div>
+          </body>
+          </html>
+          `,
+          {
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8"
+            }
+          }
+        );
+      }
+
+      return new Response("Ruta no encontrada", {
+        status: 404
+      });
 
     } catch (error) {
-      return json(
+      console.error("ERROR DEL WORKER:", error);
+
+      return new Response(
+        JSON.stringify({
+          estado: "error",
+          mensaje: error.message
+        }),
         {
-          error: "Error en la API",
-          detalle: error.message,
-        },
-        corsHeaders,
-        500
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        }
       );
     }
-  },
+  }
 };
-
-function json(data, headers, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      ...headers,
-      "Content-Type": "application/json; charset=UTF-8",
-    },
-  });
-}
