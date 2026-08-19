@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
 
 const asesores = [
   ["Acosta, Pamela", "8134", "acostapamela"],
@@ -56,7 +55,6 @@ export default function AdminPage() {
   const [estadoCampania, setEstadoCampania] = useState("");
 
   const [gestion, setGestion] = useState("");
-
   const [mensaje, setMensaje] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -69,52 +67,86 @@ export default function AdminPage() {
     setGuardando(true);
     setMensaje("");
 
-    const asesorSeleccionado = asesores.find(
-      ([, usuario]) => usuario === asesor
-    );
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
 
-    const datos = {
-      asesor: asesorSeleccionado?.[0] || asesor,
-      usuario: asesor,
-      semana,
-      nota: Number(nota),
-      evolucion,
-      objetivo,
-      desvio,
-      recomendacion,
-      auditoria,
-      producto,
-      observaciones,
-      sph: sph ? Number(sph) : null,
-      objetivo_sph: objetivoSph ? Number(objetivoSph) : null,
-      ventas: ventas ? Number(ventas) : null,
-      objetivo_ventas: objetivoVentas ? Number(objetivoVentas) : null,
-      objetivo_campania: objetivoCampania,
-      descripcion_campania: descripcionCampania,
-      estado_sph: estadoSph,
-      estado_ventas: estadoVentas,
-      estado_campania: estadoCampania,
-      gestion,
-    };
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey =
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    const { error } = await supabase
-      .from("reportes")
-      .upsert(datos, {
-        onConflict: "usuario,semana",
-      });
+      if (!supabaseUrl || !supabaseKey) {
+        setMensaje(
+          "❌ Faltan las variables de conexión de Supabase en Vercel."
+        );
+        setGuardando(false);
+        return;
+      }
 
-    if (error) {
-      console.error("ERROR SUPABASE:", error);
-
-      setMensaje(
-        "❌ No se pudo guardar el reporte. Revisá la configuración de Supabase."
+      const supabase = createClient(
+        supabaseUrl,
+        supabaseKey
       );
 
-      setGuardando(false);
-      return;
-    }
+      const asesorSeleccionado = asesores.find(
+        ([, usuario]) => usuario === asesor
+      );
 
-    setMensaje("✓ Reporte guardado correctamente.");
+      const datos = {
+        asesor: asesorSeleccionado?.[0] || asesor,
+        usuario: asesor,
+        semana,
+        nota: Number(nota),
+        evolucion,
+        objetivo,
+        desvio,
+        recomendacion,
+        auditoria,
+        producto,
+        observaciones,
+        sph: sph ? Number(sph) : null,
+        objetivo_sph: objetivoSph
+          ? Number(objetivoSph)
+          : null,
+        ventas: ventas ? Number(ventas) : null,
+        objetivo_ventas: objetivoVentas
+          ? Number(objetivoVentas)
+          : null,
+        objetivo_campania: objetivoCampania,
+        descripcion_campania: descripcionCampania,
+        estado_sph: estadoSph,
+        estado_ventas: estadoVentas,
+        estado_campania: estadoCampania,
+        gestion,
+      };
+
+      const { error } = await supabase
+        .from("reportes")
+        .upsert(datos, {
+          onConflict: "usuario,semana",
+        });
+
+      if (error) {
+        console.error(error);
+
+        setMensaje(
+          "❌ No se pudo guardar el reporte: " +
+            error.message
+        );
+
+        setGuardando(false);
+        return;
+      }
+
+      setMensaje(
+        "✓ Reporte guardado correctamente."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setMensaje(
+        "❌ Error de conexión con Supabase."
+      );
+    }
 
     setGuardando(false);
   }
@@ -177,8 +209,12 @@ export default function AdminPage() {
         color: "#20242a",
       }}
     >
-      <div style={{ maxWidth: "1100px", margin: "auto" }}>
-
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "auto",
+        }}
+      >
         <div style={sectionStyle}>
           <div
             style={{
@@ -189,7 +225,9 @@ export default function AdminPage() {
             }}
           >
             <div>
-              <h1 style={{ margin: 0 }}>Portal de Calidad</h1>
+              <h1 style={{ margin: 0 }}>
+                Portal de Calidad
+              </h1>
 
               <p style={{ color: "#68707b" }}>
                 Panel de Administración
@@ -197,7 +235,9 @@ export default function AdminPage() {
             </div>
 
             <button
-              onClick={() => (window.location.href = "/")}
+              onClick={() =>
+                (window.location.href = "/")
+              }
               style={{
                 padding: "11px 18px",
                 border: "none",
@@ -221,8 +261,8 @@ export default function AdminPage() {
           <h2>Bienvenida, Administradora</h2>
 
           <p>
-            Desde acá vas a poder cargar y actualizar la información semanal
-            del equipo.
+            Desde acá vas a poder cargar y actualizar
+            la información semanal del equipo.
           </p>
 
           {mensaje && (
@@ -231,11 +271,9 @@ export default function AdminPage() {
                 background: mensaje.includes("❌")
                   ? "#fff1f1"
                   : "#eaf7ef",
-
                 border: mensaje.includes("❌")
                   ? "1px solid #f0b5b5"
                   : "1px solid #b8e1c6",
-
                 padding: "14px",
                 borderRadius: "10px",
                 marginTop: "15px",
@@ -257,23 +295,34 @@ export default function AdminPage() {
 
           <select
             value={asesor}
-            onChange={(e) => setAsesor(e.target.value)}
+            onChange={(e) =>
+              setAsesor(e.target.value)
+            }
             style={inputStyle}
           >
-            <option value="">Seleccionar asesor</option>
+            <option value="">
+              Seleccionar asesor
+            </option>
 
-            {asesores.map(([nombre, usuario]) => (
-              <option key={usuario} value={usuario}>
-                {nombre} — {usuario}
-              </option>
-            ))}
+            {asesores.map(
+              ([nombre, usuario]) => (
+                <option
+                  key={usuario}
+                  value={usuario}
+                >
+                  {nombre} — {usuario}
+                </option>
+              )
+            )}
           </select>
 
           <label>Semana</label>
 
           <input
             value={semana}
-            onChange={(e) => setSemana(e.target.value)}
+            onChange={(e) =>
+              setSemana(e.target.value)
+            }
             style={inputStyle}
           />
 
@@ -284,7 +333,9 @@ export default function AdminPage() {
             min="0"
             max="100"
             value={nota}
-            onChange={(e) => setNota(e.target.value)}
+            onChange={(e) =>
+              setNota(e.target.value)
+            }
             placeholder="Ejemplo: 85"
             style={inputStyle}
           />
@@ -293,7 +344,9 @@ export default function AdminPage() {
 
           <input
             value={evolucion}
-            onChange={(e) => setEvolucion(e.target.value)}
+            onChange={(e) =>
+              setEvolucion(e.target.value)
+            }
             placeholder="Ejemplo: Mejora respecto de la semana anterior"
             style={inputStyle}
           />
@@ -302,7 +355,9 @@ export default function AdminPage() {
 
           <textarea
             value={objetivo}
-            onChange={(e) => setObjetivo(e.target.value)}
+            onChange={(e) =>
+              setObjetivo(e.target.value)
+            }
             placeholder="¿Qué debe trabajar?"
             style={{
               ...inputStyle,
@@ -314,7 +369,9 @@ export default function AdminPage() {
 
           <input
             value={desvio}
-            onChange={(e) => setDesvio(e.target.value)}
+            onChange={(e) =>
+              setDesvio(e.target.value)
+            }
             placeholder="Ejemplo: Validación de datos"
             style={inputStyle}
           />
@@ -323,7 +380,9 @@ export default function AdminPage() {
 
           <textarea
             value={recomendacion}
-            onChange={(e) => setRecomendacion(e.target.value)}
+            onChange={(e) =>
+              setRecomendacion(e.target.value)
+            }
             placeholder="Recomendación para el asesor"
             style={{
               ...inputStyle,
@@ -335,7 +394,9 @@ export default function AdminPage() {
 
           <input
             value={auditoria}
-            onChange={(e) => setAuditoria(e.target.value)}
+            onChange={(e) =>
+              setAuditoria(e.target.value)
+            }
             placeholder="Ejemplo: Llamada auditada"
             style={inputStyle}
           />
@@ -344,7 +405,9 @@ export default function AdminPage() {
 
           <select
             value={producto}
-            onChange={(e) => setProducto(e.target.value)}
+            onChange={(e) =>
+              setProducto(e.target.value)
+            }
             style={inputStyle}
           >
             <option>AP</option>
@@ -355,7 +418,9 @@ export default function AdminPage() {
 
           <textarea
             value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
+            onChange={(e) =>
+              setObservaciones(e.target.value)
+            }
             placeholder="Observaciones de la auditoría"
             style={{
               ...inputStyle,
@@ -371,14 +436,20 @@ export default function AdminPage() {
               padding: "15px",
               border: "none",
               borderRadius: "12px",
-              background: guardando ? "#94a3b8" : "#111827",
+              background: guardando
+                ? "#94a3b8"
+                : "#111827",
               color: "white",
               fontSize: "16px",
               fontWeight: "bold",
-              cursor: guardando ? "not-allowed" : "pointer",
+              cursor: guardando
+                ? "not-allowed"
+                : "pointer",
             }}
           >
-            {guardando ? "GUARDANDO..." : "GUARDAR REPORTE"}
+            {guardando
+              ? "GUARDANDO..."
+              : "GUARDAR REPORTE"}
           </button>
         </section>
 
@@ -389,7 +460,9 @@ export default function AdminPage() {
 
           <input
             value={sph}
-            onChange={(e) => setSph(e.target.value)}
+            onChange={(e) =>
+              setSph(e.target.value)
+            }
             placeholder="Ejemplo: 1.25"
             style={inputStyle}
           />
@@ -398,7 +471,9 @@ export default function AdminPage() {
 
           <input
             value={objetivoSph}
-            onChange={(e) => setObjetivoSph(e.target.value)}
+            onChange={(e) =>
+              setObjetivoSph(e.target.value)
+            }
             placeholder="Ejemplo: 1.20"
             style={inputStyle}
           />
@@ -407,7 +482,9 @@ export default function AdminPage() {
 
           <input
             value={ventas}
-            onChange={(e) => setVentas(e.target.value)}
+            onChange={(e) =>
+              setVentas(e.target.value)
+            }
             placeholder="Cantidad de ventas"
             style={inputStyle}
           />
@@ -416,7 +493,9 @@ export default function AdminPage() {
 
           <input
             value={objetivoVentas}
-            onChange={(e) => setObjetivoVentas(e.target.value)}
+            onChange={(e) =>
+              setObjetivoVentas(e.target.value)
+            }
             placeholder="Cantidad objetivo"
             style={inputStyle}
           />
@@ -425,16 +504,22 @@ export default function AdminPage() {
 
           <input
             value={objetivoCampania}
-            onChange={(e) => setObjetivoCampania(e.target.value)}
+            onChange={(e) =>
+              setObjetivoCampania(e.target.value)
+            }
             placeholder="Objetivo de campaña"
             style={inputStyle}
           />
 
-          <label>Descripción objetivo de campaña</label>
+          <label>
+            Descripción objetivo de campaña
+          </label>
 
           <textarea
             value={descripcionCampania}
-            onChange={(e) => setDescripcionCampania(e.target.value)}
+            onChange={(e) =>
+              setDescripcionCampania(e.target.value)
+            }
             style={{
               ...inputStyle,
               minHeight: "80px",
@@ -445,10 +530,14 @@ export default function AdminPage() {
 
           <select
             value={estadoSph}
-            onChange={(e) => setEstadoSph(e.target.value)}
+            onChange={(e) =>
+              setEstadoSph(e.target.value)
+            }
             style={inputStyle}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
@@ -459,35 +548,49 @@ export default function AdminPage() {
 
           <select
             value={estadoVentas}
-            onChange={(e) => setEstadoVentas(e.target.value)}
+            onChange={(e) =>
+              setEstadoVentas(e.target.value)
+            }
             style={inputStyle}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
             <option>No alcanzado</option>
           </select>
 
-          <label>Estado objetivo de campaña</label>
+          <label>
+            Estado objetivo de campaña
+          </label>
 
           <select
             value={estadoCampania}
-            onChange={(e) => setEstadoCampania(e.target.value)}
+            onChange={(e) =>
+              setEstadoCampania(e.target.value)
+            }
             style={inputStyle}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
             <option>No alcanzado</option>
           </select>
 
-          <label>¿Qué se realizó durante la semana?</label>
+          <label>
+            ¿Qué se realizó durante la semana?
+          </label>
 
           <textarea
             value={gestion}
-            onChange={(e) => setGestion(e.target.value)}
+            onChange={(e) =>
+              setGestion(e.target.value)
+            }
             placeholder="Contanos qué acciones se realizaron durante la semana."
             style={{
               ...inputStyle,
@@ -503,14 +606,20 @@ export default function AdminPage() {
               padding: "15px",
               border: "none",
               borderRadius: "12px",
-              background: guardando ? "#94a3b8" : "#334155",
+              background: guardando
+                ? "#94a3b8"
+                : "#334155",
               color: "white",
               fontSize: "16px",
               fontWeight: "bold",
-              cursor: guardando ? "not-allowed" : "pointer",
+              cursor: guardando
+                ? "not-allowed"
+                : "pointer",
             }}
           >
-            {guardando ? "GUARDANDO..." : "GUARDAR PRODUCTIVIDAD"}
+            {guardando
+              ? "GUARDANDO..."
+              : "GUARDAR PRODUCTIVIDAD"}
           </button>
 
           <button
@@ -540,32 +649,34 @@ export default function AdminPage() {
               gap: "12px",
             }}
           >
-            {asesores.map(([nombre, usuario]) => (
-              <div
-                key={usuario}
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  background: "#fafafa",
-                }}
-              >
-                <strong>{nombre}</strong>
-
+            {asesores.map(
+              ([nombre, usuario]) => (
                 <div
+                  key={usuario}
                   style={{
-                    fontSize: "13px",
-                    color: "#68707b",
-                    marginTop: "5px",
+                    padding: "16px",
+                    border:
+                      "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    background: "#fafafa",
                   }}
                 >
-                  Usuario: {usuario}
+                  <strong>{nombre}</strong>
+
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "#68707b",
+                      marginTop: "5px",
+                    }}
+                  >
+                    Usuario: {usuario}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </section>
-
       </div>
     </main>
   );
