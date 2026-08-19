@@ -2,11 +2,11 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 const asesores = [
   ["Acosta, Pamela", "8134", "acostapamela"],
-  ["Aguilera, T
-rinidad", "8196", "aguileratrinidad"],
+  ["Aguilera, Trinidad", "8196", "aguileratrinidad"],
   ["Bahamonde, Camila", "8135", "bahamondecamila"],
   ["Bustamante, Ailin", "8188", "bustamanteailin"],
   ["Bustos, Jesica", "8141", "bustosjesica"],
@@ -50,23 +50,34 @@ export default function AdminPage() {
   const [objetivoVentas, setObjetivoVentas] = useState("");
   const [objetivoCampania, setObjetivoCampania] = useState("");
   const [descripcionCampania, setDescripcionCampania] = useState("");
+
   const [estadoSph, setEstadoSph] = useState("");
   const [estadoVentas, setEstadoVentas] = useState("");
   const [estadoCampania, setEstadoCampania] = useState("");
+
   const [gestion, setGestion] = useState("");
 
   const [mensaje, setMensaje] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
-  function guardarReporte() {
+  async function guardarReporte() {
     if (!asesor || !nota) {
       setMensaje("Seleccioná un asesor y cargá la nota.");
       return;
     }
 
+    setGuardando(true);
+    setMensaje("");
+
+    const asesorSeleccionado = asesores.find(
+      ([, usuario]) => usuario === asesor
+    );
+
     const datos = {
-      asesor,
+      asesor: asesorSeleccionado?.[0] || asesor,
+      usuario: asesor,
       semana,
-      nota,
+      nota: Number(nota),
       evolucion,
       objetivo,
       desvio,
@@ -74,49 +85,65 @@ export default function AdminPage() {
       auditoria,
       producto,
       observaciones,
-      sph,
-      objetivoSph,
-      ventas,
-      objetivoVentas,
-      objetivoCampania,
-      descripcionCampania,
-      estadoSph,
-      estadoVentas,
-      estadoCampania,
+      sph: sph ? Number(sph) : null,
+      objetivo_sph: objetivoSph ? Number(objetivoSph) : null,
+      ventas: ventas ? Number(ventas) : null,
+      objetivo_ventas: objetivoVentas ? Number(objetivoVentas) : null,
+      objetivo_campania: objetivoCampania,
+      descripcion_campania: descripcionCampania,
+      estado_sph: estadoSph,
+      estado_ventas: estadoVentas,
+      estado_campania: estadoCampania,
       gestion,
-      fecha: new Date().toLocaleDateString("es-AR"),
     };
 
-    localStorage.setItem(
-      `reporte_${asesor}_${semana}`,
-      JSON.stringify(datos)
-    );
+    const { error } = await supabase
+      .from("reportes")
+      .upsert(datos, {
+        onConflict: "usuario,semana",
+      });
 
-    localStorage.setItem(
-      `reporte_actual_${asesor}`,
-      JSON.stringify(datos)
-    );
+    if (error) {
+      console.error("ERROR SUPABASE:", error);
+
+      setMensaje(
+        "❌ No se pudo guardar el reporte. Revisá la configuración de Supabase."
+      );
+
+      setGuardando(false);
+      return;
+    }
 
     setMensaje("✓ Reporte guardado correctamente.");
+
+    setGuardando(false);
   }
 
   function limpiarFormulario() {
+    setAsesor("");
+    setSemana("Semana 3 - Agosto");
+
     setNota("");
     setEvolucion("");
     setObjetivo("");
     setDesvio("");
     setRecomendacion("");
+
     setAuditoria("");
+    setProducto("AP");
     setObservaciones("");
+
     setSph("");
     setObjetivoSph("");
     setVentas("");
     setObjetivoVentas("");
     setObjetivoCampania("");
     setDescripcionCampania("");
+
     setEstadoSph("");
     setEstadoVentas("");
     setEstadoCampania("");
+
     setGestion("");
     setMensaje("");
   }
@@ -151,6 +178,7 @@ export default function AdminPage() {
       }}
     >
       <div style={{ maxWidth: "1100px", margin: "auto" }}>
+
         <div style={sectionStyle}>
           <div
             style={{
@@ -162,6 +190,7 @@ export default function AdminPage() {
           >
             <div>
               <h1 style={{ margin: 0 }}>Portal de Calidad</h1>
+
               <p style={{ color: "#68707b" }}>
                 Panel de Administración
               </p>
@@ -182,9 +211,15 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <hr style={{ border: 0, borderTop: "1px solid #eee" }} />
+          <hr
+            style={{
+              border: 0,
+              borderTop: "1px solid #eee",
+            }}
+          />
 
           <h2>Bienvenida, Administradora</h2>
+
           <p>
             Desde acá vas a poder cargar y actualizar la información semanal
             del equipo.
@@ -193,8 +228,14 @@ export default function AdminPage() {
           {mensaje && (
             <div
               style={{
-                background: "#eaf7ef",
-                border: "1px solid #b8e1c6",
+                background: mensaje.includes("❌")
+                  ? "#fff1f1"
+                  : "#eaf7ef",
+
+                border: mensaje.includes("❌")
+                  ? "1px solid #f0b5b5"
+                  : "1px solid #b8e1c6",
+
                 padding: "14px",
                 borderRadius: "10px",
                 marginTop: "15px",
@@ -207,17 +248,20 @@ export default function AdminPage() {
 
         <section style={sectionStyle}>
           <h2>📊 Cargar reporte de calidad</h2>
+
           <p style={{ color: "#68707b" }}>
             Completá la información semanal del asesor.
           </p>
 
           <label>Asesor</label>
+
           <select
             value={asesor}
             onChange={(e) => setAsesor(e.target.value)}
             style={inputStyle}
           >
             <option value="">Seleccionar asesor</option>
+
             {asesores.map(([nombre, usuario]) => (
               <option key={usuario} value={usuario}>
                 {nombre} — {usuario}
@@ -226,6 +270,7 @@ export default function AdminPage() {
           </select>
 
           <label>Semana</label>
+
           <input
             value={semana}
             onChange={(e) => setSemana(e.target.value)}
@@ -233,6 +278,7 @@ export default function AdminPage() {
           />
 
           <label>Nota de calidad</label>
+
           <input
             type="number"
             min="0"
@@ -244,6 +290,7 @@ export default function AdminPage() {
           />
 
           <label>Evolución</label>
+
           <input
             value={evolucion}
             onChange={(e) => setEvolucion(e.target.value)}
@@ -252,14 +299,19 @@ export default function AdminPage() {
           />
 
           <label>Objetivo</label>
+
           <textarea
             value={objetivo}
             onChange={(e) => setObjetivo(e.target.value)}
             placeholder="¿Qué debe trabajar?"
-            style={{ ...inputStyle, minHeight: "90px" }}
+            style={{
+              ...inputStyle,
+              minHeight: "90px",
+            }}
           />
 
           <label>Desvío principal</label>
+
           <input
             value={desvio}
             onChange={(e) => setDesvio(e.target.value)}
@@ -268,14 +320,19 @@ export default function AdminPage() {
           />
 
           <label>Recomendación</label>
+
           <textarea
             value={recomendacion}
             onChange={(e) => setRecomendacion(e.target.value)}
             placeholder="Recomendación para el asesor"
-            style={{ ...inputStyle, minHeight: "90px" }}
+            style={{
+              ...inputStyle,
+              minHeight: "90px",
+            }}
           />
 
           <label>Auditoría</label>
+
           <input
             value={auditoria}
             onChange={(e) => setAuditoria(e.target.value)}
@@ -284,6 +341,7 @@ export default function AdminPage() {
           />
 
           <label>Producto</label>
+
           <select
             value={producto}
             onChange={(e) => setProducto(e.target.value)}
@@ -294,28 +352,33 @@ export default function AdminPage() {
           </select>
 
           <label>Observaciones</label>
+
           <textarea
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
             placeholder="Observaciones de la auditoría"
-            style={{ ...inputStyle, minHeight: "100px" }}
+            style={{
+              ...inputStyle,
+              minHeight: "100px",
+            }}
           />
 
           <button
             onClick={guardarReporte}
+            disabled={guardando}
             style={{
               width: "100%",
               padding: "15px",
               border: "none",
               borderRadius: "12px",
-              background: "#111827",
+              background: guardando ? "#94a3b8" : "#111827",
               color: "white",
               fontSize: "16px",
               fontWeight: "bold",
-              cursor: "pointer",
+              cursor: guardando ? "not-allowed" : "pointer",
             }}
           >
-            GUARDAR REPORTE
+            {guardando ? "GUARDANDO..." : "GUARDAR REPORTE"}
           </button>
         </section>
 
@@ -323,6 +386,7 @@ export default function AdminPage() {
           <h2>📈 Cargar productividad semanal</h2>
 
           <label>SPH</label>
+
           <input
             value={sph}
             onChange={(e) => setSph(e.target.value)}
@@ -331,6 +395,7 @@ export default function AdminPage() {
           />
 
           <label>Objetivo SPH</label>
+
           <input
             value={objetivoSph}
             onChange={(e) => setObjetivoSph(e.target.value)}
@@ -339,6 +404,7 @@ export default function AdminPage() {
           />
 
           <label>Ventas</label>
+
           <input
             value={ventas}
             onChange={(e) => setVentas(e.target.value)}
@@ -347,6 +413,7 @@ export default function AdminPage() {
           />
 
           <label>Objetivo de ventas</label>
+
           <input
             value={objetivoVentas}
             onChange={(e) => setObjetivoVentas(e.target.value)}
@@ -355,6 +422,7 @@ export default function AdminPage() {
           />
 
           <label>Objetivo de campaña</label>
+
           <input
             value={objetivoCampania}
             onChange={(e) => setObjetivoCampania(e.target.value)}
@@ -363,13 +431,18 @@ export default function AdminPage() {
           />
 
           <label>Descripción objetivo de campaña</label>
+
           <textarea
             value={descripcionCampania}
             onChange={(e) => setDescripcionCampania(e.target.value)}
-            style={{ ...inputStyle, minHeight: "80px" }}
+            style={{
+              ...inputStyle,
+              minHeight: "80px",
+            }}
           />
 
           <label>Estado SPH</label>
+
           <select
             value={estadoSph}
             onChange={(e) => setEstadoSph(e.target.value)}
@@ -383,6 +456,7 @@ export default function AdminPage() {
           </select>
 
           <label>Estado ventas</label>
+
           <select
             value={estadoVentas}
             onChange={(e) => setEstadoVentas(e.target.value)}
@@ -396,6 +470,7 @@ export default function AdminPage() {
           </select>
 
           <label>Estado objetivo de campaña</label>
+
           <select
             value={estadoCampania}
             onChange={(e) => setEstadoCampania(e.target.value)}
@@ -409,28 +484,33 @@ export default function AdminPage() {
           </select>
 
           <label>¿Qué se realizó durante la semana?</label>
+
           <textarea
             value={gestion}
             onChange={(e) => setGestion(e.target.value)}
             placeholder="Contanos qué acciones se realizaron durante la semana."
-            style={{ ...inputStyle, minHeight: "100px" }}
+            style={{
+              ...inputStyle,
+              minHeight: "100px",
+            }}
           />
 
           <button
             onClick={guardarReporte}
+            disabled={guardando}
             style={{
               width: "100%",
               padding: "15px",
               border: "none",
               borderRadius: "12px",
-              background: "#334155",
+              background: guardando ? "#94a3b8" : "#334155",
               color: "white",
               fontSize: "16px",
               fontWeight: "bold",
-              cursor: "pointer",
+              cursor: guardando ? "not-allowed" : "pointer",
             }}
           >
-            GUARDAR PRODUCTIVIDAD
+            {guardando ? "GUARDANDO..." : "GUARDAR PRODUCTIVIDAD"}
           </button>
 
           <button
@@ -455,7 +535,8 @@ export default function AdminPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(220px, 1fr))",
               gap: "12px",
             }}
           >
@@ -470,13 +551,21 @@ export default function AdminPage() {
                 }}
               >
                 <strong>{nombre}</strong>
-                <div style={{ fontSize: "13px", color: "#68707b" }}>
+
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "#68707b",
+                    marginTop: "5px",
+                  }}
+                >
                   Usuario: {usuario}
                 </div>
               </div>
             ))}
           </div>
         </section>
+
       </div>
     </main>
   );
