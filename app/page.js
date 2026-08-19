@@ -27,6 +27,22 @@ export default function Home() {
   const [enviandoComentario, setEnviandoComentario] = useState(false);
   const [mensajeComentario, setMensajeComentario] = useState("");
 
+  const [reporteForm, setReporteForm] = useState({
+    asesor_id: "",
+    semana: "",
+    nota: "",
+    evolucion: "",
+    objetivos: "",
+    desvio_principal: "",
+    recomendaciones: "",
+    auditoria: "",
+    producto: "",
+    observaciones: ""
+  });
+
+  const [guardandoReporte, setGuardandoReporte] = useState(false);
+  const [mensajeReporte, setMensajeReporte] = useState("");
+
   useEffect(() => {
     cargarAsesores();
   }, []);
@@ -136,6 +152,100 @@ export default function Home() {
     setGestionCalidad([]);
     setAuditoriasNoVenta([]);
     setComentarios([]);
+
+    setReporteForm({
+      asesor_id: "",
+      semana: "",
+      nota: "",
+      evolucion: "",
+      objetivos: "",
+      desvio_principal: "",
+      recomendaciones: "",
+      auditoria: "",
+      producto: "",
+      observaciones: ""
+    });
+
+    setMensajeReporte("");
+  }
+
+  async function guardarReporte() {
+    if (
+      !reporteForm.asesor_id ||
+      !reporteForm.semana
+    ) {
+      setMensajeReporte(
+        "Seleccioná un asesor y una semana."
+      );
+      return;
+    }
+
+    setGuardandoReporte(true);
+    setMensajeReporte("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/reportes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            asesor_id: Number(reporteForm.asesor_id),
+            semana: reporteForm.semana,
+            nota:
+              reporteForm.nota === ""
+                ? null
+                : Number(reporteForm.nota),
+            evolucion: reporteForm.evolucion,
+            objetivos: reporteForm.objetivos,
+            desvio_principal:
+              reporteForm.desvio_principal,
+            recomendaciones:
+              reporteForm.recomendaciones,
+            auditoria: reporteForm.auditoria,
+            producto: reporteForm.producto,
+            observaciones:
+              reporteForm.observaciones
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "No se pudo guardar el reporte."
+        );
+      }
+
+      setMensajeReporte(
+        "Reporte cargado correctamente."
+      );
+
+      setReporteForm({
+        asesor_id: "",
+        semana: "",
+        nota: "",
+        evolucion: "",
+        objetivos: "",
+        desvio_principal: "",
+        recomendaciones: "",
+        auditoria: "",
+        producto: "",
+        observaciones: ""
+      });
+    } catch (error) {
+      console.error(error);
+
+      setMensajeReporte(
+        "Ocurrió un error al cargar el reporte."
+      );
+    } finally {
+      setGuardandoReporte(false);
+    }
   }
 
   async function enviarComentario() {
@@ -180,6 +290,7 @@ export default function Home() {
       }
 
       setNuevoComentario("");
+
       setMensajeComentario(
         "Comentario enviado correctamente."
       );
@@ -187,6 +298,7 @@ export default function Home() {
       await cargarDatosAsesor(sesion.id);
     } catch (error) {
       console.error(error);
+
       setMensajeComentario(
         "No se pudo enviar el comentario."
       );
@@ -207,7 +319,10 @@ export default function Home() {
     return (
       <main style={styles.loginPage}>
         <div style={styles.loginCard}>
-          <div style={styles.logoCircle}>Q</div>
+
+          <div style={styles.logoCircle}>
+            Q
+          </div>
 
           <h1 style={styles.title}>
             Portal de Calidad
@@ -219,6 +334,7 @@ export default function Home() {
           </p>
 
           <form onSubmit={iniciarSesion}>
+
             <label style={styles.label}>
               Usuario
             </label>
@@ -262,12 +378,14 @@ export default function Home() {
                 ? "CARGANDO..."
                 : "INGRESAR A MI PORTAL"}
             </button>
+
           </form>
 
           <p style={styles.help}>
             ¿Necesitás ayuda? Contactá al equipo
             de Calidad.
           </p>
+
         </div>
       </main>
     );
@@ -280,7 +398,9 @@ export default function Home() {
   if (sesion.rol === "admin") {
     return (
       <main style={styles.dashboard}>
+
         <header style={styles.header}>
+
           <div>
             <h1 style={styles.headerTitle}>
               Portal de Calidad
@@ -298,9 +418,11 @@ export default function Home() {
           >
             Cerrar sesión
           </button>
+
         </header>
 
         <section style={styles.content}>
+
           <h2 style={styles.sectionTitle}>
             Bienvenida, Administradora
           </h2>
@@ -310,7 +432,10 @@ export default function Home() {
             información semanal del equipo.
           </p>
 
+          {/* RESUMEN ADMIN */}
+
           <div style={styles.cards}>
+
             <div style={styles.card}>
               <span style={styles.cardNumber}>
                 {asesores.length}
@@ -323,58 +448,287 @@ export default function Home() {
 
             <div style={styles.card}>
               <span style={styles.cardNumber}>
-                —
+                {reporteForm.semana
+                  ? "NUEVO"
+                  : "—"}
               </span>
 
               <span style={styles.cardText}>
-                Reportes cargados
+                Carga semanal
               </span>
             </div>
 
             <div style={styles.card}>
               <span style={styles.cardNumber}>
-                —
+                ✓
               </span>
 
               <span style={styles.cardText}>
-                Auditorías
+                Base de datos conectada
               </span>
             </div>
+
           </div>
 
+          {/* CARGA DE REPORTE */}
+
           <div style={styles.panel}>
+
             <div style={styles.sectionBadge}>
-              PRÓXIMO PASO
+              CARGA SEMANAL
             </div>
 
             <h2 style={styles.panelTitle}>
-              Carga semanal
+              Cargar reporte de calidad
             </h2>
 
             <p style={styles.paragraph}>
-              La base de datos y la API ya están
-              preparadas para recibir Calidad,
-              Productividad, Tipificaciones, Gestión
-              de Calidad, Auditorías de No Venta y
-              Comentarios.
+              Seleccioná el asesor y completá la
+              información correspondiente a la semana.
             </p>
 
-            <div style={styles.notice}>
-              <strong>
-                Carga masiva semanal
-              </strong>
+            <div style={styles.adminForm}>
 
-              <p>
-                En el siguiente paso vamos a crear
-                la pantalla donde vas a poder cargar
-                el archivo semanal que me pases y
-                distribuir automáticamente la
-                información a cada asesor.
-              </p>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Asesor
+                </label>
+
+                <select
+                  style={styles.input}
+                  value={reporteForm.asesor_id}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      asesor_id: e.target.value
+                    })
+                  }
+                >
+                  <option value="">
+                    Seleccionar asesor
+                  </option>
+
+                  {asesores.map((asesor) => (
+                    <option
+                      key={asesor.id}
+                      value={asesor.id}
+                    >
+                      {asesor.nombre} —{" "}
+                      {asesor.numero_usuario}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Semana
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ej: Semana 3 - Agosto"
+                  value={reporteForm.semana}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      semana: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Nota de calidad
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Ej: 85"
+                  value={reporteForm.nota}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      nota: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Evolución
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ej: Mejora respecto de la semana anterior"
+                  value={reporteForm.evolucion}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      evolucion: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroupFull}>
+                <label style={styles.formLabel}>
+                  Objetivos
+                </label>
+
+                <textarea
+                  style={styles.textarea}
+                  placeholder="¿Qué debe mejorar?"
+                  value={reporteForm.objetivos}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      objetivos: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Desvío principal
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ej: Validación de datos"
+                  value={
+                    reporteForm.desvio_principal
+                  }
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      desvio_principal:
+                        e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Recomendaciones
+                </label>
+
+                <textarea
+                  style={styles.textarea}
+                  placeholder="¿Cómo puede mejorarlo?"
+                  value={
+                    reporteForm.recomendaciones
+                  }
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      recomendaciones:
+                        e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Auditoría
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ej: Llamada auditada"
+                  value={reporteForm.auditoria}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      auditoria: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  Producto
+                </label>
+
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ej: AP / BM"
+                  value={reporteForm.producto}
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      producto: e.target.value
+                    })
+                  }
+                />
+              </div>
+
+              <div style={styles.formGroupFull}>
+                <label style={styles.formLabel}>
+                  Observaciones
+                </label>
+
+                <textarea
+                  style={styles.textarea}
+                  placeholder="Observaciones adicionales"
+                  value={
+                    reporteForm.observaciones
+                  }
+                  onChange={(e) =>
+                    setReporteForm({
+                      ...reporteForm,
+                      observaciones:
+                        e.target.value
+                    })
+                  }
+                />
+              </div>
+
             </div>
+
+            <button
+              className="no-print"
+              style={styles.primaryButton}
+              onClick={guardarReporte}
+              disabled={guardandoReporte}
+            >
+              {guardandoReporte
+                ? "GUARDANDO..."
+                : "GUARDAR REPORTE"}
+            </button>
+
+            {mensajeReporte && (
+              <p
+                style={{
+                  ...styles.successMessage,
+                  marginTop: "15px"
+                }}
+              >
+                {mensajeReporte}
+              </p>
+            )}
+
           </div>
 
+          {/* EQUIPO */}
+
           <div style={styles.panel}>
+
             <div style={styles.sectionBadge}>
               EQUIPO
             </div>
@@ -384,16 +738,20 @@ export default function Home() {
             </h2>
 
             <div style={styles.advisorGrid}>
+
               {asesores.map((asesor) => (
+
                 <div
                   key={asesor.id}
                   style={styles.advisor}
                 >
+
                   <div style={styles.avatar}>
                     {asesor.nombre.charAt(0)}
                   </div>
 
                   <div>
+
                     <strong>
                       {asesor.nombre}
                     </strong>
@@ -407,12 +765,19 @@ export default function Home() {
                       N° usuario:{" "}
                       {asesor.numero_usuario}
                     </p>
+
                   </div>
+
                 </div>
+
               ))}
+
             </div>
+
           </div>
+
         </section>
+
       </main>
     );
   }
@@ -451,8 +816,11 @@ export default function Home() {
 
   return (
     <main style={styles.dashboard}>
+
       <header style={styles.header}>
+
         <div>
+
           <h1 style={styles.headerTitle}>
             Portal de Calidad
           </h1>
@@ -460,15 +828,17 @@ export default function Home() {
           <p style={styles.headerSubtitle}>
             Mi espacio personal de seguimiento
           </p>
+
         </div>
 
         <div style={styles.headerButtons}>
+
           <button
             className="no-print"
             style={styles.printButton}
             onClick={imprimirInforme}
           >
-            🖨️ Imprimir informe
+            Imprimir informe
           </button>
 
           <button
@@ -478,12 +848,18 @@ export default function Home() {
           >
             Cerrar sesión
           </button>
+
         </div>
+
       </header>
 
       <section style={styles.content}>
+
         <div style={styles.printHeader}>
-          <h1>Informe semanal de desempeño</h1>
+
+          <h1>
+            Informe semanal de desempeño
+          </h1>
 
           <p>
             {sesion.nombre}
@@ -494,6 +870,7 @@ export default function Home() {
               {ultimoReporte.semana}
             </p>
           )}
+
         </div>
 
         <h2 style={styles.sectionTitle}>
@@ -508,39 +885,54 @@ export default function Home() {
         {/* INFORMACIÓN */}
 
         <div style={styles.infoBar}>
+
           <div>
-            <strong>N° de usuario</strong>
+            <strong>
+              N° de usuario
+            </strong>
+
             <span>
               {sesion.numero_usuario}
             </span>
           </div>
 
           <div>
-            <strong>Usuario</strong>
+            <strong>
+              Usuario
+            </strong>
+
             <span>
               {sesion.usuario}
             </span>
           </div>
 
           <div>
-            <strong>Semana</strong>
+            <strong>
+              Semana
+            </strong>
+
             <span>
               {ultimoReporte?.semana ||
                 ultimaProductividad?.semana ||
                 "—"}
             </span>
           </div>
+
         </div>
 
         {/* RESUMEN */}
 
         <div style={styles.cards}>
+
           <div style={styles.metricCard}>
+
             <span style={styles.metricIcon}>
               ★
             </span>
 
-            <h3>Mi nota</h3>
+            <h3>
+              Mi nota
+            </h3>
 
             <strong style={styles.bigNumber}>
               {ultimoReporte?.nota ?? "—"}
@@ -549,14 +941,18 @@ export default function Home() {
             <p>
               Resultado de calidad
             </p>
+
           </div>
 
           <div style={styles.metricCard}>
+
             <span style={styles.metricIcon}>
               ↗
             </span>
 
-            <h3>Evolución</h3>
+            <h3>
+              Evolución
+            </h3>
 
             <strong style={styles.evolutionText}>
               {ultimoReporte?.evolucion || "—"}
@@ -565,14 +961,18 @@ export default function Home() {
             <p>
               Comparación semanal
             </p>
+
           </div>
 
           <div style={styles.metricCard}>
+
             <span style={styles.metricIcon}>
               ✓
             </span>
 
-            <h3>Semana</h3>
+            <h3>
+              Semana
+            </h3>
 
             <strong style={styles.weekText}>
               {ultimoReporte?.semana || "—"}
@@ -581,14 +981,15 @@ export default function Home() {
             <p>
               Último reporte cargado
             </p>
+
           </div>
+
         </div>
 
-        {/* =================================================
-            PRODUCTIVIDAD
-        ================================================= */}
+        {/* PRODUCTIVIDAD */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             PRODUCTIVIDAD
           </div>
@@ -598,42 +999,66 @@ export default function Home() {
           </h2>
 
           {!ultimaProductividad ? (
+
             <div style={styles.empty}>
               Todavía no hay datos de productividad
               cargados.
             </div>
+
           ) : (
+
             <div style={styles.productivityGrid}>
+
               <MetricBox
                 titulo="SPH"
-                resultado={ultimaProductividad.sph}
-                objetivo={ultimaProductividad.sph_objetivo}
-                estado={ultimaProductividad.estado_sph}
+                resultado={
+                  ultimaProductividad.sph
+                }
+                objetivo={
+                  ultimaProductividad.sph_objetivo
+                }
+                estado={
+                  ultimaProductividad.estado_sph
+                }
               />
 
               <MetricBox
                 titulo="VENTAS"
-                resultado={ultimaProductividad.ventas}
-                objetivo={ultimaProductividad.ventas_objetivo}
-                estado={ultimaProductividad.estado_ventas}
+                resultado={
+                  ultimaProductividad.ventas
+                }
+                objetivo={
+                  ultimaProductividad.ventas_objetivo
+                }
+                estado={
+                  ultimaProductividad.estado_ventas
+                }
               />
 
               <MetricBox
                 titulo="OBJETIVO DE CAMPAÑA"
                 resultado={
-                  ultimaProductividad.objetivo_campana_descripcion ||
+                  ultimaProductividad
+                    .objetivo_campana_descripcion ||
                   ultimaProductividad.objetivo_campana
                 }
-                objetivo={ultimaProductividad.objetivo_campana}
+                objetivo={
+                  ultimaProductividad.objetivo_campana
+                }
                 estado={
-                  ultimaProductividad.estado_objetivo_campana
+                  ultimaProductividad
+                    .estado_objetivo_campana
                 }
               />
+
             </div>
+
           )}
 
           {ultimaProductividad?.gestion_semana && (
+
             <div style={styles.managementBox}>
+
               <strong>
                 ¿Qué se realizó durante la semana?
               </strong>
@@ -641,17 +1066,19 @@ export default function Home() {
               <p>
                 {ultimaProductividad.gestion_semana}
               </p>
+
             </div>
+
           )}
+
         </div>
 
-        {/* =================================================
-            CALIDAD
-        ================================================= */}
+        {/* PLAN DE ACCIÓN */}
 
         {ultimoReporte && (
           <>
             <div style={styles.panel}>
+
               <div style={styles.sectionBadge}>
                 PLAN DE ACCIÓN
               </div>
@@ -661,6 +1088,7 @@ export default function Home() {
               </h2>
 
               <div style={styles.objectiveBox}>
+
                 <span style={styles.targetIcon}>
                   🎯
                 </span>
@@ -669,11 +1097,15 @@ export default function Home() {
                   {ultimoReporte.objetivos ||
                     "Sin objetivos cargados"}
                 </strong>
+
               </div>
+
             </div>
 
             <div style={styles.twoColumns}>
+
               <div style={styles.panel}>
+
                 <div style={styles.sectionBadge}>
                   ATENCIÓN
                 </div>
@@ -683,6 +1115,7 @@ export default function Home() {
                 </h2>
 
                 <div style={styles.focusBox}>
+
                   <div style={styles.emptyIcon}>
                     !
                   </div>
@@ -696,10 +1129,13 @@ export default function Home() {
                     Principal punto de atención
                     del período.
                   </p>
+
                 </div>
+
               </div>
 
               <div style={styles.panel}>
+
                 <div style={styles.sectionBadge}>
                   RECOMENDACIÓN
                 </div>
@@ -709,6 +1145,7 @@ export default function Home() {
                 </h2>
 
                 <div style={styles.focusBox}>
+
                   <div style={styles.emptyIcon}>
                     ✓
                   </div>
@@ -717,11 +1154,15 @@ export default function Home() {
                     {ultimoReporte.recomendaciones ||
                       "Sin recomendaciones cargadas"}
                   </p>
+
                 </div>
+
               </div>
+
             </div>
 
             <div style={styles.panel}>
+
               <div style={styles.sectionBadge}>
                 CALIDAD
               </div>
@@ -731,6 +1172,7 @@ export default function Home() {
               </h2>
 
               <div style={styles.auditBox}>
+
                 <div>
                   <strong>
                     Auditoría
@@ -762,16 +1204,17 @@ export default function Home() {
                       "Sin observaciones"}
                   </p>
                 </div>
+
               </div>
+
             </div>
           </>
         )}
 
-        {/* =================================================
-            TIPIFICACIONES
-        ================================================= */}
+        {/* TIPIFICACIONES */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             TIPIFICACIONES
           </div>
@@ -781,17 +1224,24 @@ export default function Home() {
           </h2>
 
           {tipificaciones.length === 0 ? (
+
             <div style={styles.empty}>
               No hay tipificaciones cargadas.
             </div>
+
           ) : (
+
             <div style={styles.dataList}>
+
               {tipificaciones.map((item) => (
+
                 <div
                   key={item.id}
                   style={styles.dataCard}
                 >
+
                   <div>
+
                     <strong>
                       {item.tipificacion ||
                         "Sin tipificación"}
@@ -800,9 +1250,11 @@ export default function Home() {
                     <p>
                       Semana: {item.semana}
                     </p>
+
                   </div>
 
                   <div style={styles.dataValue}>
+
                     <small>
                       % DESVÍO
                     </small>
@@ -810,13 +1262,16 @@ export default function Home() {
                     <strong>
                       {item.porcentaje_desvio ??
                         "—"}
+
                       {item.porcentaje_desvio !== null
                         ? "%"
                         : ""}
                     </strong>
+
                   </div>
 
                   <div style={styles.dataValue}>
+
                     <small>
                       OBJETIVO
                     </small>
@@ -824,9 +1279,11 @@ export default function Home() {
                     <strong>
                       {item.objetivo ?? "—"}
                     </strong>
+
                   </div>
 
                   <div>
+
                     <small>
                       COMPROMISO ESPERADO
                     </small>
@@ -835,18 +1292,23 @@ export default function Home() {
                       {item.compromiso_esperado ||
                         "—"}
                     </p>
+
                   </div>
+
                 </div>
+
               ))}
+
             </div>
+
           )}
+
         </div>
 
-        {/* =================================================
-            GESTIÓN DE CALIDAD
-        ================================================= */}
+        {/* GESTIÓN DE CALIDAD */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             GESTIÓN DE CALIDAD
           </div>
@@ -856,11 +1318,15 @@ export default function Home() {
           </h2>
 
           {!ultimaGestion ? (
+
             <div style={styles.empty}>
               No hay información de gestión cargada.
             </div>
+
           ) : (
+
             <div style={styles.qualityGrid}>
+
               <InfoItem
                 titulo="Cantidad de auditorías realizadas"
                 valor={
@@ -902,15 +1368,17 @@ export default function Home() {
                   ultimaGestion.fortalezas_destacadas
                 }
               />
+
             </div>
+
           )}
+
         </div>
 
-        {/* =================================================
-            AUDITORÍAS NO VENTA
-        ================================================= */}
+        {/* NO VENTA */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             AUDITORÍAS DE NO VENTA
           </div>
@@ -920,12 +1388,16 @@ export default function Home() {
           </h2>
 
           {!ultimaNoVenta ? (
+
             <div style={styles.empty}>
               No hay auditorías de no venta
               cargadas.
             </div>
+
           ) : (
+
             <div style={styles.auditNoVenta}>
+
               <InfoItem
                 titulo="Cantidad de auditorías"
                 valor={
@@ -967,15 +1439,17 @@ export default function Home() {
                   ultimaNoVenta.observaciones
                 }
               />
+
             </div>
+
           )}
+
         </div>
 
-        {/* =================================================
-            DEVOLUCIONES
-        ================================================= */}
+        {/* DEVOLUCIONES */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             DEVOLUCIÓN
           </div>
@@ -985,6 +1459,7 @@ export default function Home() {
           </h2>
 
           <div style={styles.commentArea}>
+
             <h3>
               Devolución de Calidad
             </h3>
@@ -992,21 +1467,26 @@ export default function Home() {
             {comentarios.filter(
               (item) => item.tipo === "calidad"
             ).length === 0 ? (
+
               <p style={styles.muted}>
                 Todavía no hay una devolución
                 cargada.
               </p>
+
             ) : (
+
               comentarios
                 .filter(
                   (item) =>
                     item.tipo === "calidad"
                 )
                 .map((item) => (
+
                   <div
                     key={item.id}
                     style={styles.commentQuality}
                   >
+
                     <strong>
                       Calidad
                     </strong>
@@ -1018,12 +1498,17 @@ export default function Home() {
                     <small>
                       {item.fecha_carga}
                     </small>
+
                   </div>
+
                 ))
+
             )}
+
           </div>
 
           <div style={styles.commentArea}>
+
             <h3>
               Mi comentario
             </h3>
@@ -1056,12 +1541,15 @@ export default function Home() {
                 {mensajeComentario}
               </p>
             )}
+
           </div>
 
           {comentarios.filter(
             (item) => item.tipo === "asesor"
           ).length > 0 && (
+
             <div style={styles.commentArea}>
+
               <h3>
                 Mis comentarios anteriores
               </h3>
@@ -1072,10 +1560,12 @@ export default function Home() {
                     item.tipo === "asesor"
                 )
                 .map((item) => (
+
                   <div
                     key={item.id}
                     style={styles.commentAdvisor}
                   >
+
                     <strong>
                       Mi comentario
                     </strong>
@@ -1087,17 +1577,21 @@ export default function Home() {
                     <small>
                       {item.fecha_carga}
                     </small>
+
                   </div>
+
                 ))}
+
             </div>
+
           )}
+
         </div>
 
-        {/* =================================================
-            HISTORIAL
-        ================================================= */}
+        {/* HISTORIAL */}
 
         <div style={styles.panel}>
+
           <div style={styles.sectionBadge}>
             SEGUIMIENTO
           </div>
@@ -1107,17 +1601,24 @@ export default function Home() {
           </h2>
 
           {reportes.length === 0 ? (
+
             <div style={styles.empty}>
               Todavía no hay reportes cargados.
             </div>
+
           ) : (
+
             <div style={styles.history}>
+
               {reportes.map((reporte) => (
+
                 <div
                   key={reporte.id}
                   style={styles.historyItem}
                 >
+
                   <div>
+
                     <strong>
                       {reporte.semana}
                     </strong>
@@ -1126,6 +1627,7 @@ export default function Home() {
                       {reporte.desvio_principal ||
                         "Sin desvío"}
                     </p>
+
                   </div>
 
                   <strong
@@ -1137,15 +1639,43 @@ export default function Home() {
                   <span>
                     {reporte.producto || "—"}
                   </span>
+
                 </div>
+
               ))}
+
             </div>
+
           )}
+
         </div>
+
       </section>
 
       <style jsx global>{`
+
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+          font-family: Arial, sans-serif;
+        }
+
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
         @media print {
+
           body {
             background: white !important;
           }
@@ -1175,14 +1705,39 @@ export default function Home() {
             box-shadow: none !important;
             border: 1px solid #ddd !important;
           }
+
         }
 
         @media screen {
+
           .printHeader {
             display: none;
           }
+
         }
+
+        @media (max-width: 700px) {
+
+          .content {
+            padding: 25px 15px !important;
+          }
+
+          .header {
+            padding: 18px !important;
+          }
+
+          .dataCard {
+            grid-template-columns: 1fr !important;
+          }
+
+          .historyItem {
+            grid-template-columns: 1fr !important;
+          }
+
+        }
+
       `}</style>
+
     </main>
   );
 }
@@ -1206,6 +1761,7 @@ function MetricBox({
 
   return (
     <div style={styles.metricBox}>
+
       <span style={styles.metricBoxTitle}>
         {titulo}
       </span>
@@ -1234,13 +1790,18 @@ function MetricBox({
       >
         {estado || "Sin estado"}
       </div>
+
     </div>
   );
 }
 
-function InfoItem({ titulo, valor }) {
+function InfoItem({
+  titulo,
+  valor
+}) {
   return (
     <div style={styles.infoItem}>
+
       <small>
         {titulo}
       </small>
@@ -1248,6 +1809,7 @@ function InfoItem({ titulo, valor }) {
       <strong>
         {valor || "—"}
       </strong>
+
     </div>
   );
 }
@@ -1257,6 +1819,7 @@ function InfoItem({ titulo, valor }) {
 // =========================================================
 
 const styles = {
+
   loginPage: {
     minHeight: "100vh",
     background:
@@ -1322,12 +1885,13 @@ const styles = {
       "1px solid #d5ddd8",
     borderRadius: "10px",
     fontSize: "15px",
-    outline: "none"
+    outline: "none",
+    background: "#ffffff"
   },
 
   textarea: {
     width: "100%",
-    minHeight: "150px",
+    minHeight: "120px",
     boxSizing: "border-box",
     padding: "15px",
     border:
@@ -1353,7 +1917,7 @@ const styles = {
   },
 
   primaryButton: {
-    marginTop: "15px",
+    marginTop: "20px",
     padding: "13px 22px",
     border: "none",
     borderRadius: "10px",
@@ -1398,6 +1962,8 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
     boxShadow:
       "0 2px 10px rgba(0,0,0,0.05)"
   },
@@ -1551,16 +2117,31 @@ const styles = {
     lineHeight: "1.6"
   },
 
-  notice: {
-    background: "#f2f6f3",
-    padding: "20px",
-    borderRadius: "14px",
-    color: "#40534a",
-    marginTop: "20px"
+  adminForm: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "18px",
+    marginTop: "25px"
   },
 
-  notice p: {
-    color: "#65736c"
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px"
+  },
+
+  formGroupFull: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    gridColumn: "1 / -1"
+  },
+
+  formLabel: {
+    color: "#40534a",
+    fontWeight: "bold",
+    fontSize: "13px"
   },
 
   advisorGrid: {
@@ -1735,21 +2316,6 @@ const styles = {
     borderRadius: "12px"
   },
 
-  infoItem small: {
-    display: "block",
-    color: "#89948f",
-    fontSize: "11px",
-    fontWeight: "bold",
-    marginBottom: "8px",
-    textTransform: "uppercase"
-  },
-
-  infoItem strong: {
-    display: "block",
-    color: "#40534a",
-    lineHeight: "1.5"
-  },
-
   dataList: {
     display: "flex",
     flexDirection: "column",
@@ -1830,4 +2396,5 @@ const styles = {
     fontSize: "22px",
     color: "#657f70"
   }
+
 };
