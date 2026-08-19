@@ -1,15 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "portal-calidad",
+  "main": "worker.js",
   "compatibility_date": "2026-08-18",
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "portal-calidad",
-      "database_id": "159275b0-371d-4806-8cbf-9ff28b9be88d"
-    }
-  ]
+  "assets": {
+    "directory": "./public"
+  }
 }
