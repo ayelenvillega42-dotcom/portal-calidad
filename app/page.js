@@ -3,420 +3,251 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+const ADMIN_EMAIL = "ayelenvillega42@gmail.com";
+
 const asesores = [
-  ["Acosta, Pamela", "8134", "acostapamela"],
-  ["Aguilera, Trinidad", "8196", "aguileratrinidad"],
-  ["Bahamonde, Camila", "8135", "bahamondecamila"],
-  ["Bustamante, Ailin", "8188", "bustamanteailin"],
-  ["Bustos, Jesica", "8141", "bustosjesica"],
-  ["Bustos, Nicolas", "8214", "bustosnicolas"],
-  ["Cabrera, Antonella", "8187", "cabreraantonella"],
-  ["Contreras, Gilary", "8046", "contrerasgilary"],
-  ["Cordoba, Tania", "8202", "cordobatania"],
-  ["Diaz, Milagros", "8212", "diazmilagros"],
-  ["Gomez, Carla", "8126", "gomezcarla"],
-  ["Luna, Oriana", "8097", "lunaoriana"],
-  ["Malqui, Xiomara", "8092", "malquixiomara"],
-  ["Mercado, Chiara", "8209", "mercadochiara"],
-  ["Ojeda, Luana", "8200", "ojedaluana"],
-  ["Olmedo, Thomas", "8192", "olmedothomas"],
-  ["Peralta, Belen", "8207", "peraltabelen"],
-  ["Reartes, Maia", "8201", "reartesmaia"],
-  ["Rojek, Luna", "8213", "rojekluna"],
-  ["Simonetta, Valentina", "8191", "simonettavalentina"],
-  ["Tello, Marianela", "8042", "tellomarianela"],
-  ["Vasquez, Agustin", "8136", "vasquezagustin"],
-  ["Viniegra, Agustín", "8199", "viniegragustin"],
+  ["Acosta, Pamela", "8134", "acosta.pamela@portalcalidad.com"],
+  ["Aguilera, Trinidad", "8196", "aguilera.trinidad@portalcalidad.com"],
+  ["Bahamonde, Camila", "8135", "bahamonde.camila@portalcalidad.com"],
+  ["Bustamante, Ailin", "8188", "bustamante.ailin@portalcalidad.com"],
+  ["Bustos, Jesica", "8141", "bustos.jesica@portalcalidad.com"],
+  ["Bustos, Nicolas", "8214", "bustos.nicolas@portalcalidad.com"],
+  ["Cabrera, Antonella", "8187", "cabrera.antonella@portalcalidad.com"],
+  ["Contreras, Gilary", "8046", "contreras.gilary@portalcalidad.com"],
+  ["Cordoba, Tania", "8202", "cordoba.tania@portalcalidad.com"],
+  ["Diaz, Milagros", "8212", "diaz.milagros@portalcalidad.com"],
+  ["Gomez, Carla", "8126", "gomez.carla@portalcalidad.com"],
+  ["Luna, Oriana", "8097", "luna.oriana@portalcalidad.com"],
+  ["Malqui, Xiomara", "8092", "malqui.xiomara@portalcalidad.com"],
+  ["Mercado, Chiara", "8209", "mercado.chiara@portalcalidad.com"],
+  ["Ojeda, Luana", "8200", "ojeda.luana@portalcalidad.com"],
+  ["Olmedo, Thomas", "8192", "olmedo.thomas@portalcalidad.com"],
+  ["Peralta, Belen", "8207", "peralta.belen@portalcalidad.com"],
+  ["Reartes, Maia", "8201", "reartes.maia@portalcalidad.com"],
+  ["Rojek, Luna", "8213", "rojek.luna@portalcalidad.com"],
+  ["Simonetta, Valentina", "8191", "simonetta.valentina@portalcalidad.com"],
+  ["Tello, Marianela", "8042", "tello.marianela@portalcalidad.com"],
+  ["Vasquez, Agustin", "8136", "vasquez.agustin@portalcalidad.com"],
+  ["Viniegra, Agustín", "8199", "viniegra.agustin@portalcalidad.com"],
 ];
 
-export default function AdminPage() {
-  const [modo, setModo] = useState("inicio");
-  const [asesorPortal, setAsesorPortal] = useState("");
+export default function Page() {
+  const [session, setSession] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [modo, setModo] = useState("login");
 
-  const [asesor, setAsesor] = useState("");
-  const [semana, setSemana] = useState("Semana 3 - Agosto");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [entrando, setEntrando] = useState(false);
 
-  const [nota, setNota] = useState("");
-  const [evolucion, setEvolucion] = useState("");
-  const [objetivo, setObjetivo] = useState("");
-  const [desvio, setDesvio] = useState("");
-  const [recomendacion, setRecomendacion] = useState("");
-
-  const [auditoria, setAuditoria] = useState("");
-  const [producto, setProducto] = useState("AP");
-  const [observaciones, setObservaciones] = useState("");
-
-  const [sph, setSph] = useState("");
-  const [objetivoSph, setObjetivoSph] = useState("");
-  const [ventas, setVentas] = useState("");
-  const [objetivoVentas, setObjetivoVentas] = useState("");
-  const [objetivoCampania, setObjetivoCampania] = useState("");
-  const [descripcionCampania, setDescripcionCampania] = useState("");
-
-  const [estadoSph, setEstadoSph] = useState("");
-  const [estadoVentas, setEstadoVentas] = useState("");
-  const [estadoCampania, setEstadoCampania] = useState("");
-
-  const [gestion, setGestion] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [guardando, setGuardando] = useState(false);
-
-  const [reportesAsesor, setReportesAsesor] = useState([]);
+  const [asesorActual, setAsesorActual] = useState(null);
+  const [reportes, setReportes] = useState([]);
   const [cargandoReportes, setCargandoReportes] = useState(false);
 
-  const inputStyle = {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "1px solid #d9dce3",
-    marginTop: "6px",
-    marginBottom: "16px",
-    fontSize: "14px",
-    boxSizing: "border-box",
-  };
+  useEffect(() => {
+    async function verificarSesion() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  const sectionStyle = {
-    background: "#ffffff",
-    borderRadius: "18px",
-    padding: "24px",
-    marginBottom: "20px",
-    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
-  };
+      setSession(session);
 
-  async function guardarReporte() {
-    if (!asesor || !nota) {
-      setMensaje("Seleccioná un asesor y cargá la nota.");
-      return;
+      if (session?.user?.email) {
+        if (
+          session.user.email.toLowerCase() ===
+          ADMIN_EMAIL.toLowerCase()
+        ) {
+          setModo("admin");
+        } else {
+          const asesor = asesores.find(
+            ([, , correo]) =>
+              correo.toLowerCase() ===
+              session.user.email.toLowerCase()
+          );
+
+          if (asesor) {
+            setAsesorActual(asesor);
+            setModo("asesor");
+            cargarReportes(asesor[1]);
+          } else {
+            await supabase.auth.signOut();
+            setModo("login");
+          }
+        }
+      }
+
+      setCargando(false);
     }
 
-    setGuardando(true);
-    setMensaje("");
+    verificarSesion();
 
-    const asesorSeleccionado = asesores.find(
-      ([, usuario]) => usuario === asesor
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
     );
 
-    const datos = {
-      asesor: asesorSeleccionado?.[0] || asesor,
-      usuario: asesor,
-      semana,
-      nota: Number(nota),
-      evolucion,
-      objetivo,
-      desvio,
-      recomendacion,
-      auditoria,
-      producto,
-      observaciones,
-      sph: sph ? Number(sph) : null,
-      objetivo_sph: objetivoSph ? Number(objetivoSph) : null,
-      ventas: ventas ? Number(ventas) : null,
-      objetivo_ventas: objetivoVentas ? Number(objetivoVentas) : null,
-      objetivo_campania: objetivoCampania,
-      descripcion_campania: descripcionCampania,
-      estado_sph: estadoSph,
-      estado_ventas: estadoVentas,
-      estado_campania: estadoCampania,
-      gestion,
-    };
+    return () => subscription.unsubscribe();
+  }, []);
 
-    const { error } = await supabase
-      .from("reportes")
-      .upsert(datos, {
-        onConflict: "usuario,semana",
-      });
-
-    if (error) {
-      console.error(error);
-      setMensaje(
-        "❌ No se pudo guardar el reporte. Revisá la configuración de Supabase."
-      );
-      setGuardando(false);
-      return;
-    }
-
-    setMensaje("✓ Reporte guardado correctamente en Supabase.");
-    setGuardando(false);
-  }
-
-  function limpiarFormulario() {
-    setAsesor("");
-    setSemana("Semana 3 - Agosto");
-
-    setNota("");
-    setEvolucion("");
-    setObjetivo("");
-    setDesvio("");
-    setRecomendacion("");
-
-    setAuditoria("");
-    setProducto("AP");
-    setObservaciones("");
-
-    setSph("");
-    setObjetivoSph("");
-    setVentas("");
-    setObjetivoVentas("");
-    setObjetivoCampania("");
-    setDescripcionCampania("");
-
-    setEstadoSph("");
-    setEstadoVentas("");
-    setEstadoCampania("");
-
-    setGestion("");
-    setMensaje("");
-  }
-
-  async function entrarAlPortal() {
-    if (!asesorPortal) return;
-
-    const seleccionado = asesores.find(
-      ([nombre]) => nombre === asesorPortal
-    );
-
-    if (!seleccionado) return;
-
+  async function cargarReportes(usuario) {
     setCargandoReportes(true);
-    setReportesAsesor([]);
-
-    const usuario = seleccionado[1];
 
     const { data, error } = await supabase
       .from("reportes")
       .select("*")
       .eq("usuario", usuario)
-      .order("created_at", { ascending: false });
+      .order("id", { ascending: false });
 
     if (error) {
       console.error(error);
+      setReportes([]);
     } else {
-      setReportesAsesor(data || []);
+      setReportes(data || []);
     }
 
     setCargandoReportes(false);
-    setModo("asesor");
   }
 
-  function volverInicio() {
-    setModo("inicio");
-    setAsesorPortal("");
-    setReportesAsesor([]);
+  async function iniciarSesion(e) {
+    e.preventDefault();
+
+    if (!email || !password) {
+      setLoginError("Ingresá tu email y contraseña.");
+      return;
+    }
+
+    setEntrando(true);
+    setLoginError("");
+
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+    if (error) {
+      console.error(error);
+      setLoginError(
+        "El email o la contraseña no son correctos."
+      );
+      setEntrando(false);
+      return;
+    }
+
+    const usuarioEmail = data.user?.email?.toLowerCase();
+
+    if (usuarioEmail === ADMIN_EMAIL.toLowerCase()) {
+      setModo("admin");
+    } else {
+      const asesor = asesores.find(
+        ([, , correo]) =>
+          correo.toLowerCase() === usuarioEmail
+      );
+
+      if (!asesor) {
+        await supabase.auth.signOut();
+        setLoginError(
+          "Tu cuenta no está asociada a un asesor registrado."
+        );
+        setEntrando(false);
+        return;
+      }
+
+      setAsesorActual(asesor);
+      setModo("asesor");
+      await cargarReportes(asesor[1]);
+    }
+
+    setEntrando(false);
   }
 
-  function volverAdmin() {
-    setModo("admin");
+  async function cerrarSesion() {
+    await supabase.auth.signOut();
+
+    setSession(null);
+    setAsesorActual(null);
+    setReportes([]);
+    setEmail("");
+    setPassword("");
+    setModo("login");
   }
 
-  const reporteActual = reportesAsesor[0];
-
-  if (modo === "inicio") {
+  if (cargando) {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f4f6f8",
-          padding: "30px",
-          fontFamily: "Arial, sans-serif",
-          color: "#20242a",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "70px auto",
-            textAlign: "center",
-          }}
-        >
-          <div style={sectionStyle}>
-            <div
-              style={{
-                width: "70px",
-                height: "70px",
-                margin: "0 auto 20px",
-                borderRadius: "20px",
-                background: "#111827",
-                color: "white",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "32px",
-              }}
-            >
-              ✓
-            </div>
-
-            <h1 style={{ marginBottom: "8px" }}>
-              Portal de Calidad
-            </h1>
-
-            <p style={{ color: "#68707b", fontSize: "16px" }}>
-              Seguimiento de calidad y productividad del equipo
-            </p>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "18px",
-                marginTop: "35px",
-              }}
-            >
-              <button
-                onClick={() => setModo("portal")}
-                style={{
-                  padding: "25px",
-                  border: "none",
-                  borderRadius: "16px",
-                  background: "#111827",
-                  color: "white",
-                  cursor: "pointer",
-                  fontSize: "17px",
-                  fontWeight: "bold",
-                }}
-              >
-                👤
-                <br />
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: "10px",
-                  }}
-                >
-                  Portal de Asesores
-                </span>
-
-                <small
-                  style={{
-                    display: "block",
-                    marginTop: "8px",
-                    opacity: 0.75,
-                    fontWeight: "normal",
-                  }}
-                >
-                  Consultá tu calidad y evolución
-                </small>
-              </button>
-
-              <button
-                onClick={() => setModo("admin")}
-                style={{
-                  padding: "25px",
-                  border: "1px solid #d9dce3",
-                  borderRadius: "16px",
-                  background: "white",
-                  color: "#20242a",
-                  cursor: "pointer",
-                  fontSize: "17px",
-                  fontWeight: "bold",
-                }}
-              >
-                🔐
-                <br />
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: "10px",
-                  }}
-                >
-                  Administración
-                </span>
-
-                <small
-                  style={{
-                    display: "block",
-                    marginTop: "8px",
-                    color: "#68707b",
-                    fontWeight: "normal",
-                  }}
-                >
-                  Cargar y actualizar reportes
-                </small>
-              </button>
-            </div>
+      <main style={styles.page}>
+        <div style={styles.centerBox}>
+          <div style={styles.card}>
+            <h2>Portal de Calidad</h2>
+            <p style={styles.muted}>Verificando acceso...</p>
           </div>
         </div>
       </main>
     );
   }
 
-  if (modo === "portal") {
+  if (modo === "login") {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f4f6f8",
-          padding: "30px",
-          fontFamily: "Arial, sans-serif",
-          color: "#20242a",
-        }}
-      >
-        <div style={{ maxWidth: "850px", margin: "auto" }}>
-          <button
-            onClick={volverInicio}
-            style={{
-              marginBottom: "20px",
-              padding: "10px 16px",
-              border: "1px solid #d1d5db",
-              borderRadius: "10px",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            ← Volver
-          </button>
+      <main style={styles.page}>
+        <div style={styles.loginContainer}>
+          <div style={styles.loginCard}>
+            <div style={styles.logo}>✓</div>
 
-          <div style={sectionStyle}>
-            <h1 style={{ marginTop: 0 }}>
-              Portal de Asesores
+            <h1 style={{ marginBottom: "8px" }}>
+              Portal de Calidad
             </h1>
 
-            <p style={{ color: "#68707b" }}>
-              Seleccioná tu nombre para consultar tu información.
+            <p style={styles.muted}>
+              Ingresá con tu usuario y contraseña
             </p>
 
-            <label>Asesor</label>
+            {loginError && (
+              <div style={styles.error}>
+                {loginError}
+              </div>
+            )}
 
-            <select
-              value={asesorPortal}
-              onChange={(e) => setAsesorPortal(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Seleccionar nombre</option>
+            <form onSubmit={iniciarSesion}>
+              <label>Email</label>
 
-              {asesores.map(([nombre, usuario]) => (
-                <option key={usuario} value={nombre}>
-                  {nombre}
-                </option>
-              ))}
-            </select>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ingresá tu email"
+                style={styles.input}
+                autoComplete="email"
+              />
 
-            <button
-              onClick={entrarAlPortal}
-              disabled={!asesorPortal || cargandoReportes}
-              style={{
-                width: "100%",
-                padding: "15px",
-                border: "none",
-                borderRadius: "12px",
-                background:
-                  !asesorPortal || cargandoReportes
-                    ? "#94a3b8"
-                    : "#111827",
-                color: "white",
-                fontSize: "16px",
-                fontWeight: "bold",
-                cursor:
-                  !asesorPortal || cargandoReportes
-                    ? "not-allowed"
-                    : "pointer",
-              }}
-            >
-              {cargandoReportes
-                ? "CARGANDO..."
-                : "INGRESAR A MI PORTAL"}
-            </button>
+              <label>Contraseña</label>
+
+              <input
+                type="password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                placeholder="Ingresá tu contraseña"
+                style={styles.input}
+                autoComplete="current-password"
+              />
+
+              <button
+                type="submit"
+                disabled={entrando}
+                style={{
+                  ...styles.primaryButton,
+                  opacity: entrando ? 0.6 : 1,
+                }}
+              >
+                {entrando
+                  ? "INGRESANDO..."
+                  : "INGRESAR"}
+              </button>
+            </form>
           </div>
         </div>
       </main>
@@ -424,172 +255,99 @@ export default function AdminPage() {
   }
 
   if (modo === "asesor") {
-    const asesorInfo = asesores.find(
-      ([nombre]) => nombre === asesorPortal
-    );
+    const reporteActual = reportes[0];
 
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          background: "#f4f6f8",
-          padding: "30px",
-          fontFamily: "Arial, sans-serif",
-          color: "#20242a",
-        }}
-      >
-        <div style={{ maxWidth: "1000px", margin: "auto" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-              gap: "15px",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              onClick={() => setModo("portal")}
-              style={{
-                padding: "10px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "10px",
-                background: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Cambiar asesor
-            </button>
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.header}>
+            <div>
+              <h1 style={{ margin: 0 }}>
+                Portal de Calidad
+              </h1>
+
+              <p style={styles.muted}>
+                Bienvenido/a, {asesorActual?.[0]}
+              </p>
+            </div>
 
             <button
-              onClick={volverInicio}
-              style={{
-                padding: "10px 16px",
-                border: "none",
-                borderRadius: "10px",
-                background: "#20242a",
-                color: "white",
-                cursor: "pointer",
-              }}
+              onClick={cerrarSesion}
+              style={styles.secondaryButton}
             >
-              Inicio
+              Cerrar sesión
             </button>
-          </div>
-
-          <div style={sectionStyle}>
-            <p
-              style={{
-                color: "#68707b",
-                marginBottom: "5px",
-              }}
-            >
-              Bienvenido/a
-            </p>
-
-            <h1 style={{ marginTop: 0 }}>
-              {asesorInfo?.[0] || asesorPortal}
-            </h1>
-
-            <p style={{ color: "#68707b" }}>
-              Acá podés consultar tu evolución de calidad y
-              productividad.
-            </p>
-          </div>
+          </header>
 
           {cargandoReportes ? (
-            <div style={sectionStyle}>
-              <p>Cargando información...</p>
+            <div style={styles.card}>
+              <h2>Cargando información...</h2>
             </div>
-          ) : reportesAsesor.length === 0 ? (
-            <div style={sectionStyle}>
-              <h2>📋 Todavía no hay reportes cargados</h2>
+          ) : reportes.length === 0 ? (
+            <div style={styles.card}>
+              <h2>📋 Todavía no hay reportes</h2>
 
-              <p style={{ color: "#68707b" }}>
-                Cuando Calidad cargue tu primer reporte semanal,
-                vas a poder verlo desde este portal.
+              <p style={styles.muted}>
+                Cuando Calidad cargue tu primer reporte
+                semanal, vas a poder verlo desde acá.
               </p>
             </div>
           ) : (
             <>
-              <section style={sectionStyle}>
-                <h2>📊 Mi calidad</h2>
-
+              <section style={styles.card}>
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(180px, 1fr))",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     gap: "15px",
-                    marginTop: "20px",
+                    flexWrap: "wrap",
                   }}
                 >
-                  <div
-                    style={{
-                      padding: "20px",
-                      borderRadius: "14px",
-                      background: "#f8fafc",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <small>Nota de calidad</small>
+                  <div>
+                    <p style={styles.muted}>
+                      Último reporte
+                    </p>
 
-                    <div
-                      style={{
-                        fontSize: "38px",
-                        fontWeight: "bold",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {reporteActual?.nota ?? "-"}
-                    </div>
+                    <h2 style={{ margin: 0 }}>
+                      {reporteActual?.semana}
+                    </h2>
                   </div>
 
-                  <div
-                    style={{
-                      padding: "20px",
-                      borderRadius: "14px",
-                      background: "#f8fafc",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <small>Semana</small>
-
-                    <div
-                      style={{
-                        fontSize: "20px",
-                        fontWeight: "bold",
-                        marginTop: "12px",
-                      }}
-                    >
-                      {reporteActual?.semana || "-"}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "20px",
-                      borderRadius: "14px",
-                      background: "#f8fafc",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <small>Producto</small>
-
-                    <div
-                      style={{
-                        fontSize: "24px",
-                        fontWeight: "bold",
-                        marginTop: "10px",
-                      }}
-                    >
-                      {reporteActual?.producto || "-"}
-                    </div>
+                  <div style={styles.score}>
+                    {reporteActual?.nota ?? "-"}
                   </div>
                 </div>
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
+                <h2>📊 Mi calidad</h2>
+
+                <div style={styles.grid}>
+                  <Metric
+                    title="Nota de calidad"
+                    value={
+                      reporteActual?.nota ?? "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Producto"
+                    value={
+                      reporteActual?.producto ?? "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Auditoría"
+                    value={
+                      reporteActual?.auditoria || "-"
+                    }
+                  />
+                </div>
+              </section>
+
+              <section style={styles.card}>
                 <h2>📈 Evolución</h2>
 
                 <p>
@@ -598,7 +356,7 @@ export default function AdminPage() {
                 </p>
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>🎯 Objetivo de trabajo</h2>
 
                 <p>
@@ -607,17 +365,10 @@ export default function AdminPage() {
                 </p>
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>⚠️ Desvío principal</h2>
 
-                <div
-                  style={{
-                    padding: "18px",
-                    borderRadius: "12px",
-                    background: "#fff7ed",
-                    border: "1px solid #fed7aa",
-                  }}
-                >
+                <div style={styles.warning}>
                   <strong>
                     {reporteActual?.desvio ||
                       "No hay desvíos cargados."}
@@ -625,7 +376,7 @@ export default function AdminPage() {
                 </div>
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>🛠️ Recomendación</h2>
 
                 <p>
@@ -634,7 +385,7 @@ export default function AdminPage() {
                 </p>
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>🎧 Auditoría</h2>
 
                 <p>
@@ -645,141 +396,90 @@ export default function AdminPage() {
                 {reporteActual?.observaciones && (
                   <>
                     <h3>Observaciones</h3>
-
-                    <p>{reporteActual.observaciones}</p>
+                    <p>
+                      {reporteActual.observaciones}
+                    </p>
                   </>
                 )}
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>📈 Mi productividad</h2>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "15px",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "18px",
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <small>SPH</small>
+                <div style={styles.grid}>
+                  <Metric
+                    title="SPH"
+                    value={reporteActual?.sph ?? "-"}
+                    extra={`Objetivo: ${
+                      reporteActual?.objetivo_sph ?? "-"
+                    }`}
+                  />
 
-                    <strong
-                      style={{
-                        display: "block",
-                        fontSize: "24px",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {reporteActual?.sph ?? "-"}
-                    </strong>
+                  <Metric
+                    title="Ventas"
+                    value={
+                      reporteActual?.ventas ?? "-"
+                    }
+                    extra={`Objetivo: ${
+                      reporteActual?.objetivo_ventas ??
+                      "-"
+                    }`}
+                  />
 
-                    <small>
-                      Objetivo:{" "}
-                      {reporteActual?.objetivo_sph ?? "-"}
-                    </small>
-                  </div>
+                  <Metric
+                    title="Estado SPH"
+                    value={
+                      reporteActual?.estado_sph || "-"
+                    }
+                  />
 
-                  <div
-                    style={{
-                      padding: "18px",
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <small>Ventas</small>
-
-                    <strong
-                      style={{
-                        display: "block",
-                        fontSize: "24px",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {reporteActual?.ventas ?? "-"}
-                    </strong>
-
-                    <small>
-                      Objetivo:{" "}
-                      {reporteActual?.objetivo_ventas ?? "-"}
-                    </small>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "18px",
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <small>Estado SPH</small>
-
-                    <strong
-                      style={{
-                        display: "block",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {reporteActual?.estado_sph || "-"}
-                    </strong>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "18px",
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <small>Estado ventas</small>
-
-                    <strong
-                      style={{
-                        display: "block",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {reporteActual?.estado_ventas || "-"}
-                    </strong>
-                  </div>
+                  <Metric
+                    title="Estado ventas"
+                    value={
+                      reporteActual?.estado_ventas ||
+                      "-"
+                    }
+                  />
                 </div>
 
                 {reporteActual?.objetivo_campania && (
-                  <div style={{ marginTop: "20px" }}>
+                  <div style={{ marginTop: "25px" }}>
                     <h3>Objetivo de campaña</h3>
 
-                    <p>{reporteActual.objetivo_campania}</p>
+                    <p>
+                      {reporteActual.objetivo_campania}
+                    </p>
 
-                    {reporteActual.descripcion_campania && (
-                      <p style={{ color: "#68707b" }}>
-                        {reporteActual.descripcion_campania}
+                    {reporteActual
+                      .descripcion_campania && (
+                      <p style={styles.muted}>
+                        {
+                          reporteActual.descripcion_campania
+                        }
                       </p>
                     )}
 
                     <strong>
                       Estado:{" "}
-                      {reporteActual.estado_campania || "-"}
+                      {reporteActual.estado_campania ||
+                        "-"}
                     </strong>
                   </div>
                 )}
 
                 {reporteActual?.gestion && (
-                  <div style={{ marginTop: "20px" }}>
-                    <h3>¿Qué se realizó durante la semana?</h3>
+                  <div style={{ marginTop: "25px" }}>
+                    <h3>
+                      ¿Qué se realizó durante la
+                      semana?
+                    </h3>
 
                     <p>{reporteActual.gestion}</p>
                   </div>
                 )}
               </section>
 
-              <section style={sectionStyle}>
+              <section style={styles.card}>
                 <h2>📚 Historial semanal</h2>
 
                 <div
@@ -789,25 +489,23 @@ export default function AdminPage() {
                     gap: "12px",
                   }}
                 >
-                  {reportesAsesor.map((reporte, index) => (
+                  {reportes.map((reporte) => (
                     <div
-                      key={`${reporte.usuario}-${reporte.semana}-${index}`}
-                      style={{
-                        padding: "18px",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        background: "#fafafa",
-                      }}
+                      key={reporte.id}
+                      style={styles.history}
                     >
                       <div
                         style={{
                           display: "flex",
-                          justifyContent: "space-between",
+                          justifyContent:
+                            "space-between",
                           gap: "15px",
                           flexWrap: "wrap",
                         }}
                       >
-                        <strong>{reporte.semana}</strong>
+                        <strong>
+                          {reporte.semana}
+                        </strong>
 
                         <strong>
                           Nota: {reporte.nota ?? "-"}
@@ -835,114 +533,257 @@ export default function AdminPage() {
     );
   }
 
+  if (modo === "admin") {
+    return <AdminPanel cerrarSesion={cerrarSesion} />;
+  }
+
+  return null;
+}
+
+function Metric({ title, value, extra }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f4f6f8",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-        color: "#20242a",
-      }}
-    >
-      <div style={{ maxWidth: "1100px", margin: "auto" }}>
-        <div style={sectionStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "20px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <h1 style={{ margin: 0 }}>
-                Portal de Calidad
-              </h1>
+    <div style={styles.metric}>
+      <small>{title}</small>
 
-              <p style={{ color: "#68707b" }}>
-                Panel de Administración
-              </p>
-            </div>
+      <strong
+        style={{
+          display: "block",
+          fontSize: "24px",
+          marginTop: "8px",
+        }}
+      >
+        {value}
+      </strong>
 
-            <button
-              onClick={volverInicio}
-              style={{
-                padding: "11px 18px",
-                border: "none",
-                borderRadius: "10px",
-                background: "#20242a",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              ← Volver al inicio
-            </button>
+      {extra && (
+        <small
+          style={{
+            display: "block",
+            marginTop: "6px",
+            color: "#68707b",
+          }}
+        >
+          {extra}
+        </small>
+      )}
+    </div>
+  );
+}
+
+function AdminPanel({ cerrarSesion }) {
+  const [asesor, setAsesor] = useState("");
+  const [semana, setSemana] =
+    useState("Semana 3 - Agosto");
+
+  const [nota, setNota] = useState("");
+  const [evolucion, setEvolucion] = useState("");
+  const [objetivo, setObjetivo] = useState("");
+  const [desvio, setDesvio] = useState("");
+  const [recomendacion, setRecomendacion] =
+    useState("");
+
+  const [auditoria, setAuditoria] = useState("");
+  const [producto, setProducto] = useState("AP");
+  const [observaciones, setObservaciones] =
+    useState("");
+
+  const [sph, setSph] = useState("");
+  const [objetivoSph, setObjetivoSph] =
+    useState("");
+  const [ventas, setVentas] = useState("");
+  const [objetivoVentas, setObjetivoVentas] =
+    useState("");
+  const [objetivoCampania, setObjetivoCampania] =
+    useState("");
+  const [
+    descripcionCampania,
+    setDescripcionCampania,
+  ] = useState("");
+
+  const [estadoSph, setEstadoSph] = useState("");
+  const [estadoVentas, setEstadoVentas] =
+    useState("");
+  const [estadoCampania, setEstadoCampania] =
+    useState("");
+
+  const [gestion, setGestion] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [guardando, setGuardando] =
+    useState(false);
+
+  async function guardarReporte() {
+    if (!asesor || !nota) {
+      setMensaje(
+        "Seleccioná un asesor y cargá la nota."
+      );
+      return;
+    }
+
+    setGuardando(true);
+    setMensaje("");
+
+    const asesorSeleccionado = asesores.find(
+      ([, usuario]) => usuario === asesor
+    );
+
+    const datos = {
+      asesor:
+        asesorSeleccionado?.[0] || asesor,
+      usuario: asesor,
+      semana,
+      nota: Number(nota),
+      evolucion,
+      objetivo,
+      desvio,
+      recomendacion,
+      auditoria,
+      producto,
+      observaciones,
+      sph: sph ? Number(sph) : null,
+      objetivo_sph: objetivoSph
+        ? Number(objetivoSph)
+        : null,
+      ventas: ventas ? Number(ventas) : null,
+      objetivo_ventas: objetivoVentas
+        ? Number(objetivoVentas)
+        : null,
+      objetivo_campania: objetivoCampania,
+      descripcion_campania:
+        descripcionCampania,
+      estado_sph: estadoSph,
+      estado_ventas: estadoVentas,
+      estado_campania: estadoCampania,
+      gestion,
+    };
+
+    const { error } = await supabase
+      .from("reportes")
+      .upsert(datos, {
+        onConflict: "usuario,semana",
+      });
+
+    if (error) {
+      console.error(error);
+
+      setMensaje(
+        "❌ No se pudo guardar el reporte."
+      );
+
+      setGuardando(false);
+      return;
+    }
+
+    setMensaje(
+      "✓ Reporte guardado correctamente."
+    );
+
+    setGuardando(false);
+  }
+
+  function limpiarFormulario() {
+    setAsesor("");
+    setSemana("Semana 3 - Agosto");
+    setNota("");
+    setEvolucion("");
+    setObjetivo("");
+    setDesvio("");
+    setRecomendacion("");
+    setAuditoria("");
+    setProducto("AP");
+    setObservaciones("");
+    setSph("");
+    setObjetivoSph("");
+    setVentas("");
+    setObjetivoVentas("");
+    setObjetivoCampania("");
+    setDescripcionCampania("");
+    setEstadoSph("");
+    setEstadoVentas("");
+    setEstadoCampania("");
+    setGestion("");
+    setMensaje("");
+  }
+
+  return (
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <div>
+            <h1 style={{ margin: 0 }}>
+              Portal de Calidad
+            </h1>
+
+            <p style={styles.muted}>
+              Panel de Administración
+            </p>
           </div>
 
-          <hr
-            style={{
-              border: 0,
-              borderTop: "1px solid #eee",
-            }}
-          />
+          <button
+            onClick={cerrarSesion}
+            style={styles.secondaryButton}
+          >
+            Cerrar sesión
+          </button>
+        </header>
 
+        <section style={styles.card}>
           <h2>Bienvenida, Administradora</h2>
 
-          <p>
-            Desde acá vas a poder cargar y actualizar la
-            información semanal del equipo.
+          <p style={styles.muted}>
+            Desde acá vas a poder cargar y actualizar
+            la información semanal del equipo.
           </p>
 
           {mensaje && (
             <div
               style={{
+                ...styles.message,
                 background: mensaje.includes("❌")
                   ? "#fff1f1"
                   : "#eaf7ef",
-                border: mensaje.includes("❌")
-                  ? "1px solid #f0b5b5"
-                  : "1px solid #b8e1c6",
-                padding: "14px",
-                borderRadius: "10px",
-                marginTop: "15px",
               }}
             >
               {mensaje}
             </div>
           )}
-        </div>
+        </section>
 
-        <section style={sectionStyle}>
+        <section style={styles.card}>
           <h2>📊 Cargar reporte de calidad</h2>
-
-          <p style={{ color: "#68707b" }}>
-            Completá la información semanal del asesor.
-          </p>
 
           <label>Asesor</label>
 
           <select
             value={asesor}
-            onChange={(e) => setAsesor(e.target.value)}
-            style={inputStyle}
+            onChange={(e) =>
+              setAsesor(e.target.value)
+            }
+            style={styles.input}
           >
-            <option value="">Seleccionar asesor</option>
+            <option value="">
+              Seleccionar asesor
+            </option>
 
-            {asesores.map(([nombre, usuario]) => (
-              <option key={usuario} value={usuario}>
-                {nombre} — {usuario}
-              </option>
-            ))}
+            {asesores.map(
+              ([nombre, usuario]) => (
+                <option
+                  key={usuario}
+                  value={usuario}
+                >
+                  {nombre} — {usuario}
+                </option>
+              )
+            )}
           </select>
 
           <label>Semana</label>
 
           <input
             value={semana}
-            onChange={(e) => setSemana(e.target.value)}
-            style={inputStyle}
+            onChange={(e) =>
+              setSemana(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Nota de calidad</label>
@@ -952,28 +793,32 @@ export default function AdminPage() {
             min="0"
             max="100"
             value={nota}
-            onChange={(e) => setNota(e.target.value)}
+            onChange={(e) =>
+              setNota(e.target.value)
+            }
             placeholder="Ejemplo: 85"
-            style={inputStyle}
+            style={styles.input}
           />
 
           <label>Evolución</label>
 
           <input
             value={evolucion}
-            onChange={(e) => setEvolucion(e.target.value)}
-            placeholder="Ejemplo: Mejora respecto de la semana anterior"
-            style={inputStyle}
+            onChange={(e) =>
+              setEvolucion(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Objetivo</label>
 
           <textarea
             value={objetivo}
-            onChange={(e) => setObjetivo(e.target.value)}
-            placeholder="¿Qué debe trabajar?"
+            onChange={(e) =>
+              setObjetivo(e.target.value)
+            }
             style={{
-              ...inputStyle,
+              ...styles.input,
               minHeight: "90px",
             }}
           />
@@ -982,19 +827,21 @@ export default function AdminPage() {
 
           <input
             value={desvio}
-            onChange={(e) => setDesvio(e.target.value)}
-            placeholder="Ejemplo: Validación de datos"
-            style={inputStyle}
+            onChange={(e) =>
+              setDesvio(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Recomendación</label>
 
           <textarea
             value={recomendacion}
-            onChange={(e) => setRecomendacion(e.target.value)}
-            placeholder="Recomendación para el asesor"
+            onChange={(e) =>
+              setRecomendacion(e.target.value)
+            }
             style={{
-              ...inputStyle,
+              ...styles.input,
               minHeight: "90px",
             }}
           />
@@ -1003,17 +850,20 @@ export default function AdminPage() {
 
           <input
             value={auditoria}
-            onChange={(e) => setAuditoria(e.target.value)}
-            placeholder="Ejemplo: Llamada auditada"
-            style={inputStyle}
+            onChange={(e) =>
+              setAuditoria(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Producto</label>
 
           <select
             value={producto}
-            onChange={(e) => setProducto(e.target.value)}
-            style={inputStyle}
+            onChange={(e) =>
+              setProducto(e.target.value)
+            }
+            style={styles.input}
           >
             <option>AP</option>
             <option>BM</option>
@@ -1023,85 +873,67 @@ export default function AdminPage() {
 
           <textarea
             value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            placeholder="Observaciones de la auditoría"
+            onChange={(e) =>
+              setObservaciones(e.target.value)
+            }
             style={{
-              ...inputStyle,
+              ...styles.input,
               minHeight: "100px",
             }}
           />
 
-          <button
-            onClick={guardarReporte}
-            disabled={guardando}
-            style={{
-              width: "100%",
-              padding: "15px",
-              border: "none",
-              borderRadius: "12px",
-              background: guardando
-                ? "#94a3b8"
-                : "#111827",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: guardando
-                ? "not-allowed"
-                : "pointer",
-            }}
-          >
-            {guardando
-              ? "GUARDANDO..."
-              : "GUARDAR REPORTE"}
-          </button>
-        </section>
+          <hr style={styles.hr} />
 
-        <section style={sectionStyle}>
-          <h2>📈 Cargar productividad semanal</h2>
+          <h2>📈 Productividad semanal</h2>
 
           <label>SPH</label>
 
           <input
             value={sph}
-            onChange={(e) => setSph(e.target.value)}
-            placeholder="Ejemplo: 1.25"
-            style={inputStyle}
+            onChange={(e) =>
+              setSph(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Objetivo SPH</label>
 
           <input
             value={objetivoSph}
-            onChange={(e) => setObjetivoSph(e.target.value)}
-            placeholder="Ejemplo: 1.20"
-            style={inputStyle}
+            onChange={(e) =>
+              setObjetivoSph(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Ventas</label>
 
           <input
             value={ventas}
-            onChange={(e) => setVentas(e.target.value)}
-            placeholder="Cantidad de ventas"
-            style={inputStyle}
+            onChange={(e) =>
+              setVentas(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Objetivo de ventas</label>
 
           <input
             value={objetivoVentas}
-            onChange={(e) => setObjetivoVentas(e.target.value)}
-            placeholder="Cantidad objetivo"
-            style={inputStyle}
+            onChange={(e) =>
+              setObjetivoVentas(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>Objetivo de campaña</label>
 
           <input
             value={objetivoCampania}
-            onChange={(e) => setObjetivoCampania(e.target.value)}
-            placeholder="Objetivo de campaña"
-            style={inputStyle}
+            onChange={(e) =>
+              setObjetivoCampania(e.target.value)
+            }
+            style={styles.input}
           />
 
           <label>
@@ -1114,7 +946,7 @@ export default function AdminPage() {
               setDescripcionCampania(e.target.value)
             }
             style={{
-              ...inputStyle,
+              ...styles.input,
               minHeight: "80px",
             }}
           />
@@ -1123,10 +955,14 @@ export default function AdminPage() {
 
           <select
             value={estadoSph}
-            onChange={(e) => setEstadoSph(e.target.value)}
-            style={inputStyle}
+            onChange={(e) =>
+              setEstadoSph(e.target.value)
+            }
+            style={styles.input}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
@@ -1140,25 +976,31 @@ export default function AdminPage() {
             onChange={(e) =>
               setEstadoVentas(e.target.value)
             }
-            style={inputStyle}
+            style={styles.input}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
             <option>No alcanzado</option>
           </select>
 
-          <label>Estado objetivo de campaña</label>
+          <label>
+            Estado objetivo de campaña
+          </label>
 
           <select
             value={estadoCampania}
             onChange={(e) =>
               setEstadoCampania(e.target.value)
             }
-            style={inputStyle}
+            style={styles.input}
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">
+              Seleccionar estado
+            </option>
             <option>Cumplido</option>
             <option>Alcanzado</option>
             <option>En proceso</option>
@@ -1171,10 +1013,11 @@ export default function AdminPage() {
 
           <textarea
             value={gestion}
-            onChange={(e) => setGestion(e.target.value)}
-            placeholder="Contanos qué acciones se realizaron durante la semana."
+            onChange={(e) =>
+              setGestion(e.target.value)
+            }
             style={{
-              ...inputStyle,
+              ...styles.input,
               minHeight: "100px",
             }}
           />
@@ -1182,80 +1025,192 @@ export default function AdminPage() {
           <button
             onClick={guardarReporte}
             disabled={guardando}
-            style={{
-              width: "100%",
-              padding: "15px",
-              border: "none",
-              borderRadius: "12px",
-              background: guardando
-                ? "#94a3b8"
-                : "#334155",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: guardando
-                ? "not-allowed"
-                : "pointer",
-            }}
+            style={styles.primaryButton}
           >
             {guardando
               ? "GUARDANDO..."
-              : "GUARDAR PRODUCTIVIDAD"}
+              : "GUARDAR REPORTE"}
           </button>
 
           <button
             onClick={limpiarFormulario}
             style={{
+              ...styles.secondaryButton,
               width: "100%",
-              padding: "13px",
               marginTop: "10px",
-              border: "1px solid #d1d5db",
-              borderRadius: "12px",
-              background: "white",
-              cursor: "pointer",
             }}
           >
             LIMPIAR FORMULARIO
           </button>
         </section>
-
-        <section style={sectionStyle}>
-          <h2>👥 Asesores registrados</h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "12px",
-            }}
-          >
-            {asesores.map(([nombre, usuario]) => (
-              <div
-                key={usuario}
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  background: "#fafafa",
-                }}
-              >
-                <strong>{nombre}</strong>
-
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#68707b",
-                    marginTop: "5px",
-                  }}
-                >
-                  Usuario: {usuario}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </main>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f4f6f8",
+    padding: "30px",
+    fontFamily: "Arial, sans-serif",
+    color: "#20242a",
+    boxSizing: "border-box",
+  },
+
+  container: {
+    maxWidth: "1100px",
+    margin: "auto",
+  },
+
+  centerBox: {
+    maxWidth: "500px",
+    margin: "100px auto",
+  },
+
+  loginContainer: {
+    maxWidth: "430px",
+    margin: "100px auto",
+  },
+
+  loginCard: {
+    background: "white",
+    borderRadius: "20px",
+    padding: "35px",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+  },
+
+  card: {
+    background: "#ffffff",
+    borderRadius: "18px",
+    padding: "24px",
+    marginBottom: "20px",
+    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+  },
+
+  header: {
+    background: "#ffffff",
+    borderRadius: "18px",
+    padding: "24px",
+    marginBottom: "20px",
+    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+  },
+
+  logo: {
+    width: "65px",
+    height: "65px",
+    borderRadius: "18px",
+    background: "#111827",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "30px",
+    marginBottom: "20px",
+  },
+
+  input: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #d9dce3",
+    marginTop: "6px",
+    marginBottom: "16px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+  },
+
+  primaryButton: {
+    width: "100%",
+    padding: "15px",
+    border: "none",
+    borderRadius: "12px",
+    background: "#111827",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+
+  secondaryButton: {
+    padding: "11px 18px",
+    border: "1px solid #d1d5db",
+    borderRadius: "10px",
+    background: "white",
+    color: "#20242a",
+    cursor: "pointer",
+  },
+
+  muted: {
+    color: "#68707b",
+  },
+
+  error: {
+    background: "#fff1f1",
+    border: "1px solid #f0b5b5",
+    padding: "12px",
+    borderRadius: "10px",
+    marginBottom: "18px",
+    color: "#991b1b",
+  },
+
+  message: {
+    border: "1px solid #b8e1c6",
+    padding: "14px",
+    borderRadius: "10px",
+    marginTop: "15px",
+  },
+
+  warning: {
+    padding: "18px",
+    borderRadius: "12px",
+    background: "#fff7ed",
+    border: "1px solid #fed7aa",
+  },
+
+  metric: {
+    padding: "20px",
+    background: "#f8fafc",
+    borderRadius: "12px",
+    border: "1px solid #e5e7eb",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "15px",
+    marginTop: "20px",
+  },
+
+  score: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "20px",
+    background: "#111827",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "30px",
+    fontWeight: "bold",
+  },
+
+  history: {
+    padding: "18px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    background: "#fafafa",
+  },
+
+  hr: {
+    border: 0,
+    borderTop: "1px solid #eee",
+    margin: "30px 0",
+  },
+};
