@@ -1,3 +1,4 @@
+```javascript
 "use client";
 
 import { useEffect, useState } from "react";
@@ -116,7 +117,9 @@ export default function Page() {
     e.preventDefault();
 
     if (!email || !password) {
-      setLoginError("Ingresá tu email y contraseña.");
+      setLoginError(
+        "Ingresá tu email y contraseña."
+      );
       return;
     }
 
@@ -131,16 +134,22 @@ export default function Page() {
 
     if (error) {
       console.error(error);
+
       setLoginError(
         "El email o la contraseña no son correctos."
       );
+
       setEntrando(false);
       return;
     }
 
-    const usuarioEmail = data.user?.email?.toLowerCase();
+    const usuarioEmail =
+      data.user?.email?.toLowerCase();
 
-    if (usuarioEmail === ADMIN_EMAIL.toLowerCase()) {
+    if (
+      usuarioEmail ===
+      ADMIN_EMAIL.toLowerCase()
+    ) {
       setModo("admin");
     } else {
       const asesor = asesores.find(
@@ -150,15 +159,18 @@ export default function Page() {
 
       if (!asesor) {
         await supabase.auth.signOut();
+
         setLoginError(
           "Tu cuenta no está asociada a un asesor registrado."
         );
+
         setEntrando(false);
         return;
       }
 
       setAsesorActual(asesor);
       setModo("asesor");
+
       await cargarReportes(asesor[1]);
     }
 
@@ -182,7 +194,9 @@ export default function Page() {
         <div style={styles.centerBox}>
           <div style={styles.card}>
             <h2>Portal de Calidad</h2>
-            <p style={styles.muted}>Verificando acceso...</p>
+            <p style={styles.muted}>
+              Verificando acceso...
+            </p>
           </div>
         </div>
       </main>
@@ -201,7 +215,7 @@ export default function Page() {
             </h1>
 
             <p style={styles.muted}>
-              Ingresá con tu usuario y contraseña
+              Ingresá con tu email y contraseña
             </p>
 
             {loginError && (
@@ -216,7 +230,9 @@ export default function Page() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
                 placeholder="Ingresá tu email"
                 style={styles.input}
                 autoComplete="email"
@@ -260,14 +276,22 @@ export default function Page() {
     return (
       <main style={styles.page}>
         <div style={styles.container}>
+
           <header style={styles.header}>
             <div>
-              <h1 style={{ margin: 0 }}>
-                Portal de Calidad
+              <div style={styles.portalBadge}>
+                🏆 PORTAL DE CALIDAD
+              </div>
+
+              <h1 style={{ margin: "8px 0 0" }}>
+                Mi Panel de Calidad
               </h1>
 
               <p style={styles.muted}>
-                Bienvenido/a, {asesorActual?.[0]}
+                Bienvenido/a,{" "}
+                <strong>
+                  {asesorActual?.[0]}
+                </strong>
               </p>
             </div>
 
@@ -281,42 +305,42 @@ export default function Page() {
 
           {cargandoReportes ? (
             <div style={styles.card}>
-              <h2>Cargando información...</h2>
+              <h2>
+                Cargando información...
+              </h2>
             </div>
           ) : reportes.length === 0 ? (
             <div style={styles.card}>
-              <h2>📋 Todavía no hay reportes</h2>
+              <h2>
+                📋 Todavía no hay reportes
+              </h2>
 
               <p style={styles.muted}>
-                Cuando Calidad cargue tu primer reporte
-                semanal, vas a poder verlo desde acá.
+                Cuando Calidad cargue tu primer
+                reporte semanal, vas a poder
+                verlo desde acá.
               </p>
             </div>
           ) : (
             <>
-              <section style={styles.card}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "15px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>
-                    <p style={styles.muted}>
-                      Último reporte
-                    </p>
+              <section style={styles.heroCard}>
+                <div>
+                  <p style={styles.heroSmall}>
+                    ÚLTIMO REPORTE
+                  </p>
 
-                    <h2 style={{ margin: 0 }}>
-                      {reporteActual?.semana}
-                    </h2>
-                  </div>
+                  <h2 style={styles.heroTitle}>
+                    {reporteActual?.semana}
+                  </h2>
 
-                  <div style={styles.score}>
-                    {reporteActual?.nota ?? "-"}
-                  </div>
+                  <p style={styles.heroText}>
+                    Este es el resultado de tu
+                    última evaluación.
+                  </p>
+                </div>
+
+                <div style={styles.score}>
+                  {reporteActual?.nota ?? "-"}
                 </div>
               </section>
 
@@ -332,37 +356,29 @@ export default function Page() {
                   />
 
                   <Metric
+                    title="Objetivo"
+                    value={
+                      reporteActual?.objetivo_calidad ??
+                      reporteActual?.objetivo ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Estado"
+                    value={
+                      reporteActual?.estado_objetivo ||
+                      "-"
+                    }
+                  />
+
+                  <Metric
                     title="Producto"
                     value={
                       reporteActual?.producto ?? "-"
                     }
                   />
-
-                  <Metric
-                    title="Auditoría"
-                    value={
-                      reporteActual?.auditoria || "-"
-                    }
-                  />
                 </div>
-              </section>
-
-              <section style={styles.card}>
-                <h2>📈 Evolución</h2>
-
-                <p>
-                  {reporteActual?.evolucion ||
-                    "No hay información cargada."}
-                </p>
-              </section>
-
-              <section style={styles.card}>
-                <h2>🎯 Objetivo de trabajo</h2>
-
-                <p>
-                  {reporteActual?.objetivo ||
-                    "No hay información cargada."}
-                </p>
               </section>
 
               <section style={styles.card}>
@@ -379,23 +395,83 @@ export default function Page() {
               <section style={styles.card}>
                 <h2>🛠️ Recomendación</h2>
 
-                <p>
+                <div style={styles.infoBox}>
                   {reporteActual?.recomendacion ||
                     "No hay recomendaciones cargadas."}
-                </p>
+                </div>
+              </section>
+
+              <section style={styles.card}>
+                <h2>🎯 Objetivo de trabajo</h2>
+
+                <div style={styles.infoBox}>
+                  {reporteActual?.objetivo ||
+                    reporteActual?.objetivo_calidad ||
+                    "No hay objetivo cargado."}
+                </div>
+              </section>
+
+              <section style={styles.card}>
+                <h2>
+                  📚 Items trabajados en Calidad
+                </h2>
+
+                <ArrayList
+                  items={reporteActual?.items_calidad}
+                  empty="No se registraron items de calidad."
+                />
+              </section>
+
+              <section style={styles.card}>
+                <h2>
+                  🔧 Acciones realizadas en Calidad
+                </h2>
+
+                <ArrayList
+                  items={reporteActual?.acciones_calidad}
+                  empty="No se registraron acciones de calidad."
+                />
               </section>
 
               <section style={styles.card}>
                 <h2>🎧 Auditoría</h2>
 
-                <p>
-                  {reporteActual?.auditoria ||
-                    "No hay información de auditoría."}
-                </p>
+                {reporteActual?.auditoria ? (
+                  <div style={styles.infoBox}>
+                    <strong>
+                      Referencia:
+                    </strong>{" "}
+                    {reporteActual.auditoria}
+                  </div>
+                ) : (
+                  <p style={styles.muted}>
+                    No hay información de auditoría.
+                  </p>
+                )}
+
+                {reporteActual?.audio_url && (
+                  <div style={styles.audioBox}>
+                    <h3>
+                      🎧 Escuchar llamada auditada
+                    </h3>
+
+                    <audio
+                      controls
+                      src={reporteActual.audio_url}
+                      style={{
+                        width: "100%",
+                        marginTop: "10px",
+                      }}
+                    />
+                  </div>
+                )}
 
                 {reporteActual?.observaciones && (
                   <>
-                    <h3>Observaciones</h3>
+                    <h3>
+                      Observaciones
+                    </h3>
+
                     <p>
                       {reporteActual.observaciones}
                     </p>
@@ -404,14 +480,19 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>📈 Mi productividad</h2>
+                <h2>
+                  📈 Mi productividad
+                </h2>
 
                 <div style={styles.grid}>
                   <Metric
                     title="SPH"
-                    value={reporteActual?.sph ?? "-"}
+                    value={
+                      reporteActual?.sph ?? "-"
+                    }
                     extra={`Objetivo: ${
-                      reporteActual?.objetivo_sph ?? "-"
+                      reporteActual?.objetivo_sph ??
+                      "-"
                     }`}
                   />
 
@@ -429,7 +510,8 @@ export default function Page() {
                   <Metric
                     title="Estado SPH"
                     value={
-                      reporteActual?.estado_sph || "-"
+                      reporteActual?.estado_sph ||
+                      "-"
                     }
                   />
 
@@ -443,15 +525,16 @@ export default function Page() {
                 </div>
 
                 {reporteActual?.objetivo_campania && (
-                  <div style={{ marginTop: "25px" }}>
-                    <h3>Objetivo de campaña</h3>
+                  <div style={styles.subSection}>
+                    <h3>
+                      🎯 Objetivo de campaña
+                    </h3>
 
                     <p>
                       {reporteActual.objetivo_campania}
                     </p>
 
-                    {reporteActual
-                      .descripcion_campania && (
+                    {reporteActual.descripcion_campania && (
                       <p style={styles.muted}>
                         {
                           reporteActual.descripcion_campania
@@ -466,21 +549,227 @@ export default function Page() {
                     </strong>
                   </div>
                 )}
+              </section>
 
-                {reporteActual?.gestion && (
-                  <div style={{ marginTop: "25px" }}>
+              <section style={styles.card}>
+                <h2>
+                  📚 Items trabajados en Productividad
+                </h2>
+
+                <ArrayList
+                  items={
+                    reporteActual?.items_productividad
+                  }
+                  empty="No se registraron items de productividad."
+                />
+              </section>
+
+              <section style={styles.card}>
+                <h2>
+                  🚀 Acciones realizadas en Productividad
+                </h2>
+
+                <ArrayList
+                  items={
+                    reporteActual?.acciones_productividad
+                  }
+                  empty="No se registraron acciones de productividad."
+                />
+              </section>
+
+              {reporteActual?.gestion && (
+                <section style={styles.card}>
+                  <h2>
+                    📝 Gestión realizada durante la semana
+                  </h2>
+
+                  <div style={styles.infoBox}>
+                    {reporteActual.gestion}
+                  </div>
+                </section>
+              )}
+
+              <section style={styles.card}>
+                <h2>
+                  📈 Desvíos de tipificaciones
+                </h2>
+
+                <div style={styles.grid}>
+                  <Metric
+                    title="Objetivo"
+                    value={
+                      reporteActual?.objetivo_tipificaciones ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Estado"
+                    value={
+                      reporteActual?.estado_tipificaciones ||
+                      "-"
+                    }
+                  />
+                </div>
+
+                <h3>
+                  Tipificaciones trabajadas
+                </h3>
+
+                <ArrayList
+                  items={
+                    reporteActual?.tipificaciones
+                  }
+                  empty="No se registraron tipificaciones."
+                />
+
+                {reporteActual?.tipificacion && (
+                  <div style={styles.tipificacionBox}>
                     <h3>
-                      ¿Qué se realizó durante la
-                      semana?
+                      Tipificación analizada
                     </h3>
 
-                    <p>{reporteActual.gestion}</p>
+                    <p>
+                      <strong>
+                        Tipificación:
+                      </strong>{" "}
+                      {reporteActual.tipificacion}
+                    </p>
+
+                    {reporteActual.tipificacion_desvio && (
+                      <p>
+                        <strong>
+                          Desvío:
+                        </strong>{" "}
+                        {reporteActual.tipificacion_desvio}
+                      </p>
+                    )}
+
+                    {reporteActual.tipificacion_objetivo && (
+                      <p>
+                        <strong>
+                          Objetivo:
+                        </strong>{" "}
+                        {reporteActual.tipificacion_objetivo}
+                      </p>
+                    )}
+
+                    {reporteActual.tipificacion_resultado && (
+                      <p>
+                        <strong>
+                          Resultado:
+                        </strong>{" "}
+                        {reporteActual.tipificacion_resultado}
+                      </p>
+                    )}
+
+                    {reporteActual.tipificacion_compromiso && (
+                      <p>
+                        <strong>
+                          Compromiso:
+                        </strong>{" "}
+                        {reporteActual.tipificacion_compromiso}
+                      </p>
+                    )}
+
+                    {reporteActual.tipificacion_observaciones && (
+                      <p>
+                        <strong>
+                          Observaciones:
+                        </strong>{" "}
+                        {
+                          reporteActual.tipificacion_observaciones
+                        }
+                      </p>
+                    )}
                   </div>
                 )}
               </section>
 
               <section style={styles.card}>
-                <h2>📚 Historial semanal</h2>
+                <h2>
+                  📉 Auditorías de no ventas
+                </h2>
+
+                <div style={styles.grid}>
+                  <Metric
+                    title="Auditorías realizadas"
+                    value={
+                      reporteActual?.cantidad_no_ventas ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Registro en sistema"
+                    value={
+                      reporteActual?.registro_sistema ||
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Compromiso"
+                    value={
+                      reporteActual?.compromiso_no_ventas ||
+                      "-"
+                    }
+                  />
+                </div>
+
+                <h3>
+                  Principales O.M. detectadas
+                </h3>
+
+                <ArrayList
+                  items={
+                    reporteActual?.principales_om ||
+                    reporteActual?.om_detectadas
+                  }
+                  empty="No se registraron O.M. detectadas."
+                />
+
+                <h3>
+                  Coaching brindado
+                </h3>
+
+                <ArrayList
+                  items={
+                    reporteActual?.coaching_no_ventas
+                  }
+                  empty="No se registró coaching."
+                />
+
+                <h3>
+                  Fortalezas destacadas
+                </h3>
+
+                <ArrayList
+                  items={
+                    reporteActual?.fortalezas
+                  }
+                  empty="No se registraron fortalezas."
+                />
+
+                {reporteActual?.observaciones_no_ventas && (
+                  <>
+                    <h3>
+                      Observaciones
+                    </h3>
+
+                    <div style={styles.infoBox}>
+                      {
+                        reporteActual.observaciones_no_ventas
+                      }
+                    </div>
+                  </>
+                )}
+              </section>
+
+              <section style={styles.card}>
+                <h2>
+                  📚 Historial semanal
+                </h2>
 
                 <div
                   style={{
@@ -508,7 +797,8 @@ export default function Page() {
                         </strong>
 
                         <strong>
-                          Nota: {reporte.nota ?? "-"}
+                          Nota:{" "}
+                          {reporte.nota ?? "-"}
                         </strong>
                       </div>
 
@@ -519,7 +809,8 @@ export default function Page() {
                             color: "#68707b",
                           }}
                         >
-                          Desvío: {reporte.desvio}
+                          Desvío:{" "}
+                          {reporte.desvio}
                         </p>
                       )}
                     </div>
@@ -534,22 +825,102 @@ export default function Page() {
   }
 
   if (modo === "admin") {
-    return <AdminPanel cerrarSesion={cerrarSesion} />;
+    return (
+      <main style={styles.page}>
+        <div style={styles.centerBox}>
+          <div style={styles.card}>
+            <h2>
+              Panel de Administración
+            </h2>
+
+            <p style={styles.muted}>
+              Ingresá desde la sección de administración.
+            </p>
+
+            <button
+              onClick={() =>
+                (window.location.href = "/admin")
+              }
+              style={styles.primaryButton}
+            >
+              IR AL PANEL DE ADMINISTRACIÓN
+            </button>
+
+            <button
+              onClick={cerrarSesion}
+              style={{
+                ...styles.secondaryButton,
+                width: "100%",
+                marginTop: "10px",
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return null;
 }
 
+function ArrayList({ items, empty }) {
+  let lista = items;
+
+  if (typeof lista === "string") {
+    try {
+      lista = JSON.parse(lista);
+    } catch {
+      lista = [lista];
+    }
+  }
+
+  if (!Array.isArray(lista)) {
+    lista = [];
+  }
+
+  if (lista.length === 0) {
+    return (
+      <p style={styles.muted}>
+        {empty}
+      </p>
+    );
+  }
+
+  return (
+    <div style={styles.tagContainer}>
+      {lista.map((item, index) => (
+        <div
+          key={`${item}-${index}`}
+          style={styles.tag}
+        >
+          <span style={styles.tagCheck}>
+            ✓
+          </span>
+
+          <span>
+            {String(item)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Metric({ title, value, extra }) {
   return (
     <div style={styles.metric}>
-      <small>{title}</small>
+      <small style={styles.metricTitle}>
+        {title}
+      </small>
 
       <strong
         style={{
           display: "block",
           fontSize: "24px",
           marginTop: "8px",
+          color: "#312e81",
         }}
       >
         {value}
@@ -570,490 +941,14 @@ function Metric({ title, value, extra }) {
   );
 }
 
-function AdminPanel({ cerrarSesion }) {
-  const [asesor, setAsesor] = useState("");
-  const [semana, setSemana] =
-    useState("Semana 3 - Agosto");
-
-  const [nota, setNota] = useState("");
-  const [evolucion, setEvolucion] = useState("");
-  const [objetivo, setObjetivo] = useState("");
-  const [desvio, setDesvio] = useState("");
-  const [recomendacion, setRecomendacion] =
-    useState("");
-
-  const [auditoria, setAuditoria] = useState("");
-  const [producto, setProducto] = useState("AP");
-  const [observaciones, setObservaciones] =
-    useState("");
-
-  const [sph, setSph] = useState("");
-  const [objetivoSph, setObjetivoSph] =
-    useState("");
-  const [ventas, setVentas] = useState("");
-  const [objetivoVentas, setObjetivoVentas] =
-    useState("");
-  const [objetivoCampania, setObjetivoCampania] =
-    useState("");
-  const [
-    descripcionCampania,
-    setDescripcionCampania,
-  ] = useState("");
-
-  const [estadoSph, setEstadoSph] = useState("");
-  const [estadoVentas, setEstadoVentas] =
-    useState("");
-  const [estadoCampania, setEstadoCampania] =
-    useState("");
-
-  const [gestion, setGestion] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [guardando, setGuardando] =
-    useState(false);
-
-  async function guardarReporte() {
-    if (!asesor || !nota) {
-      setMensaje(
-        "Seleccioná un asesor y cargá la nota."
-      );
-      return;
-    }
-
-    setGuardando(true);
-    setMensaje("");
-
-    const asesorSeleccionado = asesores.find(
-      ([, usuario]) => usuario === asesor
-    );
-
-    const datos = {
-      asesor:
-        asesorSeleccionado?.[0] || asesor,
-      usuario: asesor,
-      semana,
-      nota: Number(nota),
-      evolucion,
-      objetivo,
-      desvio,
-      recomendacion,
-      auditoria,
-      producto,
-      observaciones,
-      sph: sph ? Number(sph) : null,
-      objetivo_sph: objetivoSph
-        ? Number(objetivoSph)
-        : null,
-      ventas: ventas ? Number(ventas) : null,
-      objetivo_ventas: objetivoVentas
-        ? Number(objetivoVentas)
-        : null,
-      objetivo_campania: objetivoCampania,
-      descripcion_campania:
-        descripcionCampania,
-      estado_sph: estadoSph,
-      estado_ventas: estadoVentas,
-      estado_campania: estadoCampania,
-      gestion,
-    };
-
-    const { error } = await supabase
-      .from("reportes")
-      .upsert(datos, {
-        onConflict: "usuario,semana",
-      });
-
-    if (error) {
-      console.error(error);
-
-      setMensaje(
-        "❌ No se pudo guardar el reporte."
-      );
-
-      setGuardando(false);
-      return;
-    }
-
-    setMensaje(
-      "✓ Reporte guardado correctamente."
-    );
-
-    setGuardando(false);
-  }
-
-  function limpiarFormulario() {
-    setAsesor("");
-    setSemana("Semana 3 - Agosto");
-    setNota("");
-    setEvolucion("");
-    setObjetivo("");
-    setDesvio("");
-    setRecomendacion("");
-    setAuditoria("");
-    setProducto("AP");
-    setObservaciones("");
-    setSph("");
-    setObjetivoSph("");
-    setVentas("");
-    setObjetivoVentas("");
-    setObjetivoCampania("");
-    setDescripcionCampania("");
-    setEstadoSph("");
-    setEstadoVentas("");
-    setEstadoCampania("");
-    setGestion("");
-    setMensaje("");
-  }
-
-  return (
-    <main style={styles.page}>
-      <div style={styles.container}>
-        <header style={styles.header}>
-          <div>
-            <h1 style={{ margin: 0 }}>
-              Portal de Calidad
-            </h1>
-
-            <p style={styles.muted}>
-              Panel de Administración
-            </p>
-          </div>
-
-          <button
-            onClick={cerrarSesion}
-            style={styles.secondaryButton}
-          >
-            Cerrar sesión
-          </button>
-        </header>
-
-        <section style={styles.card}>
-          <h2>Bienvenida, Administradora</h2>
-
-          <p style={styles.muted}>
-            Desde acá vas a poder cargar y actualizar
-            la información semanal del equipo.
-          </p>
-
-          {mensaje && (
-            <div
-              style={{
-                ...styles.message,
-                background: mensaje.includes("❌")
-                  ? "#fff1f1"
-                  : "#eaf7ef",
-              }}
-            >
-              {mensaje}
-            </div>
-          )}
-        </section>
-
-        <section style={styles.card}>
-          <h2>📊 Cargar reporte de calidad</h2>
-
-          <label>Asesor</label>
-
-          <select
-            value={asesor}
-            onChange={(e) =>
-              setAsesor(e.target.value)
-            }
-            style={styles.input}
-          >
-            <option value="">
-              Seleccionar asesor
-            </option>
-
-            {asesores.map(
-              ([nombre, usuario]) => (
-                <option
-                  key={usuario}
-                  value={usuario}
-                >
-                  {nombre} — {usuario}
-                </option>
-              )
-            )}
-          </select>
-
-          <label>Semana</label>
-
-          <input
-            value={semana}
-            onChange={(e) =>
-              setSemana(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Nota de calidad</label>
-
-          <input
-            type="number"
-            min="0"
-            max="100"
-            value={nota}
-            onChange={(e) =>
-              setNota(e.target.value)
-            }
-            placeholder="Ejemplo: 85"
-            style={styles.input}
-          />
-
-          <label>Evolución</label>
-
-          <input
-            value={evolucion}
-            onChange={(e) =>
-              setEvolucion(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Objetivo</label>
-
-          <textarea
-            value={objetivo}
-            onChange={(e) =>
-              setObjetivo(e.target.value)
-            }
-            style={{
-              ...styles.input,
-              minHeight: "90px",
-            }}
-          />
-
-          <label>Desvío principal</label>
-
-          <input
-            value={desvio}
-            onChange={(e) =>
-              setDesvio(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Recomendación</label>
-
-          <textarea
-            value={recomendacion}
-            onChange={(e) =>
-              setRecomendacion(e.target.value)
-            }
-            style={{
-              ...styles.input,
-              minHeight: "90px",
-            }}
-          />
-
-          <label>Auditoría</label>
-
-          <input
-            value={auditoria}
-            onChange={(e) =>
-              setAuditoria(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Producto</label>
-
-          <select
-            value={producto}
-            onChange={(e) =>
-              setProducto(e.target.value)
-            }
-            style={styles.input}
-          >
-            <option>AP</option>
-            <option>BM</option>
-          </select>
-
-          <label>Observaciones</label>
-
-          <textarea
-            value={observaciones}
-            onChange={(e) =>
-              setObservaciones(e.target.value)
-            }
-            style={{
-              ...styles.input,
-              minHeight: "100px",
-            }}
-          />
-
-          <hr style={styles.hr} />
-
-          <h2>📈 Productividad semanal</h2>
-
-          <label>SPH</label>
-
-          <input
-            value={sph}
-            onChange={(e) =>
-              setSph(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Objetivo SPH</label>
-
-          <input
-            value={objetivoSph}
-            onChange={(e) =>
-              setObjetivoSph(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Ventas</label>
-
-          <input
-            value={ventas}
-            onChange={(e) =>
-              setVentas(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Objetivo de ventas</label>
-
-          <input
-            value={objetivoVentas}
-            onChange={(e) =>
-              setObjetivoVentas(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>Objetivo de campaña</label>
-
-          <input
-            value={objetivoCampania}
-            onChange={(e) =>
-              setObjetivoCampania(e.target.value)
-            }
-            style={styles.input}
-          />
-
-          <label>
-            Descripción objetivo de campaña
-          </label>
-
-          <textarea
-            value={descripcionCampania}
-            onChange={(e) =>
-              setDescripcionCampania(e.target.value)
-            }
-            style={{
-              ...styles.input,
-              minHeight: "80px",
-            }}
-          />
-
-          <label>Estado SPH</label>
-
-          <select
-            value={estadoSph}
-            onChange={(e) =>
-              setEstadoSph(e.target.value)
-            }
-            style={styles.input}
-          >
-            <option value="">
-              Seleccionar estado
-            </option>
-            <option>Cumplido</option>
-            <option>Alcanzado</option>
-            <option>En proceso</option>
-            <option>No alcanzado</option>
-          </select>
-
-          <label>Estado ventas</label>
-
-          <select
-            value={estadoVentas}
-            onChange={(e) =>
-              setEstadoVentas(e.target.value)
-            }
-            style={styles.input}
-          >
-            <option value="">
-              Seleccionar estado
-            </option>
-            <option>Cumplido</option>
-            <option>Alcanzado</option>
-            <option>En proceso</option>
-            <option>No alcanzado</option>
-          </select>
-
-          <label>
-            Estado objetivo de campaña
-          </label>
-
-          <select
-            value={estadoCampania}
-            onChange={(e) =>
-              setEstadoCampania(e.target.value)
-            }
-            style={styles.input}
-          >
-            <option value="">
-              Seleccionar estado
-            </option>
-            <option>Cumplido</option>
-            <option>Alcanzado</option>
-            <option>En proceso</option>
-            <option>No alcanzado</option>
-          </select>
-
-          <label>
-            ¿Qué se realizó durante la semana?
-          </label>
-
-          <textarea
-            value={gestion}
-            onChange={(e) =>
-              setGestion(e.target.value)
-            }
-            style={{
-              ...styles.input,
-              minHeight: "100px",
-            }}
-          />
-
-          <button
-            onClick={guardarReporte}
-            disabled={guardando}
-            style={styles.primaryButton}
-          >
-            {guardando
-              ? "GUARDANDO..."
-              : "GUARDAR REPORTE"}
-          </button>
-
-          <button
-            onClick={limpiarFormulario}
-            style={{
-              ...styles.secondaryButton,
-              width: "100%",
-              marginTop: "10px",
-            }}
-          >
-            LIMPIAR FORMULARIO
-          </button>
-        </section>
-      </div>
-    </main>
-  );
-}
-
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f4f6f8",
-    padding: "30px",
-    fontFamily: "Arial, sans-serif",
+    background:
+      "linear-gradient(135deg,#eef2ff 0%,#f8fafc 50%,#ede9fe 100%)",
+    padding: "30px 16px 70px",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
     color: "#20242a",
     boxSizing: "border-box",
   },
@@ -1075,25 +970,32 @@ const styles = {
 
   loginCard: {
     background: "white",
-    borderRadius: "20px",
+    borderRadius: "22px",
     padding: "35px",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 15px 40px rgba(15,23,42,.10)",
   },
 
   card: {
     background: "#ffffff",
-    borderRadius: "18px",
-    padding: "24px",
+    borderRadius: "20px",
+    padding: "25px",
     marginBottom: "20px",
-    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+    boxShadow:
+      "0 8px 30px rgba(15,23,42,.07)",
+    border:
+      "1px solid #e5e7eb",
   },
 
-  header: {
-    background: "#ffffff",
-    borderRadius: "18px",
-    padding: "24px",
+  heroCard: {
+    background:
+      "linear-gradient(135deg,#111827,#312e81,#4f46e5)",
+    color: "white",
+    borderRadius: "22px",
+    padding: "30px",
     marginBottom: "20px",
-    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+    boxShadow:
+      "0 15px 40px rgba(49,46,129,.20)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1101,11 +1003,54 @@ const styles = {
     flexWrap: "wrap",
   },
 
+  heroSmall: {
+    fontSize: "12px",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    opacity: 0.75,
+    margin: 0,
+  },
+
+  heroTitle: {
+    margin: "8px 0",
+    fontSize: "28px",
+  },
+
+  heroText: {
+    margin: 0,
+    opacity: 0.8,
+  },
+
+  header: {
+    background: "white",
+    borderRadius: "20px",
+    padding: "25px",
+    marginBottom: "20px",
+    boxShadow:
+      "0 8px 30px rgba(15,23,42,.07)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+  },
+
+  portalBadge: {
+    display: "inline-block",
+    padding: "7px 12px",
+    borderRadius: "999px",
+    background: "#eef2ff",
+    color: "#4338ca",
+    fontSize: "12px",
+    fontWeight: "bold",
+  },
+
   logo: {
     width: "65px",
     height: "65px",
     borderRadius: "18px",
-    background: "#111827",
+    background:
+      "linear-gradient(135deg,#4f46e5,#7c3aed)",
     color: "white",
     display: "flex",
     alignItems: "center",
@@ -1118,7 +1063,8 @@ const styles = {
     width: "100%",
     padding: "12px",
     borderRadius: "10px",
-    border: "1px solid #d9dce3",
+    border:
+      "1px solid #d9dce3",
     marginTop: "6px",
     marginBottom: "16px",
     fontSize: "14px",
@@ -1130,7 +1076,8 @@ const styles = {
     padding: "15px",
     border: "none",
     borderRadius: "12px",
-    background: "#111827",
+    background:
+      "linear-gradient(135deg,#4f46e5,#7c3aed)",
     color: "white",
     fontSize: "16px",
     fontWeight: "bold",
@@ -1139,7 +1086,8 @@ const styles = {
 
   secondaryButton: {
     padding: "11px 18px",
-    border: "1px solid #d1d5db",
+    border:
+      "1px solid #d1d5db",
     borderRadius: "10px",
     background: "white",
     color: "#20242a",
@@ -1148,36 +1096,50 @@ const styles = {
 
   muted: {
     color: "#68707b",
+    lineHeight: 1.6,
   },
 
   error: {
     background: "#fff1f1",
-    border: "1px solid #f0b5b5",
+    border:
+      "1px solid #f0b5b5",
     padding: "12px",
     borderRadius: "10px",
     marginBottom: "18px",
     color: "#991b1b",
   },
 
-  message: {
-    border: "1px solid #b8e1c6",
-    padding: "14px",
-    borderRadius: "10px",
-    marginTop: "15px",
-  },
-
   warning: {
     padding: "18px",
-    borderRadius: "12px",
+    borderRadius: "14px",
     background: "#fff7ed",
-    border: "1px solid #fed7aa",
+    border:
+      "1px solid #fed7aa",
+    color: "#9a3412",
+  },
+
+  infoBox: {
+    padding: "17px",
+    borderRadius: "14px",
+    background: "#f8fafc",
+    border:
+      "1px solid #e2e8f0",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
   },
 
   metric: {
     padding: "20px",
-    background: "#f8fafc",
-    borderRadius: "12px",
-    border: "1px solid #e5e7eb",
+    background:
+      "linear-gradient(135deg,#f8fafc,#eef2ff)",
+    borderRadius: "15px",
+    border:
+      "1px solid #e5e7eb",
+  },
+
+  metricTitle: {
+    color: "#64748b",
+    fontWeight: "bold",
   },
 
   grid: {
@@ -1189,28 +1151,85 @@ const styles = {
   },
 
   score: {
-    width: "80px",
-    height: "80px",
-    borderRadius: "20px",
-    background: "#111827",
+    width: "90px",
+    height: "90px",
+    borderRadius: "24px",
+    background:
+      "rgba(255,255,255,.15)",
+    border:
+      "1px solid rgba(255,255,255,.25)",
     color: "white",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "30px",
+    fontSize: "32px",
     fontWeight: "bold",
   },
 
   history: {
     padding: "18px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "12px",
+    border:
+      "1px solid #e5e7eb",
+    borderRadius: "14px",
     background: "#fafafa",
   },
 
-  hr: {
-    border: 0,
-    borderTop: "1px solid #eee",
-    margin: "30px 0",
+  subSection: {
+    marginTop: "25px",
+    paddingTop: "20px",
+    borderTop:
+      "1px solid #e5e7eb",
+  },
+
+  audioBox: {
+    marginTop: "20px",
+    padding: "18px",
+    borderRadius: "15px",
+    background: "#f8fafc",
+    border:
+      "1px dashed #cbd5e1",
+  },
+
+  tipificacionBox: {
+    marginTop: "20px",
+    padding: "18px",
+    borderRadius: "15px",
+    background: "#f8fafc",
+    border:
+      "1px solid #e2e8f0",
+  },
+
+  tagContainer: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    marginTop: "12px",
+  },
+
+  tag: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 13px",
+    borderRadius: "999px",
+    background: "#eef2ff",
+    border:
+      "1px solid #c7d2fe",
+    color: "#3730a3",
+    fontSize: "13px",
+    fontWeight: "bold",
+  },
+
+  tagCheck: {
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    background: "#4f46e5",
+    color: "white",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "11px",
   },
 };
+```
