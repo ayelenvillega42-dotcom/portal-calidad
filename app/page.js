@@ -1,4 +1,3 @@
-```javascript
 "use client";
 
 import { useEffect, useState } from "react";
@@ -46,6 +45,31 @@ export default function Page() {
   const [reportes, setReportes] = useState([]);
   const [cargandoReportes, setCargandoReportes] = useState(false);
 
+  const [adminReportes, setAdminReportes] = useState([]);
+  const [cargandoAdmin, setCargandoAdmin] = useState(false);
+
+  const [form, setForm] = useState({
+    usuario: "",
+    semana: "",
+    nota: "",
+    objetivo_calidad: "",
+    estado_objetivo: "",
+    producto: "",
+    desvio: "",
+    recomendacion: "",
+    objetivo: "",
+    items_calidad: "",
+    acciones_calidad: "",
+    auditoria: "",
+    audio_url: "",
+    observaciones: "",
+    sph: "",
+    objetivo_sph: "",
+  });
+
+  const [mensajeAdmin, setMensajeAdmin] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
   useEffect(() => {
     async function verificarSesion() {
       const {
@@ -55,16 +79,15 @@ export default function Page() {
       setSession(session);
 
       if (session?.user?.email) {
-        if (
-          session.user.email.toLowerCase() ===
-          ADMIN_EMAIL.toLowerCase()
-        ) {
+        const correo = session.user.email.toLowerCase();
+
+        if (correo === ADMIN_EMAIL.toLowerCase()) {
           setModo("admin");
+          cargarReportesAdmin();
         } else {
           const asesor = asesores.find(
-            ([, , correo]) =>
-              correo.toLowerCase() ===
-              session.user.email.toLowerCase()
+            ([, , emailAsesor]) =>
+              emailAsesor.toLowerCase() === correo
           );
 
           if (asesor) {
@@ -85,11 +108,9 @@ export default function Page() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
+    } = supabase.auth.onAuthStateChange((_event, nuevaSesion) => {
+      setSession(nuevaSesion);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -113,13 +134,29 @@ export default function Page() {
     setCargandoReportes(false);
   }
 
+  async function cargarReportesAdmin() {
+    setCargandoAdmin(true);
+
+    const { data, error } = await supabase
+      .from("reportes")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setAdminReportes([]);
+    } else {
+      setAdminReportes(data || []);
+    }
+
+    setCargandoAdmin(false);
+  }
+
   async function iniciarSesion(e) {
     e.preventDefault();
 
     if (!email || !password) {
-      setLoginError(
-        "Ingresá tu email y contraseña."
-      );
+      setLoginError("Ingresá tu email y contraseña.");
       return;
     }
 
@@ -134,23 +171,16 @@ export default function Page() {
 
     if (error) {
       console.error(error);
-
-      setLoginError(
-        "El email o la contraseña no son correctos."
-      );
-
+      setLoginError("El email o la contraseña no son correctos.");
       setEntrando(false);
       return;
     }
 
-    const usuarioEmail =
-      data.user?.email?.toLowerCase();
+    const usuarioEmail = data.user?.email?.toLowerCase();
 
-    if (
-      usuarioEmail ===
-      ADMIN_EMAIL.toLowerCase()
-    ) {
+    if (usuarioEmail === ADMIN_EMAIL.toLowerCase()) {
       setModo("admin");
+      await cargarReportesAdmin();
     } else {
       const asesor = asesores.find(
         ([, , correo]) =>
@@ -170,7 +200,6 @@ export default function Page() {
 
       setAsesorActual(asesor);
       setModo("asesor");
-
       await cargarReportes(asesor[1]);
     }
 
@@ -183,9 +212,101 @@ export default function Page() {
     setSession(null);
     setAsesorActual(null);
     setReportes([]);
+    setAdminReportes([]);
     setEmail("");
     setPassword("");
     setModo("login");
+  }
+
+  function cambiarFormulario(e) {
+    const { name, value } = e.target;
+
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value,
+    }));
+  }
+
+  function limpiarFormulario() {
+    setForm({
+      usuario: "",
+      semana: "",
+      nota: "",
+      objetivo_calidad: "",
+      estado_objetivo: "",
+      producto: "",
+      desvio: "",
+      recomendacion: "",
+      objetivo: "",
+      items_calidad: "",
+      acciones_calidad: "",
+      auditoria: "",
+      audio_url: "",
+      observaciones: "",
+      sph: "",
+      objetivo_sph: "",
+    });
+  }
+
+  async function guardarReporte(e) {
+    e.preventDefault();
+
+    if (!form.usuario || !form.semana) {
+      setMensajeAdmin(
+        "Seleccioná un asesor e ingresá la semana."
+      );
+      return;
+    }
+
+    setGuardando(true);
+    setMensajeAdmin("");
+
+    const items = form.items_calidad
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const acciones = form.acciones_calidad
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const nuevoReporte = {
+      usuario: form.usuario,
+      semana: form.semana,
+      nota: form.nota || null,
+      objetivo_calidad: form.objetivo_calidad || null,
+      estado_objetivo: form.estado_objetivo || null,
+      producto: form.producto || null,
+      desvio: form.desvio || null,
+      recomendacion: form.recomendacion || null,
+      objetivo: form.objetivo || null,
+      items_calidad: items,
+      acciones_calidad: acciones,
+      auditoria: form.auditoria || null,
+      audio_url: form.audio_url || null,
+      observaciones: form.observaciones || null,
+      sph: form.sph || null,
+      objetivo_sph: form.objetivo_sph || null,
+    };
+
+    const { error } = await supabase
+      .from("reportes")
+      .insert([nuevoReporte]);
+
+    if (error) {
+      console.error(error);
+      setMensajeAdmin(
+        "No se pudo guardar el reporte. Revisá la configuración de Supabase."
+      );
+      setGuardando(false);
+      return;
+    }
+
+    setMensajeAdmin("✓ REPORTE GUARDADO CORRECTAMENTE");
+    limpiarFormulario();
+    await cargarReportesAdmin();
+    setGuardando(false);
   }
 
   if (cargando) {
@@ -225,7 +346,7 @@ export default function Page() {
             )}
 
             <form onSubmit={iniciarSesion}>
-              <label>Email</label>
+              <label style={styles.label}>Email</label>
 
               <input
                 type="email"
@@ -238,7 +359,9 @@ export default function Page() {
                 autoComplete="email"
               />
 
-              <label>Contraseña</label>
+              <label style={styles.label}>
+                Contraseña
+              </label>
 
               <input
                 type="password"
@@ -270,17 +393,386 @@ export default function Page() {
     );
   }
 
+  if (modo === "admin") {
+    return (
+      <main style={styles.page}>
+        <div style={styles.container}>
+          <header style={styles.header}>
+            <div>
+              <div style={styles.portalBadge}>
+                PORTAL DE CALIDAD
+              </div>
+
+              <h1 style={{ margin: "8px 0 0" }}>
+                Panel de Calidad
+              </h1>
+
+              <p style={styles.muted}>
+                Carga y gestión de reportes
+              </p>
+            </div>
+
+            <button
+              onClick={cerrarSesion}
+              style={styles.secondaryButton}
+            >
+              Cerrar sesión
+            </button>
+          </header>
+
+          <section style={styles.heroCard}>
+            <div>
+              <p style={styles.heroSmall}>
+                ADMINISTRACIÓN
+              </p>
+
+              <h2 style={styles.heroTitle}>
+                Cargar nuevo reporte
+              </h2>
+
+              <p style={styles.heroText}>
+                El reporte quedará disponible
+                automáticamente para el asesor
+                seleccionado.
+              </p>
+            </div>
+          </section>
+
+          <section style={styles.card}>
+            <form onSubmit={guardarReporte}>
+              <div style={styles.formGrid}>
+                <div>
+                  <label style={styles.label}>
+                    Asesor
+                  </label>
+
+                  <select
+                    name="usuario"
+                    value={form.usuario}
+                    onChange={cambiarFormulario}
+                    style={styles.input}
+                    required
+                  >
+                    <option value="">
+                      Seleccioná un asesor
+                    </option>
+
+                    {asesores.map((asesor) => (
+                      <option
+                        key={asesor[1]}
+                        value={asesor[1]}
+                      >
+                        {asesor[0]} — {asesor[1]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Semana / período
+                  </label>
+
+                  <input
+                    name="semana"
+                    value={form.semana}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: Semana 3 - Agosto"
+                    style={styles.input}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Nota de calidad
+                  </label>
+
+                  <input
+                    name="nota"
+                    value={form.nota}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: 82%"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Objetivo de calidad
+                  </label>
+
+                  <input
+                    name="objetivo_calidad"
+                    value={form.objetivo_calidad}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: 90%"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Estado del objetivo
+                  </label>
+
+                  <input
+                    name="estado_objetivo"
+                    value={form.estado_objetivo}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: En progreso"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Producto
+                  </label>
+
+                  <input
+                    name="producto"
+                    value={form.producto}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: AP"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+
+              <label style={styles.label}>
+                Desvío principal
+              </label>
+
+              <textarea
+                name="desvio"
+                value={form.desvio}
+                onChange={cambiarFormulario}
+                placeholder="Describí el principal desvío..."
+                style={styles.textarea}
+              />
+
+              <label style={styles.label}>
+                Recomendación
+              </label>
+
+              <textarea
+                name="recomendacion"
+                value={form.recomendacion}
+                onChange={cambiarFormulario}
+                placeholder="Qué debería trabajar el asesor..."
+                style={styles.textarea}
+              />
+
+              <label style={styles.label}>
+                Objetivo de trabajo
+              </label>
+
+              <textarea
+                name="objetivo"
+                value={form.objetivo}
+                onChange={cambiarFormulario}
+                placeholder="Objetivo para la próxima evaluación..."
+                style={styles.textarea}
+              />
+
+              <label style={styles.label}>
+                Items trabajados en Calidad
+              </label>
+
+              <textarea
+                name="items_calidad"
+                value={form.items_calidad}
+                onChange={cambiarFormulario}
+                placeholder={
+                  "Escribí un item por línea.\nEj: Validación de datos\nPresentación HS\nCláusula de aceptación"
+                }
+                style={styles.textarea}
+              />
+
+              <label style={styles.label}>
+                Acciones realizadas en Calidad
+              </label>
+
+              <textarea
+                name="acciones_calidad"
+                value={form.acciones_calidad}
+                onChange={cambiarFormulario}
+                placeholder={
+                  "Escribí una acción por línea.\nEj: Escucha personalizada\nFeedback individual\nMesa de trabajo"
+                }
+                style={styles.textarea}
+              />
+
+              <div style={styles.formGrid}>
+                <div>
+                  <label style={styles.label}>
+                    Referencia de auditoría
+                  </label>
+
+                  <input
+                    name="auditoria"
+                    value={form.auditoria}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: Llamada 15482"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    URL del audio
+                  </label>
+
+                  <input
+                    name="audio_url"
+                    value={form.audio_url}
+                    onChange={cambiarFormulario}
+                    placeholder="Pegá la URL del audio"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    SPH
+                  </label>
+
+                  <input
+                    name="sph"
+                    value={form.sph}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: 1.8"
+                    style={styles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Objetivo SPH
+                  </label>
+
+                  <input
+                    name="objetivo_sph"
+                    value={form.objetivo_sph}
+                    onChange={cambiarFormulario}
+                    placeholder="Ej: 2.0"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+
+              <label style={styles.label}>
+                Observaciones
+              </label>
+
+              <textarea
+                name="observaciones"
+                value={form.observaciones}
+                onChange={cambiarFormulario}
+                placeholder="Observaciones adicionales..."
+                style={styles.textarea}
+              />
+
+              <button
+                type="submit"
+                disabled={guardando}
+                style={{
+                  ...styles.primaryButton,
+                  marginTop: "15px",
+                  opacity: guardando ? 0.6 : 1,
+                }}
+              >
+                {guardando
+                  ? "GUARDANDO..."
+                  : "GUARDAR REPORTE"}
+              </button>
+
+              {mensajeAdmin && (
+                <div
+                  style={{
+                    ...styles.success,
+                    marginTop: "15px",
+                  }}
+                >
+                  {mensajeAdmin}
+                </div>
+              )}
+            </form>
+          </section>
+
+          <section style={styles.card}>
+            <h2>Reportes cargados</h2>
+
+            {cargandoAdmin ? (
+              <p style={styles.muted}>
+                Cargando reportes...
+              </p>
+            ) : adminReportes.length === 0 ? (
+              <p style={styles.muted}>
+                Todavía no hay reportes cargados.
+              </p>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Asesor</th>
+                      <th style={styles.th}>Semana</th>
+                      <th style={styles.th}>Nota</th>
+                      <th style={styles.th}>Producto</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {adminReportes.map((reporte) => {
+                      const asesor = asesores.find(
+                        (item) =>
+                          item[1] === reporte.usuario
+                      );
+
+                      return (
+                        <tr key={reporte.id}>
+                          <td style={styles.td}>
+                            {asesor
+                              ? asesor[0]
+                              : reporte.usuario}
+                          </td>
+
+                          <td style={styles.td}>
+                            {reporte.semana || "-"}
+                          </td>
+
+                          <td style={styles.td}>
+                            {reporte.nota || "-"}
+                          </td>
+
+                          <td style={styles.td}>
+                            {reporte.producto || "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   if (modo === "asesor") {
     const reporteActual = reportes[0];
 
     return (
       <main style={styles.page}>
         <div style={styles.container}>
-
           <header style={styles.header}>
             <div>
               <div style={styles.portalBadge}>
-                🏆 PORTAL DE CALIDAD
+                PORTAL DE CALIDAD
               </div>
 
               <h1 style={{ margin: "8px 0 0" }}>
@@ -312,13 +804,13 @@ export default function Page() {
           ) : reportes.length === 0 ? (
             <div style={styles.card}>
               <h2>
-                📋 Todavía no hay reportes
+                Todavía no hay reportes
               </h2>
 
               <p style={styles.muted}>
                 Cuando Calidad cargue tu primer
-                reporte semanal, vas a poder
-                verlo desde acá.
+                reporte semanal, vas a poder verlo
+                desde acá.
               </p>
             </div>
           ) : (
@@ -334,8 +826,8 @@ export default function Page() {
                   </h2>
 
                   <p style={styles.heroText}>
-                    Este es el resultado de tu
-                    última evaluación.
+                    Este es el resultado de tu última
+                    evaluación.
                   </p>
                 </div>
 
@@ -345,7 +837,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>📊 Mi calidad</h2>
+                <h2>Mi calidad</h2>
 
                 <div style={styles.grid}>
                   <Metric
@@ -382,7 +874,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>⚠️ Desvío principal</h2>
+                <h2>Desvío principal</h2>
 
                 <div style={styles.warning}>
                   <strong>
@@ -393,7 +885,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>🛠️ Recomendación</h2>
+                <h2>Recomendación</h2>
 
                 <div style={styles.infoBox}>
                   {reporteActual?.recomendacion ||
@@ -402,7 +894,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>🎯 Objetivo de trabajo</h2>
+                <h2>Objetivo de trabajo</h2>
 
                 <div style={styles.infoBox}>
                   {reporteActual?.objetivo ||
@@ -412,9 +904,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>
-                  📚 Items trabajados en Calidad
-                </h2>
+                <h2>Items trabajados en Calidad</h2>
 
                 <ArrayList
                   items={reporteActual?.items_calidad}
@@ -423,9 +913,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>
-                  🔧 Acciones realizadas en Calidad
-                </h2>
+                <h2>Acciones realizadas en Calidad</h2>
 
                 <ArrayList
                   items={reporteActual?.acciones_calidad}
@@ -434,7 +922,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>🎧 Auditoría</h2>
+                <h2>Auditoría</h2>
 
                 {reporteActual?.auditoria ? (
                   <div style={styles.infoBox}>
@@ -452,7 +940,7 @@ export default function Page() {
                 {reporteActual?.audio_url && (
                   <div style={styles.audioBox}>
                     <h3>
-                      🎧 Escuchar llamada auditada
+                      Escuchar llamada auditada
                     </h3>
 
                     <audio
@@ -480,9 +968,7 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
-                <h2>
-                  📈 Mi productividad
-                </h2>
+                <h2>Mi productividad</h2>
 
                 <div style={styles.grid}>
                   <Metric
@@ -495,368 +981,52 @@ export default function Page() {
                       "-"
                     }`}
                   />
-
-                  <Metric
-                    title="Ventas"
-                    value={
-                      reporteActual?.ventas ?? "-"
-                    }
-                    extra={`Objetivo: ${
-                      reporteActual?.objetivo_ventas ??
-                      "-"
-                    }`}
-                  />
-
-                  <Metric
-                    title="Estado SPH"
-                    value={
-                      reporteActual?.estado_sph ||
-                      "-"
-                    }
-                  />
-
-                  <Metric
-                    title="Estado ventas"
-                    value={
-                      reporteActual?.estado_ventas ||
-                      "-"
-                    }
-                  />
                 </div>
-
-                {reporteActual?.objetivo_campania && (
-                  <div style={styles.subSection}>
-                    <h3>
-                      🎯 Objetivo de campaña
-                    </h3>
-
-                    <p>
-                      {reporteActual.objetivo_campania}
-                    </p>
-
-                    {reporteActual.descripcion_campania && (
-                      <p style={styles.muted}>
-                        {
-                          reporteActual.descripcion_campania
-                        }
-                      </p>
-                    )}
-
-                    <strong>
-                      Estado:{" "}
-                      {reporteActual.estado_campania ||
-                        "-"}
-                    </strong>
-                  </div>
-                )}
               </section>
 
-              <section style={styles.card}>
-                <h2>
-                  📚 Items trabajados en Productividad
-                </h2>
-
-                <ArrayList
-                  items={
-                    reporteActual?.items_productividad
-                  }
-                  empty="No se registraron items de productividad."
-                />
-              </section>
-
-              <section style={styles.card}>
-                <h2>
-                  🚀 Acciones realizadas en Productividad
-                </h2>
-
-                <ArrayList
-                  items={
-                    reporteActual?.acciones_productividad
-                  }
-                  empty="No se registraron acciones de productividad."
-                />
-              </section>
-
-              {reporteActual?.gestion && (
+              {reportes.length > 1 && (
                 <section style={styles.card}>
-                  <h2>
-                    📝 Gestión realizada durante la semana
-                  </h2>
+                  <h2>Historial de reportes</h2>
 
-                  <div style={styles.infoBox}>
-                    {reporteActual.gestion}
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>
+                            Semana
+                          </th>
+                          <th style={styles.th}>
+                            Nota
+                          </th>
+                          <th style={styles.th}>
+                            Producto
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {reportes.map((reporte) => (
+                          <tr key={reporte.id}>
+                            <td style={styles.td}>
+                              {reporte.semana || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.nota || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.producto || "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </section>
               )}
-
-              <section style={styles.card}>
-                <h2>
-                  📈 Desvíos de tipificaciones
-                </h2>
-
-                <div style={styles.grid}>
-                  <Metric
-                    title="Objetivo"
-                    value={
-                      reporteActual?.objetivo_tipificaciones ??
-                      "-"
-                    }
-                  />
-
-                  <Metric
-                    title="Estado"
-                    value={
-                      reporteActual?.estado_tipificaciones ||
-                      "-"
-                    }
-                  />
-                </div>
-
-                <h3>
-                  Tipificaciones trabajadas
-                </h3>
-
-                <ArrayList
-                  items={
-                    reporteActual?.tipificaciones
-                  }
-                  empty="No se registraron tipificaciones."
-                />
-
-                {reporteActual?.tipificacion && (
-                  <div style={styles.tipificacionBox}>
-                    <h3>
-                      Tipificación analizada
-                    </h3>
-
-                    <p>
-                      <strong>
-                        Tipificación:
-                      </strong>{" "}
-                      {reporteActual.tipificacion}
-                    </p>
-
-                    {reporteActual.tipificacion_desvio && (
-                      <p>
-                        <strong>
-                          Desvío:
-                        </strong>{" "}
-                        {reporteActual.tipificacion_desvio}
-                      </p>
-                    )}
-
-                    {reporteActual.tipificacion_objetivo && (
-                      <p>
-                        <strong>
-                          Objetivo:
-                        </strong>{" "}
-                        {reporteActual.tipificacion_objetivo}
-                      </p>
-                    )}
-
-                    {reporteActual.tipificacion_resultado && (
-                      <p>
-                        <strong>
-                          Resultado:
-                        </strong>{" "}
-                        {reporteActual.tipificacion_resultado}
-                      </p>
-                    )}
-
-                    {reporteActual.tipificacion_compromiso && (
-                      <p>
-                        <strong>
-                          Compromiso:
-                        </strong>{" "}
-                        {reporteActual.tipificacion_compromiso}
-                      </p>
-                    )}
-
-                    {reporteActual.tipificacion_observaciones && (
-                      <p>
-                        <strong>
-                          Observaciones:
-                        </strong>{" "}
-                        {
-                          reporteActual.tipificacion_observaciones
-                        }
-                      </p>
-                    )}
-                  </div>
-                )}
-              </section>
-
-              <section style={styles.card}>
-                <h2>
-                  📉 Auditorías de no ventas
-                </h2>
-
-                <div style={styles.grid}>
-                  <Metric
-                    title="Auditorías realizadas"
-                    value={
-                      reporteActual?.cantidad_no_ventas ??
-                      "-"
-                    }
-                  />
-
-                  <Metric
-                    title="Registro en sistema"
-                    value={
-                      reporteActual?.registro_sistema ||
-                      "-"
-                    }
-                  />
-
-                  <Metric
-                    title="Compromiso"
-                    value={
-                      reporteActual?.compromiso_no_ventas ||
-                      "-"
-                    }
-                  />
-                </div>
-
-                <h3>
-                  Principales O.M. detectadas
-                </h3>
-
-                <ArrayList
-                  items={
-                    reporteActual?.principales_om ||
-                    reporteActual?.om_detectadas
-                  }
-                  empty="No se registraron O.M. detectadas."
-                />
-
-                <h3>
-                  Coaching brindado
-                </h3>
-
-                <ArrayList
-                  items={
-                    reporteActual?.coaching_no_ventas
-                  }
-                  empty="No se registró coaching."
-                />
-
-                <h3>
-                  Fortalezas destacadas
-                </h3>
-
-                <ArrayList
-                  items={
-                    reporteActual?.fortalezas
-                  }
-                  empty="No se registraron fortalezas."
-                />
-
-                {reporteActual?.observaciones_no_ventas && (
-                  <>
-                    <h3>
-                      Observaciones
-                    </h3>
-
-                    <div style={styles.infoBox}>
-                      {
-                        reporteActual.observaciones_no_ventas
-                      }
-                    </div>
-                  </>
-                )}
-              </section>
-
-              <section style={styles.card}>
-                <h2>
-                  📚 Historial semanal
-                </h2>
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
-                >
-                  {reportes.map((reporte) => (
-                    <div
-                      key={reporte.id}
-                      style={styles.history}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent:
-                            "space-between",
-                          gap: "15px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <strong>
-                          {reporte.semana}
-                        </strong>
-
-                        <strong>
-                          Nota:{" "}
-                          {reporte.nota ?? "-"}
-                        </strong>
-                      </div>
-
-                      {reporte.desvio && (
-                        <p
-                          style={{
-                            marginBottom: 0,
-                            color: "#68707b",
-                          }}
-                        >
-                          Desvío:{" "}
-                          {reporte.desvio}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
             </>
           )}
-        </div>
-      </main>
-    );
-  }
-
-  if (modo === "admin") {
-    return (
-      <main style={styles.page}>
-        <div style={styles.centerBox}>
-          <div style={styles.card}>
-            <h2>
-              Panel de Administración
-            </h2>
-
-            <p style={styles.muted}>
-              Ingresá desde la sección de administración.
-            </p>
-
-            <button
-              onClick={() =>
-                (window.location.href = "/admin")
-              }
-              style={styles.primaryButton}
-            >
-              IR AL PANEL DE ADMINISTRACIÓN
-            </button>
-
-            <button
-              onClick={cerrarSesion}
-              style={{
-                ...styles.secondaryButton,
-                width: "100%",
-                marginTop: "10px",
-              }}
-            >
-              Cerrar sesión
-            </button>
-          </div>
         </div>
       </main>
     );
@@ -865,19 +1035,36 @@ export default function Page() {
   return null;
 }
 
+function Metric({ title, value, extra }) {
+  return (
+    <div style={styles.metric}>
+      <div style={styles.metricTitle}>
+        {title}
+      </div>
+
+      <div style={styles.metricValue}>
+        {value}
+      </div>
+
+      {extra && (
+        <div style={styles.metricExtra}>
+          {extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ArrayList({ items, empty }) {
-  let lista = items;
+  let lista = [];
 
-  if (typeof lista === "string") {
-    try {
-      lista = JSON.parse(lista);
-    } catch {
-      lista = [lista];
-    }
-  }
-
-  if (!Array.isArray(lista)) {
-    lista = [];
+  if (Array.isArray(items)) {
+    lista = items;
+  } else if (typeof items === "string") {
+    lista = items
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   if (lista.length === 0) {
@@ -889,55 +1076,13 @@ function ArrayList({ items, empty }) {
   }
 
   return (
-    <div style={styles.tagContainer}>
+    <ul style={styles.list}>
       {lista.map((item, index) => (
-        <div
-          key={`${item}-${index}`}
-          style={styles.tag}
-        >
-          <span style={styles.tagCheck}>
-            ✓
-          </span>
-
-          <span>
-            {String(item)}
-          </span>
-        </div>
+        <li key={index} style={styles.listItem}>
+          {item}
+        </li>
       ))}
-    </div>
-  );
-}
-
-function Metric({ title, value, extra }) {
-  return (
-    <div style={styles.metric}>
-      <small style={styles.metricTitle}>
-        {title}
-      </small>
-
-      <strong
-        style={{
-          display: "block",
-          fontSize: "24px",
-          marginTop: "8px",
-          color: "#312e81",
-        }}
-      >
-        {value}
-      </strong>
-
-      {extra && (
-        <small
-          style={{
-            display: "block",
-            marginTop: "6px",
-            color: "#68707b",
-          }}
-        >
-          {extra}
-        </small>
-      )}
-    </div>
+    </ul>
   );
 }
 
@@ -945,291 +1090,312 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg,#eef2ff 0%,#f8fafc 50%,#ede9fe 100%)",
-    padding: "30px 16px 70px",
+      "linear-gradient(135deg, #f4f7fb 0%, #eef2f7 100%)",
+    color: "#172033",
     fontFamily:
       "Arial, Helvetica, sans-serif",
-    color: "#20242a",
-    boxSizing: "border-box",
-  },
-
-  container: {
-    maxWidth: "1100px",
-    margin: "auto",
   },
 
   centerBox: {
-    maxWidth: "500px",
-    margin: "100px auto",
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
   },
 
   loginContainer: {
-    maxWidth: "430px",
-    margin: "100px auto",
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
   },
 
   loginCard: {
-    background: "white",
-    borderRadius: "22px",
-    padding: "35px",
-    boxShadow:
-      "0 15px 40px rgba(15,23,42,.10)",
-  },
-
-  card: {
+    width: "100%",
+    maxWidth: "430px",
     background: "#ffffff",
-    borderRadius: "20px",
-    padding: "25px",
-    marginBottom: "20px",
-    boxShadow:
-      "0 8px 30px rgba(15,23,42,.07)",
-    border:
-      "1px solid #e5e7eb",
-  },
-
-  heroCard: {
-    background:
-      "linear-gradient(135deg,#111827,#312e81,#4f46e5)",
-    color: "white",
+    padding: "40px",
     borderRadius: "22px",
-    padding: "30px",
-    marginBottom: "20px",
     boxShadow:
-      "0 15px 40px rgba(49,46,129,.20)",
+      "0 20px 60px rgba(20, 40, 80, 0.12)",
+    border: "1px solid #e6ebf2",
+  },
+
+  logo: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "16px",
+    background: "#172b4d",
+    color: "#ffffff",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: "20px",
-    flexWrap: "wrap",
-  },
-
-  heroSmall: {
-    fontSize: "12px",
-    fontWeight: "bold",
-    letterSpacing: "1px",
-    opacity: 0.75,
-    margin: 0,
-  },
-
-  heroTitle: {
-    margin: "8px 0",
+    justifyContent: "center",
     fontSize: "28px",
+    fontWeight: "700",
+    marginBottom: "20px",
   },
 
-  heroText: {
-    margin: 0,
-    opacity: 0.8,
+  container: {
+    width: "100%",
+    maxWidth: "1180px",
+    margin: "0 auto",
+    padding: "30px 20px 60px",
   },
 
   header: {
-    background: "white",
-    borderRadius: "20px",
-    padding: "25px",
-    marginBottom: "20px",
-    boxShadow:
-      "0 8px 30px rgba(15,23,42,.07)",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: "20px",
+    marginBottom: "28px",
     flexWrap: "wrap",
   },
 
   portalBadge: {
     display: "inline-block",
-    padding: "7px 12px",
+    background: "#172b4d",
+    color: "#ffffff",
+    padding: "8px 13px",
     borderRadius: "999px",
-    background: "#eef2ff",
-    color: "#4338ca",
     fontSize: "12px",
-    fontWeight: "bold",
+    fontWeight: "700",
+    letterSpacing: "0.5px",
   },
 
-  logo: {
-    width: "65px",
-    height: "65px",
-    borderRadius: "18px",
+  card: {
+    background: "#ffffff",
+    borderRadius: "20px",
+    padding: "28px",
+    marginBottom: "22px",
+    border: "1px solid #e5eaf0",
+    boxShadow:
+      "0 10px 35px rgba(20, 40, 80, 0.07)",
+  },
+
+  heroCard: {
     background:
-      "linear-gradient(135deg,#4f46e5,#7c3aed)",
-    color: "white",
+      "linear-gradient(135deg, #172b4d 0%, #294d7a 100%)",
+    color: "#ffffff",
+    borderRadius: "24px",
+    padding: "34px",
+    marginBottom: "22px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "30px",
+    boxShadow:
+      "0 15px 45px rgba(23, 43, 77, 0.2)",
+  },
+
+  heroSmall: {
+    margin: "0 0 8px",
+    fontSize: "12px",
+    fontWeight: "700",
+    letterSpacing: "1px",
+    opacity: 0.8,
+  },
+
+  heroTitle: {
+    margin: "0 0 10px",
+    fontSize: "30px",
+  },
+
+  heroText: {
+    margin: 0,
+    opacity: 0.85,
+  },
+
+  score: {
+    minWidth: "110px",
+    height: "110px",
+    borderRadius: "50%",
+    background: "#ffffff",
+    color: "#172b4d",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "30px",
-    marginBottom: "20px",
+    fontSize: "27px",
+    fontWeight: "800",
+    boxShadow:
+      "0 10px 30px rgba(0, 0, 0, 0.15)",
+  },
+
+  muted: {
+    color: "#697586",
+    lineHeight: 1.6,
+  },
+
+  label: {
+    display: "block",
+    fontWeight: "700",
+    marginBottom: "8px",
+    marginTop: "18px",
+    color: "#344054",
   },
 
   input: {
     width: "100%",
-    padding: "12px",
-    borderRadius: "10px",
-    border:
-      "1px solid #d9dce3",
-    marginTop: "6px",
-    marginBottom: "16px",
-    fontSize: "14px",
     boxSizing: "border-box",
+    padding: "13px 14px",
+    borderRadius: "11px",
+    border: "1px solid #d6dce5",
+    background: "#ffffff",
+    color: "#172033",
+    fontSize: "15px",
+    outline: "none",
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "105px",
+    boxSizing: "border-box",
+    padding: "13px 14px",
+    borderRadius: "11px",
+    border: "1px solid #d6dce5",
+    background: "#ffffff",
+    color: "#172033",
+    fontSize: "15px",
+    resize: "vertical",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+    lineHeight: 1.5,
   },
 
   primaryButton: {
     width: "100%",
-    padding: "15px",
     border: "none",
-    borderRadius: "12px",
-    background:
-      "linear-gradient(135deg,#4f46e5,#7c3aed)",
-    color: "white",
-    fontSize: "16px",
-    fontWeight: "bold",
+    borderRadius: "11px",
+    padding: "14px 18px",
+    background: "#172b4d",
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: "800",
     cursor: "pointer",
+    marginTop: "22px",
   },
 
   secondaryButton: {
-    padding: "11px 18px",
-    border:
-      "1px solid #d1d5db",
-    borderRadius: "10px",
-    background: "white",
-    color: "#20242a",
+    border: "1px solid #d5dce6",
+    borderRadius: "11px",
+    padding: "12px 18px",
+    background: "#ffffff",
+    color: "#344054",
+    fontWeight: "700",
     cursor: "pointer",
-  },
-
-  muted: {
-    color: "#68707b",
-    lineHeight: 1.6,
   },
 
   error: {
     background: "#fff1f1",
-    border:
-      "1px solid #f0b5b5",
+    color: "#b42318",
+    border: "1px solid #f5c2c0",
     padding: "12px",
     borderRadius: "10px",
-    marginBottom: "18px",
-    color: "#991b1b",
+    margin: "18px 0",
+    fontSize: "14px",
+  },
+
+  success: {
+    background: "#ecfdf3",
+    color: "#027a48",
+    border: "1px solid #abefc6",
+    padding: "13px",
+    borderRadius: "10px",
+    fontWeight: "700",
   },
 
   warning: {
+    background: "#fff8e7",
+    border: "1px solid #f4d98c",
+    borderRadius: "12px",
     padding: "18px",
-    borderRadius: "14px",
-    background: "#fff7ed",
-    border:
-      "1px solid #fed7aa",
-    color: "#9a3412",
+    lineHeight: 1.6,
   },
 
   infoBox: {
-    padding: "17px",
-    borderRadius: "14px",
-    background: "#f8fafc",
-    border:
-      "1px solid #e2e8f0",
+    background: "#f5f7fa",
+    border: "1px solid #e1e6ed",
+    borderRadius: "12px",
+    padding: "18px",
     lineHeight: 1.6,
     whiteSpace: "pre-wrap",
   },
 
-  metric: {
-    padding: "20px",
-    background:
-      "linear-gradient(135deg,#f8fafc,#eef2ff)",
-    borderRadius: "15px",
-    border:
-      "1px solid #e5e7eb",
-  },
-
-  metricTitle: {
-    color: "#64748b",
-    fontWeight: "bold",
+  audioBox: {
+    background: "#f5f7fa",
+    borderRadius: "12px",
+    padding: "18px",
+    marginTop: "18px",
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit, minmax(180px, 1fr))",
+      "repeat(auto-fit, minmax(190px, 1fr))",
     gap: "15px",
-    marginTop: "20px",
   },
 
-  score: {
-    width: "90px",
-    height: "90px",
-    borderRadius: "24px",
-    background:
-      "rgba(255,255,255,.15)",
-    border:
-      "1px solid rgba(255,255,255,.25)",
-    color: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "32px",
-    fontWeight: "bold",
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "5px 18px",
   },
 
-  history: {
-    padding: "18px",
-    border:
-      "1px solid #e5e7eb",
-    borderRadius: "14px",
-    background: "#fafafa",
-  },
-
-  subSection: {
-    marginTop: "25px",
-    paddingTop: "20px",
-    borderTop:
-      "1px solid #e5e7eb",
-  },
-
-  audioBox: {
-    marginTop: "20px",
-    padding: "18px",
+  metric: {
+    background: "#f7f9fc",
+    border: "1px solid #e3e8ef",
     borderRadius: "15px",
-    background: "#f8fafc",
-    border:
-      "1px dashed #cbd5e1",
-  },
-
-  tipificacionBox: {
-    marginTop: "20px",
     padding: "18px",
-    borderRadius: "15px",
-    background: "#f8fafc",
-    border:
-      "1px solid #e2e8f0",
   },
 
-  tagContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-    marginTop: "12px",
-  },
-
-  tag: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "10px 13px",
-    borderRadius: "999px",
-    background: "#eef2ff",
-    border:
-      "1px solid #c7d2fe",
-    color: "#3730a3",
+  metricTitle: {
+    color: "#697586",
     fontSize: "13px",
-    fontWeight: "bold",
+    fontWeight: "700",
+    marginBottom: "9px",
   },
 
-  tagCheck: {
-    width: "20px",
-    height: "20px",
-    borderRadius: "50%",
-    background: "#4f46e5",
-    color: "white",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "11px",
+  metricValue: {
+    fontSize: "24px",
+    fontWeight: "800",
+    color: "#172b4d",
+  },
+
+  metricExtra: {
+    marginTop: "7px",
+    fontSize: "12px",
+    color: "#697586",
+  },
+
+  list: {
+    margin: 0,
+    paddingLeft: "22px",
+  },
+
+  listItem: {
+    marginBottom: "10px",
+    lineHeight: 1.5,
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: "600px",
+  },
+
+  th: {
+    textAlign: "left",
+    padding: "13px",
+    background: "#f5f7fa",
+    borderBottom: "1px solid #dfe4ea",
+    fontSize: "13px",
+  },
+
+  td: {
+    padding: "13px",
+    borderBottom: "1px solid #edf0f3",
+    fontSize: "14px",
   },
 };
-```
