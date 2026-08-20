@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+/* =========================================================
+   DATOS DEL PORTAL
+========================================================= */
+
 const asesores = [
   ["Acosta, Pamela", "8134"],
   ["Aguilera, Trinidad", "8196"],
@@ -29,7 +33,11 @@ const asesores = [
   ["Viniegra, Agustín", "8199"],
 ];
 
-const itemsCalidad = [
+/* =========================================================
+   OPCIONES DE CALIDAD
+========================================================= */
+
+const opcionesItemsCalidad = [
   "Información de otras campañas",
   "Presentación HS",
   "Validación de datos",
@@ -41,7 +49,7 @@ const itemsCalidad = [
   "Suscripción",
 ];
 
-const accionesCalidad = [
+const opcionesAccionesCalidad = [
   "Feedback individual",
   "Espacio de coaching",
   "Escucha en línea",
@@ -52,7 +60,11 @@ const accionesCalidad = [
   "Otros",
 ];
 
-const itemsProductividad = [
+/* =========================================================
+   OPCIONES DE PRODUCTIVIDAD
+========================================================= */
+
+const opcionesItemsProductividad = [
   "Técnicas manejo de objeciones",
   "Generación de interés",
   "Cambio apertura",
@@ -71,7 +83,7 @@ const itemsProductividad = [
   "Refuerzo de producto",
 ];
 
-const accionesProductividad = [
+const opcionesAccionesProductividad = [
   "Feedback individual",
   "Espacio de coaching",
   "Escucha en línea",
@@ -94,7 +106,11 @@ const accionesProductividad = [
   "Escucha de llamadas",
 ];
 
-const tipificaciones = [
+/* =========================================================
+   TIPIFICACIONES
+========================================================= */
+
+const opcionesTipificaciones = [
   "Volver a llamar",
   "Volver a llamar argumentando",
   "No permite argumentar",
@@ -110,7 +126,11 @@ const tipificaciones = [
   "No elegible / No reúne requisitos",
 ];
 
-const fortalezas = [
+/* =========================================================
+   FORTALEZAS
+========================================================= */
+
+const opcionesFortalezas = [
   "Escucha activa",
   "Buen sondeo",
   "Seguridad comercial",
@@ -151,22 +171,31 @@ const compromisos = [
   "NO APLICA",
 ];
 
-function MultiSelect({ label, options, value, onChange }) {
+/* =========================================================
+   COMPONENTE MULTISELECT
+========================================================= */
+
+function MultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+}) {
   return (
     <div>
       <label style={styles.label}>{label}</label>
 
       <select
         multiple
-        value={value}
-        onChange={(e) =>
-          onChange(
-            Array.from(
-              e.target.selectedOptions,
-              (option) => option.value
-            )
-          )
-        }
+        value={value || []}
+        onChange={(e) => {
+          const seleccionados = Array.from(
+            e.target.selectedOptions,
+            (option) => option.value
+          );
+
+          onChange(seleccionados);
+        }}
         style={styles.multiSelect}
       >
         {options.map((option) => (
@@ -179,20 +208,43 @@ function MultiSelect({ label, options, value, onChange }) {
       <small style={styles.help}>
         Podés seleccionar varias opciones manteniendo CTRL.
       </small>
+
+      {value && value.length > 0 && (
+        <div style={styles.selectedBox}>
+          <strong>Seleccionado:</strong>{" "}
+          {value.join(" • ")}
+        </div>
+      )}
     </div>
   );
 }
 
-function Section({ number, title, subtitle, children }) {
+/* =========================================================
+   COMPONENTE SECCIÓN
+========================================================= */
+
+function Section({
+  number,
+  title,
+  subtitle,
+  children,
+}) {
   return (
     <section style={styles.section}>
       <div style={styles.sectionHeader}>
-        <div style={styles.sectionNumber}>{number}</div>
+        <div style={styles.sectionNumber}>
+          {number}
+        </div>
 
         <div>
-          <h2 style={styles.sectionTitle}>{title}</h2>
+          <h2 style={styles.sectionTitle}>
+            {title}
+          </h2>
+
           {subtitle && (
-            <p style={styles.subtitle}>{subtitle}</p>
+            <p style={styles.subtitle}>
+              {subtitle}
+            </p>
           )}
         </div>
       </div>
@@ -202,95 +254,239 @@ function Section({ number, title, subtitle, children }) {
   );
 }
 
-function Metric({ title, value, detail }) {
+/* =========================================================
+   COMPONENTE MÉTRICA
+========================================================= */
+
+function Metric({
+  title,
+  value,
+  detail,
+}) {
   return (
     <div style={styles.metricCard}>
-      <span style={styles.metricTitle}>{title}</span>
-      <strong style={styles.metricValue}>{value}</strong>
+      <span style={styles.metricTitle}>
+        {title}
+      </span>
+
+      <strong style={styles.metricValue}>
+        {value}
+      </strong>
+
       {detail && (
-        <small style={styles.metricDetail}>{detail}</small>
+        <small style={styles.metricDetail}>
+          {detail}
+        </small>
       )}
     </div>
   );
 }
 
+/* =========================================================
+   ADMIN
+========================================================= */
+
 export default function AdminPage() {
   const [asesor, setAsesor] = useState("");
-  const [semana, setSemana] = useState("Semana 3 - Agosto");
+  const [semana, setSemana] =
+    useState("Semana 3 - Agosto");
 
-  /* CALIDAD */
+  /* =====================================================
+     CALIDAD
+  ===================================================== */
+
   const [nota, setNota] = useState("");
-  const [objetivoCalidad, setObjetivoCalidad] = useState("");
-  const [estadoObjetivo, setEstadoObjetivo] = useState("");
+  const [objetivoCalidad, setObjetivoCalidad] =
+    useState("");
+
+  const [estadoObjetivo, setEstadoObjetivo] =
+    useState("");
+
   const [desvio, setDesvio] = useState("");
-  const [recomendacion, setRecomendacion] = useState("");
-  const [auditoria, setAuditoria] = useState("");
-  const [producto, setProducto] = useState("AP");
-  const [observacionesCalidad, setObservacionesCalidad] =
+  const [recomendacion, setRecomendacion] =
     useState("");
 
-  const [itemsCalidad, setItemsCalidad] = useState([]);
-  const [accionesCalidad, setAccionesCalidad] = useState([]);
+  const [auditoria, setAuditoria] =
+    useState("");
 
-  const [audioFile, setAudioFile] = useState(null);
-  const [audioUrl, setAudioUrl] = useState("");
+  const [producto, setProducto] =
+    useState("AP");
 
-  /* PRODUCTIVIDAD */
+  const [
+    observacionesCalidad,
+    setObservacionesCalidad,
+  ] = useState("");
+
+  const [
+    itemsCalidadSeleccionados,
+    setItemsCalidadSeleccionados,
+  ] = useState([]);
+
+  const [
+    accionesCalidadSeleccionadas,
+    setAccionesCalidadSeleccionadas,
+  ] = useState([]);
+
+  const [audioFile, setAudioFile] =
+    useState(null);
+
+  const [audioUrl, setAudioUrl] =
+    useState("");
+
+  /* =====================================================
+     PRODUCTIVIDAD
+  ===================================================== */
+
   const [sph, setSph] = useState("");
-  const [ventas, setVentas] = useState("");
-  const [objetivoVentas, setObjetivoVentas] = useState("");
-  const [objetivoCampania, setObjetivoCampania] = useState("");
-  const [descripcionCampania, setDescripcionCampania] =
+
+  const [ventas, setVentas] =
     useState("");
 
-  const [estadoSph, setEstadoSph] = useState("");
-  const [estadoVentas, setEstadoVentas] = useState("");
-  const [estadoCampania, setEstadoCampania] = useState("");
+  const [
+    objetivoVentas,
+    setObjetivoVentas,
+  ] = useState("");
 
-  const [itemsProductividad, setItemsProductividad] =
+  const [
+    objetivoCampania,
+    setObjetivoCampania,
+  ] = useState("");
+
+  const [
+    descripcionCampania,
+    setDescripcionCampania,
+  ] = useState("");
+
+  const [estadoSph, setEstadoSph] =
+    useState("");
+
+  const [estadoVentas, setEstadoVentas] =
+    useState("");
+
+  const [
+    estadoCampania,
+    setEstadoCampania,
+  ] = useState("");
+
+  const [
+    itemsProductividadSeleccionados,
+    setItemsProductividadSeleccionados,
+  ] = useState([]);
+
+  const [
+    accionesProductividadSeleccionadas,
+    setAccionesProductividadSeleccionadas,
+  ] = useState([]);
+
+  const [
+    observacionesProductividad,
+    setObservacionesProductividad,
+  ] = useState("");
+
+  /* =====================================================
+     TIPIFICACIONES
+  ===================================================== */
+
+  const [
+    objetivoTipificaciones,
+    setObjetivoTipificaciones,
+  ] = useState("");
+
+  const [
+    tipificacionesSeleccionadas,
+    setTipificacionesSeleccionadas,
+  ] = useState([]);
+
+  const [
+    estadoTipificaciones,
+    setEstadoTipificaciones,
+  ] = useState("");
+
+  const [
+    tipificacion,
+    setTipificacion,
+  ] = useState("");
+
+  const [
+    tipificacionDesvio,
+    setTipificacionDesvio,
+  ] = useState("");
+
+  const [
+    tipificacionObjetivo,
+    setTipificacionObjetivo,
+  ] = useState("");
+
+  const [
+    tipificacionResultado,
+    setTipificacionResultado,
+  ] = useState("");
+
+  const [
+    tipificacionCompromiso,
+    setTipificacionCompromiso,
+  ] = useState("");
+
+  const [
+    tipificacionObservaciones,
+    setTipificacionObservaciones,
+  ] = useState("");
+
+  /* =====================================================
+     NO VENTAS
+  ===================================================== */
+
+  const [
+    cantidadNoVentas,
+    setCantidadNoVentas,
+  ] = useState("");
+
+  const [
+    principalesOM,
+    setPrincipalesOM,
+  ] = useState([]);
+
+  const [
+    coachingNoVentas,
+    setCoachingNoVentas,
+  ] = useState([]);
+
+  const [
+    registroSistema,
+    setRegistroSistema,
+  ] = useState("");
+
+  const [
+    compromisoNoVentas,
+    setCompromisoNoVentas,
+  ] = useState("");
+
+  const [
+    fortalezasSeleccionadas,
+    setFortalezasSeleccionadas,
+  ] = useState([]);
+
+  const [
+    observacionesNoVentas,
+    setObservacionesNoVentas,
+  ] = useState("");
+
+  /* =====================================================
+     GENERAL
+  ===================================================== */
+
+  const [historico, setHistorico] =
     useState([]);
-  const [accionesProductividad, setAccionesProductividad] =
-    useState([]);
-  const [observacionesProductividad, setObservacionesProductividad] =
+
+  const [mensaje, setMensaje] =
     useState("");
 
-  /* TIPIFICACIONES */
-  const [objetivoTipificaciones, setObjetivoTipificaciones] =
-    useState("");
-  const [tipificacionesSeleccionadas, setTipificacionesSeleccionadas] =
-    useState([]);
-  const [estadoTipificaciones, setEstadoTipificaciones] =
-    useState("");
+  const [guardando, setGuardando] =
+    useState(false);
 
-  const [tipificacion, setTipificacion] = useState("");
-  const [tipificacionDesvio, setTipificacionDesvio] =
-    useState("");
-  const [tipificacionObjetivo, setTipificacionObjetivo] =
-    useState("");
-  const [tipificacionResultado, setTipificacionResultado] =
-    useState("");
-  const [tipificacionCompromiso, setTipificacionCompromiso] =
-    useState("");
-  const [tipificacionObservaciones, setTipificacionObservaciones] =
-    useState("");
-
-  /* NO VENTAS */
-  const [cantidadNoVentas, setCantidadNoVentas] =
-    useState("");
-  const [principalesOM, setPrincipalesOM] = useState([]);
-  const [coachingNoVentas, setCoachingNoVentas] =
-    useState([]);
-  const [registroSistema, setRegistroSistema] = useState("");
-  const [compromisoNoVentas, setCompromisoNoVentas] =
-    useState("");
-  const [fortalezasSeleccionadas, setFortalezasSeleccionadas] =
-    useState([]);
-  const [observacionesNoVentas, setObservacionesNoVentas] =
-    useState("");
-
-  const [historico, setHistorico] = useState([]);
-  const [mensaje, setMensaje] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  /* =====================================================
+     OBJETIVOS SPH
+  ===================================================== */
 
   const objetivosSPH = {
     AP: 0.5,
@@ -299,7 +495,12 @@ export default function AdminPage() {
     CP: 0,
   };
 
-  const objetivoSPH = objetivosSPH[producto] || 0;
+  const objetivoSPH =
+    objetivosSPH[producto] || 0;
+
+  /* =====================================================
+     HISTÓRICO
+  ===================================================== */
 
   useEffect(() => {
     async function cargarHistorico() {
@@ -308,86 +509,135 @@ export default function AdminPage() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("reportes")
-        .select(
-          "id,semana,nota,sph,objetivo_sph,ventas,objetivo_ventas"
-        )
-        .eq("usuario", asesor)
-        .order("id", { ascending: true });
+      const { data, error } =
+        await supabase
+          .from("reportes")
+          .select(
+            "id,semana,nota,sph,objetivo_sph,ventas,objetivo_ventas"
+          )
+          .eq("usuario", asesor)
+          .order("id", {
+            ascending: true,
+          });
 
       if (!error) {
         setHistorico(data || []);
+      } else {
+        console.error(
+          "Error cargando histórico:",
+          error
+        );
       }
     }
 
     cargarHistorico();
   }, [asesor]);
 
+  /* =====================================================
+     CÁLCULOS
+  ===================================================== */
+
   const porcentajeSPH = useMemo(() => {
-    if (!sph || !objetivoSPH) return 0;
+    if (!sph || !objetivoSPH) {
+      return 0;
+    }
 
     return Math.min(
       100,
       Math.max(
         0,
-        (Number(sph) / objetivoSPH) * 100
+        (Number(sph) /
+          objetivoSPH) *
+          100
       )
     );
   }, [sph, objetivoSPH]);
 
   const faltaSPH = useMemo(() => {
-    if (!objetivoSPH) return 0;
+    if (!objetivoSPH) {
+      return 0;
+    }
 
     return Math.max(
       0,
-      objetivoSPH - Number(sph || 0)
+      objetivoSPH -
+        Number(sph || 0)
     );
   }, [sph, objetivoSPH]);
 
-  const progresoCalidad = useMemo(() => {
-    if (!nota) return 0;
-
-    return Math.min(
-      100,
-      Math.max(0, Number(nota))
-    );
-  }, [nota]);
+  /* =====================================================
+     SUBIR AUDIO
+  ===================================================== */
 
   async function subirAudio() {
-    if (!audioFile) return "";
+    if (!audioFile) {
+      return "";
+    }
+
+    if (!supabase) {
+      throw new Error(
+        "Supabase no está configurado."
+      );
+    }
+
+    if (!asesor) {
+      throw new Error(
+        "Seleccioná un asesor antes de subir el audio."
+      );
+    }
 
     const extension =
-      audioFile.name.split(".").pop()?.toLowerCase() ||
+      audioFile.name
+        .split(".")
+        .pop()
+        ?.toLowerCase() ||
       "mp3";
 
     const nombreArchivo =
       `${asesor}/${Date.now()}.${extension}`;
 
-    const { error } = await supabase.storage
-      .from("audios")
-      .upload(nombreArchivo, audioFile, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+    const { error } =
+      await supabase.storage
+        .from("audios")
+        .upload(
+          nombreArchivo,
+          audioFile,
+          {
+            cacheControl: "3600",
+            upsert: true,
+          }
+        );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    const { data } = supabase.storage
-      .from("audios")
-      .getPublicUrl(nombreArchivo);
+    const { data } =
+      supabase.storage
+        .from("audios")
+        .getPublicUrl(
+          nombreArchivo
+        );
 
     return data.publicUrl;
   }
 
+  /* =====================================================
+     GUARDAR REPORTE
+  ===================================================== */
+
   async function guardarReporte() {
     if (!asesor) {
-      setMensaje("❌ Seleccioná un asesor.");
+      setMensaje(
+        "❌ Seleccioná un asesor."
+      );
       return;
     }
 
     if (!nota) {
-      setMensaje("❌ Cargá la nota de calidad.");
+      setMensaje(
+        "❌ Cargá la nota de calidad."
+      );
       return;
     }
 
@@ -402,19 +652,31 @@ export default function AdminPage() {
     setMensaje("");
 
     try {
-      let urlAudioFinal = audioUrl;
+      let urlAudioFinal =
+        audioUrl;
 
       if (audioFile) {
-        urlAudioFinal = await subirAudio();
+        urlAudioFinal =
+          await subirAudio();
       }
 
-      const asesorSeleccionado = asesores.find(
-        ([, usuario]) => usuario === asesor
-      );
+      const asesorSeleccionado =
+        asesores.find(
+          ([, usuario]) =>
+            usuario === asesor
+        );
+
+      /*
+        IMPORTANTE:
+        Todos estos campos se envían como arrays
+        porque en Supabase están configurados
+        como JSONB.
+      */
 
       const datos = {
         asesor:
-          asesorSeleccionado?.[0] || asesor,
+          asesorSeleccionado?.[0] ||
+          asesor,
 
         usuario: asesor,
 
@@ -422,11 +684,13 @@ export default function AdminPage() {
 
         nota: Number(nota),
 
-        objetivo: objetivoCalidad
-          ? Number(objetivoCalidad)
-          : null,
-
         evolucion: "",
+
+        objetivo: objetivoCalidad
+          ? Number(
+              objetivoCalidad
+            )
+          : null,
 
         desvio,
 
@@ -436,31 +700,44 @@ export default function AdminPage() {
 
         producto,
 
-        observaciones: observacionesCalidad,
+        observaciones:
+          observacionesCalidad,
 
-        objetivo_calidad: objetivoCalidad
-          ? Number(objetivoCalidad)
+        objetivo_calidad:
+          objetivoCalidad
+            ? Number(
+                objetivoCalidad
+              )
+            : null,
+
+        estado_objetivo:
+          estadoObjetivo,
+
+        items_calidad:
+          itemsCalidadSeleccionados,
+
+        acciones_calidad:
+          accionesCalidadSeleccionadas,
+
+        audio_url:
+          urlAudioFinal || null,
+
+        sph: sph
+          ? Number(sph)
           : null,
-
-        estado_objetivo: estadoObjetivo,
-
-        items_calidad: itemsCalidad,
-
-        acciones_calidad: accionesCalidad,
-
-        audio_url: urlAudioFinal || null,
-
-        sph: sph ? Number(sph) : null,
 
         objetivo_sph:
           objetivoSPH || null,
 
-        ventas:
-          ventas ? Number(ventas) : null,
+        ventas: ventas
+          ? Number(ventas)
+          : null,
 
         objetivo_ventas:
           objetivoVentas
-            ? Number(objetivoVentas)
+            ? Number(
+                objetivoVentas
+              )
             : null,
 
         objetivo_campania:
@@ -479,23 +756,21 @@ export default function AdminPage() {
           estadoCampania,
 
         items_productividad:
-          itemsProductividad,
+          itemsProductividadSeleccionados,
 
         acciones_productividad:
-          accionesProductividad,
-
-        items_trabajados:
-          itemsCalidad,
-
-        acciones_realizadas:
-          accionesCalidad,
+          accionesProductividadSeleccionadas,
 
         gestion:
-          accionesProductividad.join(", "),
+          accionesProductividadSeleccionadas.join(
+            ", "
+          ),
 
         objetivo_tipificaciones:
           objetivoTipificaciones
-            ? Number(objetivoTipificaciones)
+            ? Number(
+                objetivoTipificaciones
+              )
             : null,
 
         tipificaciones:
@@ -538,7 +813,9 @@ export default function AdminPage() {
 
         cantidad_no_ventas:
           cantidadNoVentas
-            ? Number(cantidadNoVentas)
+            ? Number(
+                cantidadNoVentas
+              )
             : null,
 
         om_detectadas:
@@ -561,16 +838,35 @@ export default function AdminPage() {
 
         observaciones_no_ventas:
           observacionesNoVentas,
+
+        items_trabajados:
+          itemsCalidadSeleccionados,
+
+        acciones_realizadas:
+          accionesCalidadSeleccionadas,
       };
 
-      const { error } = await supabase
-        .from("reportes")
-        .upsert(datos, {
-          onConflict: "usuario,semana",
-        });
+      console.log(
+        "DATOS A GUARDAR:",
+        datos
+      );
+
+      const { error } =
+        await supabase
+          .from("reportes")
+          .upsert(
+            datos,
+            {
+              onConflict:
+                "usuario,semana",
+            }
+          );
 
       if (error) {
-        console.error(error);
+        console.error(
+          "ERROR SUPABASE:",
+          error
+        );
 
         setMensaje(
           `❌ No se pudo guardar: ${error.message}`
@@ -579,23 +875,39 @@ export default function AdminPage() {
         return;
       }
 
-      setAudioUrl(urlAudioFinal || "");
+      setAudioUrl(
+        urlAudioFinal || ""
+      );
 
       setMensaje(
         "✓ REPORTE GUARDADO CORRECTAMENTE"
       );
 
-      const { data } = await supabase
-        .from("reportes")
-        .select(
-          "id,semana,nota,sph,objetivo_sph,ventas,objetivo_ventas"
-        )
-        .eq("usuario", asesor)
-        .order("id", { ascending: true });
+      const {
+        data: historicoNuevo,
+        error:
+          errorHistorico,
+      } =
+        await supabase
+          .from("reportes")
+          .select(
+            "id,semana,nota,sph,objetivo_sph,ventas,objetivo_ventas"
+          )
+          .eq("usuario", asesor)
+          .order("id", {
+            ascending: true,
+          });
 
-      setHistorico(data || []);
+      if (!errorHistorico) {
+        setHistorico(
+          historicoNuevo || []
+        );
+      }
     } catch (error) {
-      console.error(error);
+      console.error(
+        "ERROR GENERAL:",
+        error
+      );
 
       setMensaje(
         `❌ Error: ${
@@ -608,9 +920,15 @@ export default function AdminPage() {
     }
   }
 
+  /* =====================================================
+     LIMPIAR
+  ===================================================== */
+
   function limpiarFormulario() {
     setAsesor("");
-    setSemana("Semana 3 - Agosto");
+    setSemana(
+      "Semana 3 - Agosto"
+    );
 
     setNota("");
     setObjetivoCalidad("");
@@ -621,8 +939,13 @@ export default function AdminPage() {
     setProducto("AP");
     setObservacionesCalidad("");
 
-    setItemsCalidad([]);
-    setAccionesCalidad([]);
+    setItemsCalidadSeleccionados(
+      []
+    );
+
+    setAccionesCalidadSeleccionadas(
+      []
+    );
 
     setAudioFile(null);
     setAudioUrl("");
@@ -637,13 +960,29 @@ export default function AdminPage() {
     setEstadoVentas("");
     setEstadoCampania("");
 
-    setItemsProductividad([]);
-    setAccionesProductividad([]);
-    setObservacionesProductividad("");
+    setItemsProductividadSeleccionados(
+      []
+    );
 
-    setObjetivoTipificaciones("");
-    setTipificacionesSeleccionadas([]);
-    setEstadoTipificaciones("");
+    setAccionesProductividadSeleccionadas(
+      []
+    );
+
+    setObservacionesProductividad(
+      ""
+    );
+
+    setObjetivoTipificaciones(
+      ""
+    );
+
+    setTipificacionesSeleccionadas(
+      []
+    );
+
+    setEstadoTipificaciones(
+      ""
+    );
 
     setTipificacion("");
     setTipificacionDesvio("");
@@ -664,11 +1003,17 @@ export default function AdminPage() {
     setMensaje("");
   }
 
+  /* =====================================================
+     RENDER
+  ===================================================== */
+
   return (
     <main style={styles.page}>
       <div style={styles.container}>
 
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <header style={styles.hero}>
           <div>
@@ -681,14 +1026,18 @@ export default function AdminPage() {
             </h1>
 
             <p style={styles.heroText}>
-              Gestioná calidad, productividad y evolución
-              de cada asesor desde un solo lugar.
+              Gestioná calidad,
+              productividad y
+              evolución de cada
+              asesor desde un solo
+              lugar.
             </p>
           </div>
 
           <button
             onClick={() =>
-              (window.location.href = "/")
+              (window.location.href =
+                "/")
             }
             style={styles.darkButton}
           >
@@ -696,7 +1045,9 @@ export default function AdminPage() {
           </button>
         </header>
 
-        {/* ASESOR */}
+        {/* =================================================
+            01 DATOS ASESOR
+        ================================================= */}
 
         <Section
           number="01"
@@ -705,14 +1056,18 @@ export default function AdminPage() {
         >
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Asesor
               </label>
 
               <select
                 value={asesor}
                 onChange={(e) =>
-                  setAsesor(e.target.value)
+                  setAsesor(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
               >
@@ -721,12 +1076,16 @@ export default function AdminPage() {
                 </option>
 
                 {asesores.map(
-                  ([nombre, usuario]) => (
+                  ([
+                    nombre,
+                    usuario,
+                  ]) => (
                     <option
                       key={usuario}
                       value={usuario}
                     >
-                      {nombre} — {usuario}
+                      {nombre} —{" "}
+                      {usuario}
                     </option>
                   )
                 )}
@@ -734,14 +1093,18 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Semana
               </label>
 
               <input
                 value={semana}
                 onChange={(e) =>
-                  setSemana(e.target.value)
+                  setSemana(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
               />
@@ -749,7 +1112,9 @@ export default function AdminPage() {
           </div>
         </Section>
 
-        {/* CALIDAD */}
+        {/* =================================================
+            02 CALIDAD
+        ================================================= */}
 
         <Section
           number="02"
@@ -759,27 +1124,37 @@ export default function AdminPage() {
           <div style={styles.metricGrid}>
             <Metric
               title="Nota actual"
-              value={nota || "—"}
+              value={
+                nota || "—"
+              }
               detail="Resultado semanal"
             />
 
             <Metric
               title="Objetivo próximo"
-              value={objetivoCalidad || "—"}
+              value={
+                objetivoCalidad ||
+                "—"
+              }
               detail="Meta de la próxima semana"
             />
 
             <Metric
               title="Desvío principal"
-              value={desvio || "—"}
+              value={
+                desvio || "—"
+              }
               detail="Principal oportunidad"
             />
           </div>
 
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
-                Nota de calidad semanal
+              <label
+                style={styles.label}
+              >
+                Nota de calidad
+                semanal
               </label>
 
               <input
@@ -788,7 +1163,9 @@ export default function AdminPage() {
                 max="100"
                 value={nota}
                 onChange={(e) =>
-                  setNota(e.target.value)
+                  setNota(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
                 placeholder="Ejemplo: 85"
@@ -796,17 +1173,24 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
-                🎯 Objetivo para la próxima semana
+              <label
+                style={styles.label}
+              >
+                🎯 Objetivo para la
+                próxima semana
               </label>
 
               <input
                 type="number"
                 min="0"
                 max="100"
-                value={objetivoCalidad}
+                value={
+                  objetivoCalidad
+                }
                 onChange={(e) =>
-                  setObjetivoCalidad(e.target.value)
+                  setObjetivoCalidad(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
                 placeholder="Ejemplo: 90"
@@ -814,14 +1198,18 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Estado del objetivo
           </label>
 
           <select
             value={estadoObjetivo}
             onChange={(e) =>
-              setEstadoObjetivo(e.target.value)
+              setEstadoObjetivo(
+                e.target.value
+              )
             }
             style={styles.input}
           >
@@ -831,34 +1219,45 @@ export default function AdminPage() {
 
             {estadosObjetivo.map(
               (estado) => (
-                <option key={estado}>
+                <option
+                  key={estado}
+                  value={estado}
+                >
                   {estado}
                 </option>
               )
             )}
           </select>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Desvío principal
           </label>
 
           <input
             value={desvio}
             onChange={(e) =>
-              setDesvio(e.target.value)
+              setDesvio(
+                e.target.value
+              )
             }
             style={styles.input}
             placeholder="Ejemplo: Validación de datos"
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Recomendación
           </label>
 
           <textarea
             value={recomendacion}
             onChange={(e) =>
-              setRecomendacion(e.target.value)
+              setRecomendacion(
+                e.target.value
+              )
             }
             style={styles.textarea}
             placeholder="Indicación para que el asesor pueda mejorar..."
@@ -866,28 +1265,44 @@ export default function AdminPage() {
 
           <MultiSelect
             label="Items trabajados"
-            options={itemsCalidad}
-            value={itemsCalidad}
-            onChange={setItemsCalidad}
+            options={
+              opcionesItemsCalidad
+            }
+            value={
+              itemsCalidadSeleccionados
+            }
+            onChange={
+              setItemsCalidadSeleccionados
+            }
           />
 
           <MultiSelect
             label="Acción realizada"
-            options={accionesCalidad}
-            value={accionesCalidad}
-            onChange={setAccionesCalidad}
+            options={
+              opcionesAccionesCalidad
+            }
+            value={
+              accionesCalidadSeleccionadas
+            }
+            onChange={
+              setAccionesCalidadSeleccionadas
+            }
           />
 
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Auditoría
               </label>
 
               <input
                 value={auditoria}
                 onChange={(e) =>
-                  setAuditoria(e.target.value)
+                  setAuditoria(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
                 placeholder="Llamada auditada / referencia"
@@ -895,33 +1310,59 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Producto
               </label>
 
               <select
                 value={producto}
                 onChange={(e) =>
-                  setProducto(e.target.value)
+                  setProducto(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
               >
-                <option>AP</option>
-                <option>BM</option>
-                <option>SL</option>
-                <option>CP</option>
+                <option value="AP">
+                  AP
+                </option>
+
+                <option value="BM">
+                  BM
+                </option>
+
+                <option value="SL">
+                  SL
+                </option>
+
+                <option value="CP">
+                  CP
+                </option>
               </select>
             </div>
           </div>
 
-          <div style={styles.audioBox}>
-            <h3 style={styles.audioTitle}>
+          <div
+            style={styles.audioBox}
+          >
+            <h3
+              style={
+                styles.audioTitle
+              }
+            >
               🎧 Audio de auditoría
             </h3>
 
-            <p style={styles.subtitle}>
-              Subí una llamada para que pueda
-              ser escuchada desde el portal.
+            <p
+              style={
+                styles.subtitle
+              }
+            >
+              Subí una llamada para
+              que pueda ser escuchada
+              desde el portal.
             </p>
 
             <input
@@ -929,15 +1370,23 @@ export default function AdminPage() {
               accept="audio/*"
               onChange={(e) =>
                 setAudioFile(
-                  e.target.files?.[0] || null
+                  e.target.files?.[0] ||
+                    null
                 )
               }
-              style={styles.fileInput}
+              style={
+                styles.fileInput
+              }
             />
 
             {audioFile && (
-              <p style={styles.fileName}>
-                Archivo: {audioFile.name}
+              <p
+                style={
+                  styles.fileName
+                }
+              >
+                Archivo:{" "}
+                {audioFile.name}
               </p>
             )}
 
@@ -946,19 +1395,25 @@ export default function AdminPage() {
                 controls
                 src={audioUrl}
                 style={{
-                  width: "100%",
-                  marginTop: "15px",
+                  width:
+                    "100%",
+                  marginTop:
+                    "15px",
                 }}
               />
             )}
           </div>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Observaciones
           </label>
 
           <textarea
-            value={observacionesCalidad}
+            value={
+              observacionesCalidad
+            }
             onChange={(e) =>
               setObservacionesCalidad(
                 e.target.value
@@ -968,22 +1423,43 @@ export default function AdminPage() {
             placeholder="Observaciones de calidad..."
           />
 
-          {historico.length > 0 && (
-            <div style={styles.chartCard}>
-              <h3 style={styles.chartTitle}>
-                📈 Evolución de calidad
+          {historico.length >
+            0 && (
+            <div
+              style={
+                styles.chartCard
+              }
+            >
+              <h3
+                style={
+                  styles.chartTitle
+                }
+              >
+                📈 Evolución de
+                calidad
               </h3>
 
-              <div style={styles.barChart}>
+              <div
+                style={
+                  styles.barChart
+                }
+              >
                 {historico.map(
-                  (item, index) => {
+                  (
+                    item,
+                    index
+                  ) => {
                     const value =
-                      Number(item.nota) || 0;
+                      Number(
+                        item.nota
+                      ) || 0;
 
                     return (
                       <div
                         key={index}
-                        style={styles.chartColumn}
+                        style={
+                          styles.chartColumn
+                        }
                       >
                         <div
                           style={{
@@ -1018,21 +1494,32 @@ export default function AdminPage() {
           )}
         </Section>
 
-        {/* PRODUCTIVIDAD */}
+        {/* =================================================
+            03 PRODUCTIVIDAD
+        ================================================= */}
 
         <Section
           number="03"
           title="📈 Productividad semanal"
           subtitle="Compará el desempeño del asesor contra sus objetivos."
         >
-          <div style={styles.metricGrid}>
+          <div
+            style={
+              styles.metricGrid
+            }
+          >
             <Metric
               title="SPH"
               value={
                 sph
-                  ? Number(sph)
+                  ? Number(
+                      sph
+                    )
                       .toFixed(2)
-                      .replace(".", ",")
+                      .replace(
+                        ".",
+                        ","
+                      )
                   : "0,00"
               }
             />
@@ -1042,7 +1529,10 @@ export default function AdminPage() {
               value={
                 objetivoSPH
                   .toFixed(2)
-                  .replace(".", ",")
+                  .replace(
+                    ".",
+                    ","
+                  )
               }
               detail={`Producto ${producto}`}
             />
@@ -1051,7 +1541,10 @@ export default function AdminPage() {
               title="Falta"
               value={faltaSPH
                 .toFixed(2)
-                .replace(".", ",")}
+                .replace(
+                  ".",
+                  ","
+                )}
             />
 
             <Metric
@@ -1062,7 +1555,11 @@ export default function AdminPage() {
             />
           </div>
 
-          <div style={styles.progressOuter}>
+          <div
+            style={
+              styles.progressOuter
+            }
+          >
             <div
               style={{
                 ...styles.progressInner,
@@ -1071,19 +1568,29 @@ export default function AdminPage() {
             />
           </div>
 
-          <p style={styles.progressText}>
+          <p
+            style={
+              styles.progressText
+            }
+          >
             {sph
-              ? Number(sph) >= objetivoSPH
+              ? Number(sph) >=
+                objetivoSPH
                 ? "🎯 Objetivo SPH alcanzado."
                 : `Faltan ${faltaSPH
                     .toFixed(2)
-                    .replace(".", ",")} para alcanzar el objetivo.`
+                    .replace(
+                      ".",
+                      ","
+                    )} para alcanzar el objetivo.`
               : "Cargá el SPH para calcular el progreso."}
           </p>
 
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 SPH
               </label>
 
@@ -1092,7 +1599,9 @@ export default function AdminPage() {
                 step="0.01"
                 value={sph}
                 onChange={(e) =>
-                  setSph(e.target.value)
+                  setSph(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
                 placeholder="Ejemplo: 0.48"
@@ -1100,20 +1609,26 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
-                Objetivo SPH automático
+              <label
+                style={styles.label}
+              >
+                Objetivo SPH
+                automático
               </label>
 
               <input
                 readOnly
                 value={
                   objetivoSPH
-                    ? objetivoSPH.toFixed(2)
+                    ? objetivoSPH.toFixed(
+                        2
+                      )
                     : "Sin objetivo"
                 }
                 style={{
                   ...styles.input,
-                  background: "#f1f5f9",
+                  background:
+                    "#f1f5f9",
                 }}
               />
             </div>
@@ -1121,7 +1636,9 @@ export default function AdminPage() {
 
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Ventas
               </label>
 
@@ -1129,20 +1646,26 @@ export default function AdminPage() {
                 type="number"
                 value={ventas}
                 onChange={(e) =>
-                  setVentas(e.target.value)
+                  setVentas(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
               />
             </div>
 
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Objetivo de ventas
               </label>
 
               <input
                 type="number"
-                value={objetivoVentas}
+                value={
+                  objetivoVentas
+                }
                 onChange={(e) =>
                   setObjetivoVentas(
                     e.target.value
@@ -1155,14 +1678,18 @@ export default function AdminPage() {
 
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Estado SPH
               </label>
 
               <select
                 value={estadoSph}
                 onChange={(e) =>
-                  setEstadoSph(e.target.value)
+                  setEstadoSph(
+                    e.target.value
+                  )
                 }
                 style={styles.input}
               >
@@ -1172,7 +1699,10 @@ export default function AdminPage() {
 
                 {estados.map(
                   (estado) => (
-                    <option key={estado}>
+                    <option
+                      key={estado}
+                      value={estado}
+                    >
                       {estado}
                     </option>
                   )
@@ -1181,7 +1711,9 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Estado ventas
               </label>
 
@@ -1200,7 +1732,10 @@ export default function AdminPage() {
 
                 {estados.map(
                   (estado) => (
-                    <option key={estado}>
+                    <option
+                      key={estado}
+                      value={estado}
+                    >
                       {estado}
                     </option>
                   )
@@ -1209,7 +1744,9 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             🎯 Objetivo de campaña
           </label>
 
@@ -1224,12 +1761,17 @@ export default function AdminPage() {
             placeholder="Resultado semanal"
           />
 
-          <label style={styles.label}>
-            Descripción / objetivo de campaña
+          <label
+            style={styles.label}
+          >
+            Descripción / objetivo
+            de campaña
           </label>
 
           <textarea
-            value={descripcionCampania}
+            value={
+              descripcionCampania
+            }
             onChange={(e) =>
               setDescripcionCampania(
                 e.target.value
@@ -1238,8 +1780,11 @@ export default function AdminPage() {
             style={styles.textarea}
           />
 
-          <label style={styles.label}>
-            Estado objetivo de campaña
+          <label
+            style={styles.label}
+          >
+            Estado objetivo de
+            campaña
           </label>
 
           <select
@@ -1257,7 +1802,10 @@ export default function AdminPage() {
 
             {estados.map(
               (estado) => (
-                <option key={estado}>
+                <option
+                  key={estado}
+                  value={estado}
+                >
                   {estado}
                 </option>
               )
@@ -1266,21 +1814,33 @@ export default function AdminPage() {
 
           <MultiSelect
             label="Items trabajados"
-            options={itemsProductividad}
-            value={itemsProductividad}
-            onChange={setItemsProductividad}
+            options={
+              opcionesItemsProductividad
+            }
+            value={
+              itemsProductividadSeleccionados
+            }
+            onChange={
+              setItemsProductividadSeleccionados
+            }
           />
 
           <MultiSelect
             label="Acción realizada"
-            options={accionesProductividad}
-            value={accionesProductividad}
+            options={
+              opcionesAccionesProductividad
+            }
+            value={
+              accionesProductividadSeleccionadas
+            }
             onChange={
-              setAccionesProductividad
+              setAccionesProductividadSeleccionadas
             }
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Observaciones
           </label>
 
@@ -1297,43 +1857,60 @@ export default function AdminPage() {
           />
         </Section>
 
-        {/* EVOLUCION PRODUCTIVIDAD */}
+        {/* =================================================
+            04 EVOLUCIÓN
+        ================================================= */}
 
         <Section
           number="04"
           title="📊 Evolución de productividad"
           subtitle="Seguimiento semanal de SPH y ventas."
         >
-          {historico.length > 0 ? (
+          {historico.length >
+          0 ? (
             <>
               <div
-                style={styles.barChartLarge}
+                style={
+                  styles.barChartLarge
+                }
               >
                 {historico.map(
-                  (item, index) => {
+                  (
+                    item,
+                    index
+                  ) => {
                     const value =
-                      Number(item.sph) || 0;
+                      Number(
+                        item.sph
+                      ) || 0;
 
-                    const max = Math.max(
-                      objetivoSPH || 0.5,
-                      ...historico.map(
-                        (x) =>
-                          Number(x.sph) || 0
-                      ),
-                      0.6
-                    );
+                    const max =
+                      Math.max(
+                        objetivoSPH ||
+                          0.5,
+                        ...historico.map(
+                          (x) =>
+                            Number(
+                              x.sph
+                            ) || 0
+                        ),
+                        0.6
+                      );
 
                     return (
                       <div
                         key={index}
-                        style={styles.chartColumn}
+                        style={
+                          styles.chartColumn
+                        }
                       >
                         <div
                           style={{
                             ...styles.chartBar,
                             height: `${Math.max(
                               8,
-                              (value / max) *
+                              (value /
+                                max) *
                                 100
                             )}%`,
                           }}
@@ -1343,7 +1920,9 @@ export default function AdminPage() {
                               styles.chartValue
                             }
                           >
-                            {value.toFixed(2)}
+                            {value.toFixed(
+                              2
+                            )}
                           </span>
                         </div>
 
@@ -1360,15 +1939,31 @@ export default function AdminPage() {
               </div>
 
               <div
-                style={styles.comparisonTable}
+                style={
+                  styles.comparisonTable
+                }
               >
-                <div>Semana</div>
-                <div>SPH</div>
-                <div>Ventas</div>
-                <div>Objetivo</div>
+                <div>
+                  Semana
+                </div>
+
+                <div>
+                  SPH
+                </div>
+
+                <div>
+                  Ventas
+                </div>
+
+                <div>
+                  Objetivo
+                </div>
 
                 {historico.map(
-                  (item, index) => (
+                  (
+                    item,
+                    index
+                  ) => (
                     <div
                       key={index}
                       style={
@@ -1376,13 +1971,18 @@ export default function AdminPage() {
                       }
                     >
                       <span>
-                        {item.semana}
+                        {
+                          item.semana
+                        }
                       </span>
 
                       <span>
                         {Number(
-                          item.sph || 0
-                        ).toFixed(2)}
+                          item.sph ||
+                            0
+                        ).toFixed(
+                          2
+                        )}
                       </span>
 
                       <span>
@@ -1395,7 +1995,9 @@ export default function AdminPage() {
                           item.objetivo_sph ||
                             objetivoSPH ||
                             0
-                        ).toFixed(2)}
+                        ).toFixed(
+                          2
+                        )}
                       </span>
                     </div>
                   )
@@ -1403,14 +2005,21 @@ export default function AdminPage() {
               </div>
             </>
           ) : (
-            <div style={styles.empty}>
-              Seleccioná un asesor para
-              visualizar su evolución.
+            <div
+              style={
+                styles.empty
+              }
+            >
+              Seleccioná un asesor
+              para visualizar su
+              evolución.
             </div>
           )}
         </Section>
 
-        {/* TIPIFICACIONES */}
+        {/* =================================================
+            05 TIPIFICACIONES
+        ================================================= */}
 
         <Section
           number="05"
@@ -1419,8 +2028,11 @@ export default function AdminPage() {
         >
           <div style={styles.grid2}>
             <div>
-              <label style={styles.label}>
-                Objetivo de tipificaciones
+              <label
+                style={styles.label}
+              >
+                Objetivo de
+                tipificaciones
               </label>
 
               <input
@@ -1438,7 +2050,9 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label style={styles.label}>
+              <label
+                style={styles.label}
+              >
                 Estado
               </label>
 
@@ -1459,7 +2073,10 @@ export default function AdminPage() {
 
                 {estados.map(
                   (estado) => (
-                    <option key={estado}>
+                    <option
+                      key={estado}
+                      value={estado}
+                    >
                       {estado}
                     </option>
                   )
@@ -1470,7 +2087,9 @@ export default function AdminPage() {
 
           <MultiSelect
             label="Tipificaciones trabajadas"
-            options={tipificaciones}
+            options={
+              opcionesTipificaciones
+            }
             value={
               tipificacionesSeleccionadas
             }
@@ -1479,7 +2098,9 @@ export default function AdminPage() {
             }
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Tipificación
           </label>
 
@@ -1496,21 +2117,28 @@ export default function AdminPage() {
               Seleccionar tipificación
             </option>
 
-            {tipificaciones.map(
+            {opcionesTipificaciones.map(
               (item) => (
-                <option key={item}>
+                <option
+                  key={item}
+                  value={item}
+                >
                   {item}
                 </option>
               )
             )}
           </select>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Desvío
           </label>
 
           <input
-            value={tipificacionDesvio}
+            value={
+              tipificacionDesvio
+            }
             onChange={(e) =>
               setTipificacionDesvio(
                 e.target.value
@@ -1519,8 +2147,11 @@ export default function AdminPage() {
             style={styles.input}
           />
 
-          <label style={styles.label}>
-            Objetivo para la próxima semana
+          <label
+            style={styles.label}
+          >
+            Objetivo para la
+            próxima semana
           </label>
 
           <input
@@ -1536,7 +2167,9 @@ export default function AdminPage() {
             style={styles.input}
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Resultado
           </label>
 
@@ -1552,7 +2185,9 @@ export default function AdminPage() {
             style={styles.input}
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Compromiso esperado
           </label>
 
@@ -1573,14 +2208,19 @@ export default function AdminPage() {
 
             {compromisos.map(
               (item) => (
-                <option key={item}>
+                <option
+                  key={item}
+                  value={item}
+                >
                   {item}
                 </option>
               )
             )}
           </select>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Observaciones
           </label>
 
@@ -1597,15 +2237,20 @@ export default function AdminPage() {
           />
         </Section>
 
-        {/* NO VENTAS */}
+        {/* =================================================
+            06 NO VENTAS
+        ================================================= */}
 
         <Section
           number="06"
           title="📈 Auditorías de no ventas"
           subtitle="Analizá oportunidades perdidas y registrá el coaching."
         >
-          <label style={styles.label}>
-            Cantidad de auditorías realizadas
+          <label
+            style={styles.label}
+          >
+            Cantidad de auditorías
+            realizadas
           </label>
 
           <input
@@ -1623,15 +2268,21 @@ export default function AdminPage() {
 
           <MultiSelect
             label="Principales O.M. detectadas"
-            options={itemsProductividad}
-            value={principalesOM}
-            onChange={setPrincipalesOM}
+            options={
+              opcionesItemsProductividad
+            }
+            value={
+              principalesOM
+            }
+            onChange={
+              setPrincipalesOM
+            }
           />
 
           <MultiSelect
             label="Coaching brindado"
             options={
-              accionesProductividad
+              opcionesAccionesProductividad
             }
             value={
               coachingNoVentas
@@ -1641,12 +2292,16 @@ export default function AdminPage() {
             }
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Registro en sistema
           </label>
 
           <select
-            value={registroSistema}
+            value={
+              registroSistema
+            }
             onChange={(e) =>
               setRegistroSistema(
                 e.target.value
@@ -1658,11 +2313,18 @@ export default function AdminPage() {
               Seleccionar
             </option>
 
-            <option>CORRECTA</option>
-            <option>INCORRECTA</option>
+            <option value="CORRECTA">
+              CORRECTA
+            </option>
+
+            <option value="INCORRECTA">
+              INCORRECTA
+            </option>
           </select>
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Compromiso esperado
           </label>
 
@@ -1683,7 +2345,10 @@ export default function AdminPage() {
 
             {compromisos.map(
               (item) => (
-                <option key={item}>
+                <option
+                  key={item}
+                  value={item}
+                >
                   {item}
                 </option>
               )
@@ -1692,7 +2357,9 @@ export default function AdminPage() {
 
           <MultiSelect
             label="Fortalezas destacadas"
-            options={fortalezas}
+            options={
+              opcionesFortalezas
+            }
             value={
               fortalezasSeleccionadas
             }
@@ -1701,7 +2368,9 @@ export default function AdminPage() {
             }
           />
 
-          <label style={styles.label}>
+          <label
+            style={styles.label}
+          >
             Observaciones
           </label>
 
@@ -1718,19 +2387,27 @@ export default function AdminPage() {
           />
         </Section>
 
-        {/* GUARDAR */}
+        {/* =================================================
+            GUARDAR
+        ================================================= */}
 
-        <div style={styles.saveBox}>
+        <div
+          style={styles.saveBox}
+        >
           {mensaje && (
             <div
               style={{
                 ...styles.message,
                 background:
-                  mensaje.startsWith("❌")
+                  mensaje.startsWith(
+                    "❌"
+                  )
                     ? "#fff1f2"
                     : "#ecfdf5",
                 color:
-                  mensaje.startsWith("❌")
+                  mensaje.startsWith(
+                    "❌"
+                  )
                     ? "#be123c"
                     : "#047857",
               }}
@@ -1740,13 +2417,18 @@ export default function AdminPage() {
           )}
 
           <button
-            onClick={guardarReporte}
-            disabled={guardando}
+            onClick={
+              guardarReporte
+            }
+            disabled={
+              guardando
+            }
             style={{
               ...styles.saveButton,
-              opacity: guardando
-                ? 0.6
-                : 1,
+              opacity:
+                guardando
+                  ? 0.6
+                  : 1,
             }}
           >
             {guardando
@@ -1755,8 +2437,12 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={limpiarFormulario}
-            style={styles.clearButton}
+            onClick={
+              limpiarFormulario
+            }
+            style={
+              styles.clearButton
+            }
           >
             LIMPIAR FORMULARIO
           </button>
@@ -1766,12 +2452,17 @@ export default function AdminPage() {
   );
 }
 
+/* =========================================================
+   ESTILOS
+========================================================= */
+
 const styles = {
   page: {
     minHeight: "100vh",
     background:
       "linear-gradient(135deg,#eef2ff 0%,#f8fafc 45%,#ede9fe 100%)",
-    padding: "30px 16px 70px",
+    padding:
+      "30px 16px 70px",
     fontFamily:
       "Arial, Helvetica, sans-serif",
     color: "#172033",
@@ -1799,16 +2490,21 @@ const styles = {
   },
 
   badge: {
-    display: "inline-block",
+    display:
+      "inline-block",
     background:
       "rgba(255,255,255,.15)",
     border:
       "1px solid rgba(255,255,255,.2)",
-    borderRadius: "999px",
-    padding: "8px 14px",
+    borderRadius:
+      "999px",
+    padding:
+      "8px 14px",
     fontSize: "12px",
-    fontWeight: "bold",
-    marginBottom: "12px",
+    fontWeight:
+      "bold",
+    marginBottom:
+      "12px",
   },
 
   heroTitle: {
@@ -1827,9 +2523,12 @@ const styles = {
     background:
       "rgba(255,255,255,.12)",
     color: "white",
-    padding: "12px 18px",
-    borderRadius: "12px",
-    cursor: "pointer",
+    padding:
+      "12px 18px",
+    borderRadius:
+      "12px",
+    cursor:
+      "pointer",
   },
 
   section: {
@@ -1845,23 +2544,29 @@ const styles = {
 
   sectionHeader: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems:
+      "flex-start",
     gap: "14px",
-    marginBottom: "22px",
+    marginBottom:
+      "22px",
   },
 
   sectionNumber: {
     width: "36px",
     height: "36px",
     minWidth: "36px",
-    borderRadius: "12px",
+    borderRadius:
+      "12px",
     background:
       "linear-gradient(135deg,#4f46e5,#7c3aed)",
     color: "white",
     display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold",
+    alignItems:
+      "center",
+    justifyContent:
+      "center",
+    fontWeight:
+      "bold",
     fontSize: "13px",
   },
 
@@ -1879,48 +2584,95 @@ const styles = {
 
   label: {
     display: "block",
-    fontWeight: "bold",
+    fontWeight:
+      "bold",
     fontSize: "14px",
-    marginBottom: "7px",
-    marginTop: "17px",
+    marginBottom:
+      "7px",
+    marginTop:
+      "17px",
     color: "#334155",
   },
 
   input: {
     width: "100%",
-    padding: "12px 13px",
-    borderRadius: "11px",
+    padding:
+      "12px 13px",
+    borderRadius:
+      "11px",
     border:
       "1px solid #d8dee8",
     fontSize: "14px",
-    boxSizing: "border-box",
-    background: "white",
-    color: "#1e293b",
+    boxSizing:
+      "border-box",
+    background:
+      "white",
+    color:
+      "#1e293b",
   },
 
   multiSelect: {
     width: "100%",
-    minHeight: "155px",
+    minHeight:
+      "180px",
     padding: "8px",
-    borderRadius: "11px",
+    borderRadius:
+      "11px",
     border:
       "1px solid #d8dee8",
     fontSize: "14px",
-    boxSizing: "border-box",
-    background: "white",
-    color: "#1e293b",
+    boxSizing:
+      "border-box",
+    background:
+      "white",
+    color:
+      "#1e293b",
+  },
+
+  help: {
+    color:
+      "#94a3b8",
+    fontSize:
+      "12px",
+    display:
+      "block",
+    marginTop:
+      "7px",
+  },
+
+  selectedBox: {
+    marginTop:
+      "8px",
+    padding:
+      "9px 12px",
+    borderRadius:
+      "10px",
+    background:
+      "#eef2ff",
+    color:
+      "#3730a3",
+    fontSize:
+      "12px",
+    lineHeight:
+      1.5,
   },
 
   textarea: {
     width: "100%",
-    minHeight: "105px",
-    padding: "13px",
-    borderRadius: "11px",
+    minHeight:
+      "105px",
+    padding:
+      "13px",
+    borderRadius:
+      "11px",
     border:
       "1px solid #d8dee8",
-    fontSize: "14px",
-    boxSizing: "border-box",
-    resize: "vertical",
+    fontSize:
+      "14px",
+    boxSizing:
+      "border-box",
+    resize:
+      "vertical",
     fontFamily:
       "Arial, Helvetica, sans-serif",
   },
@@ -1937,92 +2689,118 @@ const styles = {
     gridTemplateColumns:
       "repeat(auto-fit,minmax(180px,1fr))",
     gap: "14px",
-    marginBottom: "18px",
+    marginBottom:
+      "18px",
   },
 
   metricCard: {
     padding: "20px",
-    borderRadius: "18px",
+    borderRadius:
+      "18px",
     background:
       "linear-gradient(135deg,#f8fafc,#eef2ff)",
     border:
       "1px solid #e2e8f0",
     display: "flex",
-    flexDirection: "column",
+    flexDirection:
+      "column",
     gap: "7px",
   },
 
   metricTitle: {
-    color: "#64748b",
-    fontSize: "13px",
-    fontWeight: "bold",
+    color:
+      "#64748b",
+    fontSize:
+      "13px",
+    fontWeight:
+      "bold",
   },
 
   metricValue: {
-    fontSize: "24px",
-    color: "#312e81",
+    fontSize:
+      "24px",
+    color:
+      "#312e81",
   },
 
   metricDetail: {
-    color: "#94a3b8",
-  },
-
-  help: {
-    color: "#94a3b8",
-    fontSize: "12px",
+    color:
+      "#94a3b8",
   },
 
   audioBox: {
-    marginTop: "22px",
-    padding: "20px",
-    borderRadius: "18px",
-    background: "#f8fafc",
+    marginTop:
+      "22px",
+    padding:
+      "20px",
+    borderRadius:
+      "18px",
+    background:
+      "#f8fafc",
     border:
       "1px dashed #cbd5e1",
   },
 
   audioTitle: {
     margin: 0,
-    fontSize: "17px",
+    fontSize:
+      "17px",
   },
 
   fileInput: {
-    width: "100%",
-    marginTop: "10px",
+    width:
+      "100%",
+    marginTop:
+      "10px",
   },
 
   fileName: {
-    fontSize: "13px",
-    color: "#475569",
+    fontSize:
+      "13px",
+    color:
+      "#475569",
   },
 
   progressOuter: {
-    width: "100%",
-    height: "16px",
-    background: "#e2e8f0",
-    borderRadius: "999px",
-    overflow: "hidden",
+    width:
+      "100%",
+    height:
+      "16px",
+    background:
+      "#e2e8f0",
+    borderRadius:
+      "999px",
+    overflow:
+      "hidden",
   },
 
   progressInner: {
-    height: "100%",
+    height:
+      "100%",
     background:
       "linear-gradient(90deg,#4f46e5,#7c3aed)",
-    borderRadius: "999px",
+    borderRadius:
+      "999px",
     transition:
       "width .4s ease",
   },
 
   progressText: {
-    fontSize: "14px",
-    color: "#475569",
+    fontSize:
+      "14px",
+    color:
+      "#475569",
   },
 
   chartCard: {
-    marginTop: "25px",
-    padding: "22px",
-    background: "#f8fafc",
-    borderRadius: "18px",
+    marginTop:
+      "25px",
+    padding:
+      "22px",
+    background:
+      "#f8fafc",
+    borderRadius:
+      "18px",
   },
 
   chartTitle: {
@@ -2030,12 +2808,16 @@ const styles = {
   },
 
   barChart: {
-    height: "220px",
-    display: "flex",
-    alignItems: "flex-end",
+    height:
+      "220px",
+    display:
+      "flex",
+    alignItems:
+      "flex-end",
     justifyContent:
       "space-around",
-    gap: "12px",
+    gap:
+      "12px",
     borderBottom:
       "1px solid #cbd5e1",
     padding:
@@ -2043,119 +2825,172 @@ const styles = {
   },
 
   barChartLarge: {
-    height: "270px",
-    display: "flex",
-    alignItems: "flex-end",
+    height:
+      "270px",
+    display:
+      "flex",
+    alignItems:
+      "flex-end",
     justifyContent:
       "space-around",
-    gap: "15px",
+    gap:
+      "15px",
     borderBottom:
       "1px solid #cbd5e1",
     padding:
       "20px 20px 0",
-    marginBottom: "25px",
+    marginBottom:
+      "25px",
   },
 
   chartColumn: {
-    height: "100%",
+    height:
+      "100%",
     flex: 1,
-    maxWidth: "90px",
-    display: "flex",
-    flexDirection: "column",
+    maxWidth:
+      "90px",
+    display:
+      "flex",
+    flexDirection:
+      "column",
     justifyContent:
       "flex-end",
-    alignItems: "center",
-    gap: "7px",
+    alignItems:
+      "center",
+    gap:
+      "7px",
   },
 
   chartBar: {
-    width: "55px",
-    minHeight: "8px",
+    width:
+      "55px",
+    minHeight:
+      "8px",
     borderRadius:
       "10px 10px 3px 3px",
     background:
       "linear-gradient(180deg,#6366f1,#312e81)",
-    display: "flex",
-    alignItems: "flex-start",
+    display:
+      "flex",
+    alignItems:
+      "flex-start",
     justifyContent:
       "center",
-    paddingTop: "5px",
+    paddingTop:
+      "5px",
     transition:
       "height .4s ease",
   },
 
   chartValue: {
-    color: "white",
-    fontSize: "11px",
-    fontWeight: "bold",
+    color:
+      "white",
+    fontSize:
+      "11px",
+    fontWeight:
+      "bold",
   },
 
   comparisonTable: {
-    display: "grid",
+    display:
+      "grid",
     gridTemplateColumns:
       "1.5fr 1fr 1fr 1fr",
     border:
       "1px solid #e2e8f0",
-    borderRadius: "14px",
-    overflow: "hidden",
-    fontSize: "14px",
+    borderRadius:
+      "14px",
+    overflow:
+      "hidden",
+    fontSize:
+      "14px",
   },
 
   tableRow: {
-    gridColumn: "1 / -1",
-    display: "grid",
+    gridColumn:
+      "1 / -1",
+    display:
+      "grid",
     gridTemplateColumns:
       "1.5fr 1fr 1fr 1fr",
-    padding: "12px",
+    padding:
+      "12px",
     borderTop:
       "1px solid #e2e8f0",
   },
 
   empty: {
-    padding: "35px",
-    textAlign: "center",
-    color: "#64748b",
-    background: "#f8fafc",
-    borderRadius: "15px",
+    padding:
+      "35px",
+    textAlign:
+      "center",
+    color:
+      "#64748b",
+    background:
+      "#f8fafc",
+    borderRadius:
+      "15px",
   },
 
   saveBox: {
     background:
       "linear-gradient(135deg,#111827,#1e1b4b)",
-    padding: "25px",
-    borderRadius: "22px",
-    marginTop: "25px",
+    padding:
+      "25px",
+    borderRadius:
+      "22px",
+    marginTop:
+      "25px",
   },
 
   message: {
-    padding: "14px",
-    borderRadius: "12px",
-    marginBottom: "15px",
-    fontWeight: "bold",
+    padding:
+      "14px",
+    borderRadius:
+      "12px",
+    marginBottom:
+      "15px",
+    fontWeight:
+      "bold",
   },
 
   saveButton: {
-    width: "100%",
-    border: "none",
-    borderRadius: "14px",
-    padding: "17px",
+    width:
+      "100%",
+    border:
+      "none",
+    borderRadius:
+      "14px",
+    padding:
+      "17px",
     background:
       "linear-gradient(135deg,#4f46e5,#7c3aed)",
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "16px",
-    cursor: "pointer",
+    color:
+      "white",
+    fontWeight:
+      "bold",
+    fontSize:
+      "16px",
+    cursor:
+      "pointer",
   },
 
   clearButton: {
-    width: "100%",
+    width:
+      "100%",
     border:
       "1px solid #475569",
-    borderRadius: "14px",
-    padding: "13px",
-    marginTop: "10px",
-    background: "transparent",
-    color: "white",
-    cursor: "pointer",
+    borderRadius:
+      "14px",
+    padding:
+      "13px",
+    marginTop:
+      "10px",
+    background:
+      "transparent",
+    color:
+      "white",
+    cursor:
+      "pointer",
   },
 };
