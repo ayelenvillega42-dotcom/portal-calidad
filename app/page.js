@@ -65,6 +65,14 @@ export default function Page() {
     observaciones: "",
     sph: "",
     objetivo_sph: "",
+    tipificaciones: "",
+    objetivo_tipificaciones: "",
+    estado_tipificaciones: "",
+    tipificacion_desvio: "",
+    tipificacion_objetivo: "",
+    tipificacion_resultado: "",
+    tipificacion_compromiso: "",
+    tipificacion_observaciones: "",
   });
 
   const [mensajeAdmin, setMensajeAdmin] = useState("");
@@ -200,6 +208,7 @@ export default function Page() {
 
       setAsesorActual(asesor);
       setModo("asesor");
+
       await cargarReportes(asesor[1]);
     }
 
@@ -245,6 +254,14 @@ export default function Page() {
       observaciones: "",
       sph: "",
       objetivo_sph: "",
+      tipificaciones: "",
+      objetivo_tipificaciones: "",
+      estado_tipificaciones: "",
+      tipificacion_desvio: "",
+      tipificacion_objetivo: "",
+      tipificacion_resultado: "",
+      tipificacion_compromiso: "",
+      tipificacion_observaciones: "",
     });
   }
 
@@ -271,6 +288,11 @@ export default function Page() {
       .map((item) => item.trim())
       .filter(Boolean);
 
+    const tipificaciones = form.tipificaciones
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
     const nuevoReporte = {
       usuario: form.usuario,
       semana: form.semana,
@@ -288,6 +310,21 @@ export default function Page() {
       observaciones: form.observaciones || null,
       sph: form.sph || null,
       objetivo_sph: form.objetivo_sph || null,
+      tipificaciones: tipificaciones,
+      objetivo_tipificaciones:
+        form.objetivo_tipificaciones || null,
+      estado_tipificaciones:
+        form.estado_tipificaciones || null,
+      tipificacion_desvio:
+        form.tipificacion_desvio || null,
+      tipificacion_objetivo:
+        form.tipificacion_objetivo || null,
+      tipificacion_resultado:
+        form.tipificacion_resultado || null,
+      tipificacion_compromiso:
+        form.tipificacion_compromiso || null,
+      tipificacion_observaciones:
+        form.tipificacion_observaciones || null,
     };
 
     const { error } = await supabase
@@ -296,16 +333,21 @@ export default function Page() {
 
     if (error) {
       console.error(error);
+
       setMensajeAdmin(
         "No se pudo guardar el reporte. Revisá la configuración de Supabase."
       );
+
       setGuardando(false);
       return;
     }
 
     setMensajeAdmin("✓ REPORTE GUARDADO CORRECTAMENTE");
+
     limpiarFormulario();
+
     await cargarReportesAdmin();
+
     setGuardando(false);
   }
 
@@ -315,6 +357,7 @@ export default function Page() {
         <div style={styles.centerBox}>
           <div style={styles.card}>
             <h2>Portal de Calidad</h2>
+
             <p style={styles.muted}>
               Verificando acceso...
             </p>
@@ -346,7 +389,9 @@ export default function Page() {
             )}
 
             <form onSubmit={iniciarSesion}>
-              <label style={styles.label}>Email</label>
+              <label style={styles.label}>
+                Email
+              </label>
 
               <input
                 type="email"
@@ -520,7 +565,7 @@ export default function Page() {
                     name="estado_objetivo"
                     value={form.estado_objetivo}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: En progreso"
+                    placeholder="Ej: En proceso"
                     style={styles.input}
                   />
                 </div>
@@ -603,6 +648,142 @@ export default function Page() {
                 }
                 style={styles.textarea}
               />
+
+              <section style={styles.tipificacionAdmin}>
+                <h2 style={styles.sectionTitle}>
+                  Tipificaciones
+                </h2>
+
+                <p style={styles.sectionDescription}>
+                  Cargá una tipificación por línea.
+                </p>
+
+                <label style={styles.label}>
+                  Tipificaciones realizadas
+                </label>
+
+                <textarea
+                  name="tipificaciones"
+                  value={form.tipificaciones}
+                  onChange={cambiarFormulario}
+                  placeholder={
+                    "Ej:\nNo conforme con sumas aseguradas\nNo interesado - Producto\nNo interesado - No informa motivo\nProblemas económicos"
+                  }
+                  style={styles.textarea}
+                />
+
+                <div style={styles.formGrid}>
+                  <div>
+                    <label style={styles.label}>
+                      Objetivo tipificaciones
+                    </label>
+
+                    <input
+                      name="objetivo_tipificaciones"
+                      value={
+                        form.objetivo_tipificaciones
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: 4"
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={styles.label}>
+                      Estado tipificaciones
+                    </label>
+
+                    <input
+                      name="estado_tipificaciones"
+                      value={
+                        form.estado_tipificaciones
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: En proceso"
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={styles.label}>
+                      Desvío
+                    </label>
+
+                    <input
+                      name="tipificacion_desvio"
+                      value={
+                        form.tipificacion_desvio
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: 1"
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={styles.label}>
+                      Objetivo
+                    </label>
+
+                    <input
+                      name="tipificacion_objetivo"
+                      value={
+                        form.tipificacion_objetivo
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: 14"
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={styles.label}>
+                      Resultado
+                    </label>
+
+                    <input
+                      name="tipificacion_resultado"
+                      value={
+                        form.tipificacion_resultado
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: 14"
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={styles.label}>
+                      Compromiso
+                    </label>
+
+                    <input
+                      name="tipificacion_compromiso"
+                      value={
+                        form.tipificacion_compromiso
+                      }
+                      onChange={cambiarFormulario}
+                      placeholder="Ej: SEGUIMIENTO"
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <label style={styles.label}>
+                  Observaciones de tipificación
+                </label>
+
+                <textarea
+                  name="tipificacion_observaciones"
+                  value={
+                    form.tipificacion_observaciones
+                  }
+                  onChange={cambiarFormulario}
+                  placeholder="Observaciones..."
+                  style={styles.textarea}
+                />
+              </section>
 
               <div style={styles.formGrid}>
                 <div>
@@ -717,10 +898,21 @@ export default function Page() {
                 <table style={styles.table}>
                   <thead>
                     <tr>
-                      <th style={styles.th}>Asesor</th>
-                      <th style={styles.th}>Semana</th>
-                      <th style={styles.th}>Nota</th>
-                      <th style={styles.th}>Producto</th>
+                      <th style={styles.th}>
+                        Asesor
+                      </th>
+                      <th style={styles.th}>
+                        Semana
+                      </th>
+                      <th style={styles.th}>
+                        Nota
+                      </th>
+                      <th style={styles.th}>
+                        Producto
+                      </th>
+                      <th style={styles.th}>
+                        Tipificaciones
+                      </th>
                     </tr>
                   </thead>
 
@@ -749,6 +941,17 @@ export default function Page() {
 
                           <td style={styles.td}>
                             {reporte.producto || "-"}
+                          </td>
+
+                          <td style={styles.td}>
+                            {Array.isArray(
+                              reporte.tipificaciones
+                            )
+                              ? reporte.tipificaciones.join(
+                                  ", "
+                                )
+                              : reporte.tipificaciones ||
+                                "-"}
                           </td>
                         </tr>
                       );
@@ -922,6 +1125,105 @@ export default function Page() {
               </section>
 
               <section style={styles.card}>
+                <div style={styles.sectionHeader}>
+                  <div>
+                    <p style={styles.sectionEyebrow}>
+                      SEGUIMIENTO
+                    </p>
+
+                    <h2 style={{ margin: 0 }}>
+                      Tipificaciones
+                    </h2>
+                  </div>
+
+                  <div
+                    style={
+                      styles.statusBadge
+                    }
+                  >
+                    {reporteActual?.estado_tipificaciones ||
+                      "Sin estado"}
+                  </div>
+                </div>
+
+                <div style={styles.grid}>
+                  <Metric
+                    title="Objetivo"
+                    value={
+                      reporteActual?.objetivo_tipificaciones ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Desvío"
+                    value={
+                      reporteActual?.tipificacion_desvio ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Objetivo"
+                    value={
+                      reporteActual?.tipificacion_objetivo ??
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="Resultado"
+                    value={
+                      reporteActual?.tipificacion_resultado ??
+                      "-"
+                    }
+                  />
+                </div>
+
+                <div style={styles.tipificacionesBox}>
+                  <h3>
+                    Tipificaciones realizadas
+                  </h3>
+
+                  <ArrayList
+                    items={
+                      reporteActual?.tipificaciones
+                    }
+                    empty="No se registraron tipificaciones."
+                  />
+                </div>
+
+                <div style={styles.tipificacionBottomGrid}>
+                  <div style={styles.infoBox}>
+                    <strong>
+                      Compromiso
+                    </strong>
+
+                    <div style={{ marginTop: "7px" }}>
+                      {reporteActual?.tipificacion_compromiso ||
+                        "Sin compromiso cargado."}
+                    </div>
+                  </div>
+
+                  <div style={styles.infoBox}>
+                    <strong>
+                      Observaciones
+                    </strong>
+
+                    <div
+                      style={{
+                        marginTop: "7px",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {reporteActual?.tipificacion_observaciones ||
+                        "Sin observaciones cargadas."}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section style={styles.card}>
                 <h2>Auditoría</h2>
 
                 {reporteActual?.auditoria ? (
@@ -981,25 +1283,60 @@ export default function Page() {
                       "-"
                     }`}
                   />
+
+                  <Metric
+                    title="Ventas"
+                    value={
+                      reporteActual?.ventas ?? "-"
+                    }
+                    extra={`Objetivo: ${
+                      reporteActual?.objetivo_ventas ??
+                      "-"
+                    }`}
+                  />
+
+                  <Metric
+                    title="Campaña"
+                    value={
+                      reporteActual?.objetivo_campania ??
+                      "-"
+                    }
+                    extra={
+                      reporteActual?.estado_campania ||
+                      ""
+                    }
+                  />
                 </div>
               </section>
 
               {reportes.length > 1 && (
                 <section style={styles.card}>
-                  <h2>Historial de reportes</h2>
+                  <h2>
+                    Historial de reportes
+                  </h2>
 
-                  <div style={{ overflowX: "auto" }}>
+                  <div
+                    style={{
+                      overflowX: "auto",
+                    }}
+                  >
                     <table style={styles.table}>
                       <thead>
                         <tr>
                           <th style={styles.th}>
                             Semana
                           </th>
+
                           <th style={styles.th}>
                             Nota
                           </th>
+
                           <th style={styles.th}>
                             Producto
+                          </th>
+
+                          <th style={styles.th}>
+                            Estado
                           </th>
                         </tr>
                       </thead>
@@ -1017,6 +1354,11 @@ export default function Page() {
 
                             <td style={styles.td}>
                               {reporte.producto || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.estado_objetivo ||
+                                "-"}
                             </td>
                           </tr>
                         ))}
@@ -1061,10 +1403,23 @@ function ArrayList({ items, empty }) {
   if (Array.isArray(items)) {
     lista = items;
   } else if (typeof items === "string") {
-    lista = items
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    try {
+      const convertido = JSON.parse(items);
+
+      if (Array.isArray(convertido)) {
+        lista = convertido;
+      } else {
+        lista = items
+          .split("\n")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      lista = items
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
   }
 
   if (lista.length === 0) {
@@ -1397,5 +1752,67 @@ const styles = {
     padding: "13px",
     borderBottom: "1px solid #edf0f3",
     fontSize: "14px",
+  },
+
+  sectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "15px",
+    marginBottom: "22px",
+    flexWrap: "wrap",
+  },
+
+  sectionEyebrow: {
+    margin: "0 0 5px",
+    color: "#697586",
+    fontSize: "11px",
+    fontWeight: "800",
+    letterSpacing: "1px",
+  },
+
+  statusBadge: {
+    background: "#fff8e7",
+    color: "#8a5b00",
+    border: "1px solid #f4d98c",
+    padding: "8px 13px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: "800",
+  },
+
+  tipificacionesBox: {
+    background: "#f7f9fc",
+    border: "1px solid #e3e8ef",
+    borderRadius: "15px",
+    padding: "20px",
+    marginTop: "20px",
+  },
+
+  tipificacionBottomGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: "15px",
+    marginTop: "15px",
+  },
+
+  tipificacionAdmin: {
+    background: "#f8fafc",
+    border: "1px solid #e1e7ef",
+    borderRadius: "16px",
+    padding: "22px",
+    marginTop: "25px",
+    marginBottom: "10px",
+  },
+
+  sectionTitle: {
+    margin: 0,
+    fontSize: "20px",
+  },
+
+  sectionDescription: {
+    color: "#697586",
+    marginTop: "7px",
   },
 };
