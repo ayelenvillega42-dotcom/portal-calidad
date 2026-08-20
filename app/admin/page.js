@@ -145,8 +145,6 @@ const estadosObjetivo = [
   "DEBAJO DEL OBJETIVO",
 ];
 
-const accionesNoVentas = accionesProductividad;
-
 function MultiSelect({ label, options, value, onChange }) {
   return (
     <div>
@@ -157,12 +155,15 @@ function MultiSelect({ label, options, value, onChange }) {
         value={value}
         onChange={(e) =>
           onChange(
-            Array.from(e.target.selectedOptions, (option) => option.value)
+            Array.from(
+              e.target.selectedOptions,
+              (option) => option.value
+            )
           )
         }
         style={{
           ...styles.input,
-          minHeight: "145px",
+          minHeight: "150px",
           padding: "8px",
         }}
       >
@@ -184,10 +185,11 @@ function Section({ title, subtitle, children }) {
   return (
     <section style={styles.section}>
       <div style={styles.sectionHeader}>
-        <div>
-          <h2 style={styles.sectionTitle}>{title}</h2>
-          {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
-        </div>
+        <h2 style={styles.sectionTitle}>{title}</h2>
+
+        {subtitle && (
+          <p style={styles.subtitle}>{subtitle}</p>
+        )}
       </div>
 
       {children}
@@ -197,60 +199,130 @@ function Section({ title, subtitle, children }) {
 
 export default function AdminPage() {
   const [asesor, setAsesor] = useState("");
-  const [semana, setSemana] = useState("Semana 3 - Agosto");
+  const [semana, setSemana] = useState(
+    "Semana 3 - Agosto"
+  );
 
+  // CALIDAD
   const [nota, setNota] = useState("");
   const [objetivo, setObjetivo] = useState("");
-  const [estadoObjetivo, setEstadoObjetivo] = useState("");
+  const [estadoObjetivo, setEstadoObjetivo] =
+    useState("");
   const [desvio, setDesvio] = useState("");
   const [auditoria, setAuditoria] = useState("");
   const [producto, setProducto] = useState("AP");
-  const [observacionesCalidad, setObservacionesCalidad] = useState("");
+  const [observacionesCalidad, setObservacionesCalidad] =
+    useState("");
 
-  const [itemsCalidadSeleccionados, setItemsCalidadSeleccionados] =
-    useState([]);
-  const [accionesCalidadSeleccionadas, setAccionesCalidadSeleccionadas] =
-    useState([]);
+  const [
+    itemsCalidadSeleccionados,
+    setItemsCalidadSeleccionados,
+  ] = useState([]);
 
+  const [
+    accionesCalidadSeleccionadas,
+    setAccionesCalidadSeleccionadas,
+  ] = useState([]);
+
+  // AUDIO
   const [audioFile, setAudioFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState("");
 
+  // PRODUCTIVIDAD
   const [sph, setSph] = useState("");
   const [ventas, setVentas] = useState("");
-  const [objetivoVentas, setObjetivoVentas] = useState("");
-  const [objetivoCampania, setObjetivoCampania] = useState("");
-  const [descripcionCampania, setDescripcionCampania] = useState("");
+  const [objetivoVentas, setObjetivoVentas] =
+    useState("");
+
+  const [objetivoCampania, setObjetivoCampania] =
+    useState("");
+
+  const [descripcionCampania, setDescripcionCampania] =
+    useState("");
+
   const [estadoSph, setEstadoSph] = useState("");
-  const [estadoVentas, setEstadoVentas] = useState("");
-  const [estadoCampania, setEstadoCampania] = useState("");
-
-  const [itemsProductividadSeleccionados, setItemsProductividadSeleccionados] =
-    useState([]);
-  const [accionesProductividadSeleccionadas, setAccionesProductividadSeleccionadas] =
-    useState([]);
-  const [observacionesProductividad, setObservacionesProductividad] =
+  const [estadoVentas, setEstadoVentas] =
+    useState("");
+  const [estadoCampania, setEstadoCampania] =
     useState("");
 
-  const [tipificacion, setTipificacion] = useState("");
-  const [desvioTipificacion, setDesvioTipificacion] = useState("");
-  const [objetivoTipificacion, setObjetivoTipificacion] = useState("");
-  const [resultadoTipificacion, setResultadoTipificacion] = useState("");
-  const [compromisoTipificacion, setCompromisoTipificacion] = useState("");
-  const [observacionesTipificacion, setObservacionesTipificacion] =
+  const [
+    itemsProductividadSeleccionados,
+    setItemsProductividadSeleccionados,
+  ] = useState([]);
+
+  const [
+    accionesProductividadSeleccionadas,
+    setAccionesProductividadSeleccionadas,
+  ] = useState([]);
+
+  const [
+    observacionesProductividad,
+    setObservacionesProductividad,
+  ] = useState("");
+
+  // TIPIFICACIONES
+  const [tipificacion, setTipificacion] =
     useState("");
 
-  const [cantidadNoVentas, setCantidadNoVentas] = useState("");
-  const [principalesOM, setPrincipalesOM] = useState([]);
-  const [coachingNoVentas, setCoachingNoVentas] = useState([]);
-  const [registroSistema, setRegistroSistema] = useState("");
-  const [compromisoNoVentas, setCompromisoNoVentas] = useState("");
-  const [fortalezasSeleccionadas, setFortalezasSeleccionadas] = useState([]);
-  const [observacionesNoVentas, setObservacionesNoVentas] = useState("");
+  const [desvioTipificacion, setDesvioTipificacion] =
+    useState("");
 
+  const [
+    objetivoTipificacion,
+    setObjetivoTipificacion,
+  ] = useState("");
+
+  const [
+    resultadoTipificacion,
+    setResultadoTipificacion,
+  ] = useState("");
+
+  const [
+    compromisoTipificacion,
+    setCompromisoTipificacion,
+  ] = useState("");
+
+  const [
+    observacionesTipificacion,
+    setObservacionesTipificacion,
+  ] = useState("");
+
+  // NO VENTAS
+  const [cantidadNoVentas, setCantidadNoVentas] =
+    useState("");
+
+  const [principalesOM, setPrincipalesOM] =
+    useState([]);
+
+  const [coachingNoVentas, setCoachingNoVentas] =
+    useState([]);
+
+  const [registroSistema, setRegistroSistema] =
+    useState("");
+
+  const [
+    compromisoNoVentas,
+    setCompromisoNoVentas,
+  ] = useState("");
+
+  const [
+    fortalezasSeleccionadas,
+    setFortalezasSeleccionadas,
+  ] = useState([]);
+
+  const [
+    observacionesNoVentas,
+    setObservacionesNoVentas,
+  ] = useState("");
+
+  // HISTÓRICO
   const [historico, setHistorico] = useState([]);
+
   const [mensaje, setMensaje] = useState("");
   const [guardando, setGuardando] = useState(false);
 
+  // OBJETIVOS SPH
   const objetivosSPH = {
     AP: 0.5,
     BM: 0.45,
@@ -260,12 +332,7 @@ export default function AdminPage() {
 
   const objetivoSPH = objetivosSPH[producto] || 0;
 
-  useEffect(() => {
-    if (producto && objetivoSPH) {
-      // Solo visualizamos el objetivo automático.
-    }
-  }, [producto, objetivoSPH]);
-
+  // CARGAR HISTÓRICO
   useEffect(() => {
     async function cargarHistorico() {
       if (!asesor || !supabase) {
@@ -276,7 +343,7 @@ export default function AdminPage() {
       const { data, error } = await supabase
         .from("reportes")
         .select(
-          "semana,nota,sph,ventas,objetivo_ventas,objetivo_sph"
+          "id,semana,nota,sph,ventas,objetivo_ventas,objetivo_sph"
         )
         .eq("usuario", asesor)
         .order("id", { ascending: true });
@@ -289,58 +356,88 @@ export default function AdminPage() {
     cargarHistorico();
   }, [asesor]);
 
+  // PROGRESO SPH
   const porcentajeSPH = useMemo(() => {
     if (!sph || !objetivoSPH) return 0;
 
-    const resultado = (Number(sph) / objetivoSPH) * 100;
+    const resultado =
+      (Number(sph) / objetivoSPH) * 100;
 
-    return Math.min(100, Math.max(0, resultado));
+    return Math.min(
+      100,
+      Math.max(0, resultado)
+    );
   }, [sph, objetivoSPH]);
 
+  // FALTA SPH
   const faltaSPH = useMemo(() => {
-    if (!sph || !objetivoSPH) return objetivoSPH;
+    if (!objetivoSPH) return 0;
 
-    return Math.max(0, objetivoSPH - Number(sph));
+    if (!sph) return objetivoSPH;
+
+    return Math.max(
+      0,
+      objetivoSPH - Number(sph)
+    );
   }, [sph, objetivoSPH]);
 
+  // SUBIR AUDIO
   async function subirAudio() {
     if (!audioFile) return "";
 
     if (!supabase) {
-      throw new Error("Supabase no está configurado.");
+      throw new Error(
+        "Supabase no está configurado."
+      );
     }
 
     const extension =
-      audioFile.name.split(".").pop()?.toLowerCase() || "mp3";
+      audioFile.name
+        .split(".")
+        .pop()
+        ?.toLowerCase() || "mp3";
 
-    const nombreArchivo = `audios/${asesor}/${Date.now()}.${extension}`;
+    const nombreArchivo =
+      `${asesor}/${Date.now()}.${extension}`;
 
     const { error } = await supabase.storage
       .from("audios")
-      .upload(nombreArchivo, audioFile, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+      .upload(
+        nombreArchivo,
+        audioFile,
+        {
+          cacheControl: "3600",
+          upsert: true,
+          contentType:
+            audioFile.type || "audio/mpeg",
+        }
+      );
 
     if (error) {
       throw error;
     }
 
-    const { data } = supabase.storage
-      .from("audios")
-      .getPublicUrl(nombreArchivo);
+    const { data } =
+      supabase.storage
+        .from("audios")
+        .getPublicUrl(nombreArchivo);
 
     return data.publicUrl;
   }
 
+  // GUARDAR
   async function guardarReporte() {
     if (!asesor || !nota) {
-      setMensaje("Seleccioná un asesor y cargá la nota de calidad.");
+      setMensaje(
+        "Seleccioná un asesor y cargá la nota de calidad."
+      );
       return;
     }
 
     if (!supabase) {
-      setMensaje("❌ Supabase no está configurado correctamente.");
+      setMensaje(
+        "❌ Supabase no está configurado correctamente."
+      );
       return;
     }
 
@@ -354,94 +451,196 @@ export default function AdminPage() {
         urlAudioFinal = await subirAudio();
       }
 
-      const asesorSeleccionado = asesores.find(
-        ([, usuario]) => usuario === asesor
-      );
+      const asesorSeleccionado =
+        asesores.find(
+          ([, usuario]) =>
+            usuario === asesor
+        );
 
       const datos = {
-        asesor: asesorSeleccionado?.[0] || asesor,
+        asesor:
+          asesorSeleccionado?.[0] ||
+          asesor,
+
         usuario: asesor,
         semana,
 
+        // CALIDAD
         nota: Number(nota),
-        objetivo,
-        estado_objetivo: estadoObjetivo,
-        desvio,
 
-        auditoria,
-        producto,
-        observaciones: observacionesCalidad,
-
-        items_trabajados: itemsCalidadSeleccionados,
-        acciones_realizadas: accionesCalidadSeleccionadas,
-
-        audio_url: urlAudioFinal || null,
-
-        sph: sph ? Number(sph) : null,
-        objetivo_sph: objetivoSPH || null,
-
-        ventas: ventas ? Number(ventas) : null,
-        objetivo_ventas: objetivoVentas
-          ? Number(objetivoVentas)
+        objetivo: objetivo
+          ? Number(objetivo)
           : null,
 
-        objetivo_campania: objetivoCampania,
-        descripcion_campania: descripcionCampania,
+        estado_objetivo:
+          estadoObjetivo || null,
 
-        estado_sph: estadoSph,
-        estado_ventas: estadoVentas,
-        estado_campania: estadoCampania,
+        desvio:
+          desvio || null,
 
-        gestion: accionesProductividadSeleccionadas.join(", "),
+        auditoria:
+          auditoria || null,
 
-        desvio_tipificacion: desvioTipificacion,
-        objetivo_tipificacion: objetivoTipificacion,
-        resultado_tipificacion: resultadoTipificacion,
-        compromiso_tipificacion: compromisoTipificacion,
-        observaciones_tipificacion: observacionesTipificacion,
-        tipificacion,
+        producto:
+          producto || null,
 
-        cantidad_no_ventas: cantidadNoVentas
-          ? Number(cantidadNoVentas)
+        observaciones:
+          observacionesCalidad || null,
+
+        items_trabajados:
+          itemsCalidadSeleccionados,
+
+        acciones_realizadas:
+          accionesCalidadSeleccionadas,
+
+        audio_url:
+          urlAudioFinal || null,
+
+        // PRODUCTIVIDAD
+        sph: sph
+          ? Number(sph)
           : null,
 
-        principales_om: principalesOM,
-        coaching_no_ventas: coachingNoVentas,
-        registro_sistema: registroSistema,
-        compromiso_no_ventas: compromisoNoVentas,
-        fortalezas: fortalezasSeleccionadas,
-        observaciones_no_ventas: observacionesNoVentas,
+        objetivo_sph:
+          objetivoSPH || null,
+
+        ventas: ventas
+          ? Number(ventas)
+          : null,
+
+        objetivo_ventas:
+          objetivoVentas
+            ? Number(objetivoVentas)
+            : null,
+
+        objetivo_campania:
+          objetivoCampania || null,
+
+        descripcion_campania:
+          descripcionCampania || null,
+
+        estado_sph:
+          estadoSph || null,
+
+        estado_ventas:
+          estadoVentas || null,
+
+        estado_campania:
+          estadoCampania || null,
+
+        // IMPORTANTE:
+        // AHORA TAMBIÉN SE GUARDA
+        // TODO LO DE PRODUCTIVIDAD
+        items_productividad:
+          itemsProductividadSeleccionados,
+
+        acciones_productividad:
+          accionesProductividadSeleccionadas,
+
+        gestion:
+          accionesProductividadSeleccionadas.join(
+            ", "
+          ),
+
+        observaciones_productividad:
+          observacionesProductividad || null,
+
+        // TIPIFICACIONES
+        tipificacion:
+          tipificacion || null,
+
+        desvio_tipificacion:
+          desvioTipificacion || null,
+
+        objetivo_tipificacion:
+          objetivoTipificacion
+            ? Number(objetivoTipificacion)
+            : null,
+
+        resultado_tipificacion:
+          resultadoTipificacion || null,
+
+        compromiso_tipificacion:
+          compromisoTipificacion || null,
+
+        observaciones_tipificacion:
+          observacionesTipificacion || null,
+
+        // NO VENTAS
+        cantidad_no_ventas:
+          cantidadNoVentas
+            ? Number(cantidadNoVentas)
+            : null,
+
+        principales_om:
+          principalesOM,
+
+        coaching_no_ventas:
+          coachingNoVentas,
+
+        registro_sistema:
+          registroSistema || null,
+
+        compromiso_no_ventas:
+          compromisoNoVentas || null,
+
+        fortalezas:
+          fortalezasSeleccionadas,
+
+        observaciones_no_ventas:
+          observacionesNoVentas || null,
       };
 
       const { error } = await supabase
         .from("reportes")
-        .upsert(datos, {
-          onConflict: "usuario,semana",
-        });
+        .upsert(
+          datos,
+          {
+            onConflict:
+              "usuario,semana",
+          }
+        );
 
       if (error) {
         console.error(error);
-        setMensaje(`❌ No se pudo guardar el reporte: ${error.message}`);
+
+        setMensaje(
+          `❌ No se pudo guardar el reporte: ${error.message}`
+        );
+
         return;
       }
 
-      setAudioUrl(urlAudioFinal || "");
-      setMensaje("✓ Reporte guardado correctamente.");
+      setAudioUrl(
+        urlAudioFinal || ""
+      );
 
-      const { data: nuevoHistorico } = await supabase
+      setMensaje(
+        "✓ Reporte guardado correctamente."
+      );
+
+      const {
+        data: nuevoHistorico,
+      } = await supabase
         .from("reportes")
         .select(
-          "semana,nota,sph,ventas,objetivo_ventas,objetivo_sph"
+          "id,semana,nota,sph,ventas,objetivo_ventas,objetivo_sph"
         )
         .eq("usuario", asesor)
-        .order("id", { ascending: true });
+        .order("id", {
+          ascending: true,
+        });
 
-      setHistorico(nuevoHistorico || []);
+      setHistorico(
+        nuevoHistorico || []
+      );
     } catch (error) {
       console.error(error);
+
       setMensaje(
         `❌ Ocurrió un error: ${
-          error?.message || "No se pudo guardar."
+          error?.message ||
+          "No se pudo guardar."
         }`
       );
     } finally {
@@ -449,10 +648,14 @@ export default function AdminPage() {
     }
   }
 
+  // LIMPIAR
   function limpiarFormulario() {
     setAsesor("");
-    setSemana("Semana 3 - Agosto");
+    setSemana(
+      "Semana 3 - Agosto"
+    );
 
+    // CALIDAD
     setNota("");
     setObjetivo("");
     setEstadoObjetivo("");
@@ -461,12 +664,19 @@ export default function AdminPage() {
     setProducto("AP");
     setObservacionesCalidad("");
 
-    setItemsCalidadSeleccionados([]);
-    setAccionesCalidadSeleccionadas([]);
+    setItemsCalidadSeleccionados(
+      []
+    );
 
+    setAccionesCalidadSeleccionadas(
+      []
+    );
+
+    // AUDIO
     setAudioFile(null);
     setAudioUrl("");
 
+    // PRODUCTIVIDAD
     setSph("");
     setVentas("");
     setObjetivoVentas("");
@@ -476,10 +686,19 @@ export default function AdminPage() {
     setEstadoVentas("");
     setEstadoCampania("");
 
-    setItemsProductividadSeleccionados([]);
-    setAccionesProductividadSeleccionadas([]);
-    setObservacionesProductividad("");
+    setItemsProductividadSeleccionados(
+      []
+    );
 
+    setAccionesProductividadSeleccionadas(
+      []
+    );
+
+    setObservacionesProductividad(
+      ""
+    );
+
+    // TIPIFICACIONES
     setTipificacion("");
     setDesvioTipificacion("");
     setObjetivoTipificacion("");
@@ -487,13 +706,16 @@ export default function AdminPage() {
     setCompromisoTipificacion("");
     setObservacionesTipificacion("");
 
+    // NO VENTAS
     setCantidadNoVentas("");
     setPrincipalesOM([]);
     setCoachingNoVentas([]);
     setRegistroSistema("");
     setCompromisoNoVentas("");
     setFortalezasSeleccionadas([]);
-    setObservacionesNoVentas([]);
+
+    // CORREGIDO
+    setObservacionesNoVentas("");
 
     setMensaje("");
     setHistorico([]);
@@ -502,62 +724,90 @@ export default function AdminPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
+
+        {/* HEADER */}
+
         <header style={styles.hero}>
           <div>
-            <div style={styles.badge}>🏆 PORTAL DE CALIDAD</div>
+            <div style={styles.badge}>
+              🏆 PORTAL DE CALIDAD
+            </div>
 
             <h1 style={styles.heroTitle}>
               Panel de Administración
             </h1>
 
             <p style={styles.heroText}>
-              Gestioná la evolución de calidad y productividad de cada
-              asesor desde un solo lugar.
+              Gestioná la evolución de calidad y
+              productividad de cada asesor desde
+              un solo lugar.
             </p>
           </div>
 
           <button
-            onClick={() => (window.location.href = "/")}
+            onClick={() =>
+              (window.location.href = "/")
+            }
             style={styles.darkButton}
           >
             Cerrar sesión
           </button>
         </header>
 
+        {/* DATOS DEL ASESOR */}
+
         <Section
           title="📋 Datos del asesor"
           subtitle="Seleccioná el asesor y completá el reporte semanal."
         >
-          <label style={styles.label}>Asesor</label>
+          <label style={styles.label}>
+            Asesor
+          </label>
 
           <select
             value={asesor}
-            onChange={(e) => setAsesor(e.target.value)}
+            onChange={(e) =>
+              setAsesor(e.target.value)
+            }
             style={styles.input}
           >
-            <option value="">Seleccionar asesor</option>
+            <option value="">
+              Seleccionar asesor
+            </option>
 
-            {asesores.map(([nombre, usuario]) => (
-              <option key={usuario} value={usuario}>
-                {nombre} — {usuario}
-              </option>
-            ))}
+            {asesores.map(
+              ([nombre, usuario]) => (
+                <option
+                  key={usuario}
+                  value={usuario}
+                >
+                  {nombre} — {usuario}
+                </option>
+              )
+            )}
           </select>
 
-          <label style={styles.label}>Semana</label>
+          <label style={styles.label}>
+            Semana
+          </label>
 
           <input
             value={semana}
-            onChange={(e) => setSemana(e.target.value)}
+            onChange={(e) =>
+              setSemana(e.target.value)
+            }
             style={styles.input}
           />
         </Section>
+
+        {/* CALIDAD */}
 
         <Section
           title="📊 Calidad semanal"
           subtitle="Todo lo trabajado durante la semana queda registrado para que el asesor pueda visualizarlo."
         >
           <div style={styles.grid2}>
+
             <div>
               <label style={styles.label}>
                 Nota de calidad semanal
@@ -568,43 +818,73 @@ export default function AdminPage() {
                 min="0"
                 max="100"
                 value={nota}
-                onChange={(e) => setNota(e.target.value)}
+                onChange={(e) =>
+                  setNota(e.target.value)
+                }
                 style={styles.input}
                 placeholder="Ejemplo: 85"
               />
             </div>
 
             <div>
-              <label style={styles.label}>Objetivo para la próxima semana</label>
+              <label style={styles.label}>
+                Objetivo para la próxima semana
+              </label>
 
               <input
                 type="number"
                 value={objetivo}
-                onChange={(e) => setObjetivo(e.target.value)}
+                onChange={(e) =>
+                  setObjetivo(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
                 placeholder="Ejemplo: 90"
               />
             </div>
+
           </div>
 
-          <label style={styles.label}>Estado del objetivo</label>
+          <label style={styles.label}>
+            Estado del objetivo
+          </label>
 
           <select
             value={estadoObjetivo}
-            onChange={(e) => setEstadoObjetivo(e.target.value)}
+            onChange={(e) =>
+              setEstadoObjetivo(
+                e.target.value
+              )
+            }
             style={styles.input}
           >
-            <option value="">Seleccionar estado</option>
-            {estadosObjetivo.map((estado) => (
-              <option key={estado}>{estado}</option>
-            ))}
+            <option value="">
+              Seleccionar estado
+            </option>
+
+            {estadosObjetivo.map(
+              (estado) => (
+                <option
+                  key={estado}
+                >
+                  {estado}
+                </option>
+              )
+            )}
           </select>
 
-          <label style={styles.label}>Desvío principal</label>
+          <label style={styles.label}>
+            Desvío principal
+          </label>
 
           <input
             value={desvio}
-            onChange={(e) => setDesvio(e.target.value)}
+            onChange={(e) =>
+              setDesvio(
+                e.target.value
+              )
+            }
             style={styles.input}
             placeholder="Ejemplo: Validación de datos"
           />
@@ -612,31 +892,51 @@ export default function AdminPage() {
           <MultiSelect
             label="Items trabajados"
             options={itemsCalidad}
-            value={itemsCalidadSeleccionados}
-            onChange={setItemsCalidadSeleccionados}
+            value={
+              itemsCalidadSeleccionados
+            }
+            onChange={
+              setItemsCalidadSeleccionados
+            }
           />
 
           <MultiSelect
             label="Acción realizada"
             options={accionesCalidad}
-            value={accionesCalidadSeleccionadas}
-            onChange={setAccionesCalidadSeleccionadas}
+            value={
+              accionesCalidadSeleccionadas
+            }
+            onChange={
+              setAccionesCalidadSeleccionadas
+            }
           />
 
-          <label style={styles.label}>Auditoría</label>
+          <label style={styles.label}>
+            Auditoría
+          </label>
 
           <input
             value={auditoria}
-            onChange={(e) => setAuditoria(e.target.value)}
+            onChange={(e) =>
+              setAuditoria(
+                e.target.value
+              )
+            }
             style={styles.input}
             placeholder="Llamada auditada / referencia"
           />
 
-          <label style={styles.label}>Producto</label>
+          <label style={styles.label}>
+            Producto
+          </label>
 
           <select
             value={producto}
-            onChange={(e) => setProducto(e.target.value)}
+            onChange={(e) =>
+              setProducto(
+                e.target.value
+              )
+            }
             style={styles.input}
           >
             <option>AP</option>
@@ -645,11 +945,16 @@ export default function AdminPage() {
             <option>CP</option>
           </select>
 
+          {/* AUDIO */}
+
           <div style={styles.audioBox}>
-            <div style={styles.audioTitle}>🎧 Audio de muestra</div>
+            <div style={styles.audioTitle}>
+              🎧 Audio de muestra
+            </div>
 
             <p style={styles.subtitle}>
-              Subí el audio de la auditoría para que el asesor pueda
+              Subí el audio de la auditoría
+              para que el asesor pueda
               escucharlo desde su portal.
             </p>
 
@@ -657,15 +962,26 @@ export default function AdminPage() {
               type="file"
               accept="audio/*"
               onChange={(e) => {
-                const file = e.target.files?.[0] || null;
+                const file =
+                  e.target.files?.[0] ||
+                  null;
+
                 setAudioFile(file);
               }}
-              style={styles.fileInput}
+              style={
+                styles.fileInput
+              }
             />
 
             {audioFile && (
-              <p style={styles.fileName}>
-                Archivo seleccionado: {audioFile.name}
+              <p
+                style={
+                  styles.fileName
+                }
+              >
+                Archivo seleccionado:
+                {" "}
+                {audioFile.name}
               </p>
             )}
 
@@ -673,60 +989,117 @@ export default function AdminPage() {
               <audio
                 controls
                 src={audioUrl}
-                style={{ width: "100%", marginTop: "12px" }}
+                style={{
+                  width: "100%",
+                  marginTop:
+                    "12px",
+                }}
               />
             )}
           </div>
 
-          <label style={styles.label}>Observaciones</label>
+          <label style={styles.label}>
+            Observaciones
+          </label>
 
           <textarea
-            value={observacionesCalidad}
-            onChange={(e) => setObservacionesCalidad(e.target.value)}
+            value={
+              observacionesCalidad
+            }
+            onChange={(e) =>
+              setObservacionesCalidad(
+                e.target.value
+              )
+            }
             style={styles.textarea}
             placeholder="Espacio libre para observaciones..."
           />
 
+          {/* EVOLUCION CALIDAD */}
+
           {historico.length > 0 && (
-            <div style={styles.chartCard}>
-              <h3 style={styles.chartTitle}>
+            <div
+              style={
+                styles.chartCard
+              }
+            >
+              <h3
+                style={
+                  styles.chartTitle
+                }
+              >
                 📈 Evolución de calidad
               </h3>
 
-              <div style={styles.chart}>
-                {historico.map((item, index) => {
-                  const value = Number(item.nota) || 0;
+              <div
+                style={
+                  styles.chart
+                }
+              >
+                {historico.map(
+                  (item, index) => {
+                    const value =
+                      Number(
+                        item.nota
+                      ) || 0;
 
-                  return (
-                    <div key={index} style={styles.chartColumn}>
+                    return (
                       <div
-                        style={{
-                          ...styles.chartBar,
-                          height: `${Math.max(8, value)}%`,
-                        }}
+                        key={index}
+                        style={
+                          styles.chartColumn
+                        }
                       >
-                        <span style={styles.chartValue}>
-                          {value}
-                        </span>
-                      </div>
+                        <div
+                          style={{
+                            ...styles.chartBar,
+                            height:
+                              `${Math.max(
+                                8,
+                                value
+                              )}%`,
+                          }}
+                        >
+                          <span
+                            style={
+                              styles.chartValue
+                            }
+                          >
+                            {value}
+                          </span>
+                        </div>
 
-                      <small>
-                        {item.semana?.replace("Semana ", "S")}
-                      </small>
-                    </div>
-                  );
-                })}
+                        <small>
+                          {item.semana?.replace(
+                            "Semana ",
+                            "S"
+                          )}
+                        </small>
+                      </div>
+                    );
+                  }
+                )}
               </div>
             </div>
           )}
         </Section>
 
+        {/* PRODUCTIVIDAD */}
+
         <Section
           title="📈 Productividad semanal"
           subtitle="Compará el desempeño del asesor contra sus objetivos."
         >
-          <div style={styles.metricGrid}>
-            <div style={styles.metricCard}>
+          <div
+            style={
+              styles.metricGrid
+            }
+          >
+            <div
+              style={
+                styles.metricCard
+              }
+            >
               <span>SPH</span>
 
               <strong>
@@ -734,67 +1107,114 @@ export default function AdminPage() {
               </strong>
             </div>
 
-            <div style={styles.metricCard}>
-              <span>Objetivo SPH</span>
+            <div
+              style={
+                styles.metricCard
+              }
+            >
+              <span>
+                Objetivo SPH
+              </span>
 
               <strong>
-                {objetivoSPH.toFixed(2).replace(".", ",")}
+                {objetivoSPH
+                  .toFixed(2)
+                  .replace(
+                    ".",
+                    ","
+                  )}
               </strong>
 
               <small>
-                {producto === "AP"
-                  ? "AP"
-                  : producto === "BM"
-                  ? "BM"
-                  : producto === "SL"
-                  ? "SL"
-                  : "CP"}
+                Campaña: {producto}
               </small>
             </div>
 
-            <div style={styles.metricCard}>
-              <span>Falta para objetivo</span>
+            <div
+              style={
+                styles.metricCard
+              }
+            >
+              <span>
+                Falta para objetivo
+              </span>
 
               <strong>
-                {faltaSPH.toFixed(2).replace(".", ",")}
+                {faltaSPH
+                  .toFixed(2)
+                  .replace(
+                    ".",
+                    ","
+                  )}
               </strong>
             </div>
 
-            <div style={styles.metricCard}>
-              <span>Progreso</span>
+            <div
+              style={
+                styles.metricCard
+              }
+            >
+              <span>
+                Progreso
+              </span>
 
-              <strong>{Math.round(porcentajeSPH)}%</strong>
+              <strong>
+                {Math.round(
+                  porcentajeSPH
+                )}
+                %
+              </strong>
             </div>
           </div>
 
-          <div style={styles.progressOuter}>
+          <div
+            style={
+              styles.progressOuter
+            }
+          >
             <div
               style={{
                 ...styles.progressInner,
-                width: `${porcentajeSPH}%`,
+                width:
+                  `${porcentajeSPH}%`,
               }}
             />
           </div>
 
-          <p style={styles.progressText}>
+          <p
+            style={
+              styles.progressText
+            }
+          >
             {sph
-              ? Number(sph) >= objetivoSPH
+              ? Number(sph) >=
+                objetivoSPH
                 ? "🎯 Objetivo SPH alcanzado."
-                : `Te faltan ${faltaSPH.toFixed(
-                    2
-                  )} puntos de SPH para alcanzar el objetivo.`
+                : `Te faltan ${faltaSPH
+                    .toFixed(2)
+                    .replace(
+                      ".",
+                      ","
+                    )} puntos de SPH para alcanzar el objetivo.`
               : "Cargá el SPH para calcular el progreso."}
           </p>
 
           <div style={styles.grid2}>
+
             <div>
-              <label style={styles.label}>SPH</label>
+              <label style={styles.label}>
+                SPH
+              </label>
 
               <input
                 type="number"
                 step="0.01"
                 value={sph}
-                onChange={(e) => setSph(e.target.value)}
+                onChange={(e) =>
+                  setSph(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
                 placeholder="Ejemplo: 0.48"
               />
@@ -808,82 +1228,146 @@ export default function AdminPage() {
               <input
                 value={
                   objetivoSPH
-                    ? objetivoSPH.toFixed(2)
+                    ? objetivoSPH
+                        .toFixed(2)
+                        .replace(
+                          ".",
+                          ","
+                        )
                     : "Sin objetivo"
                 }
                 readOnly
                 style={{
                   ...styles.input,
-                  background: "#f1f5f9",
+                  background:
+                    "#f1f5f9",
                 }}
               />
             </div>
+
           </div>
 
           <div style={styles.grid2}>
+
             <div>
-              <label style={styles.label}>Ventas</label>
+              <label style={styles.label}>
+                Ventas
+              </label>
 
               <input
                 type="number"
                 value={ventas}
-                onChange={(e) => setVentas(e.target.value)}
+                onChange={(e) =>
+                  setVentas(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
                 placeholder="Cantidad de ventas"
               />
             </div>
 
             <div>
-              <label style={styles.label}>Objetivo de ventas</label>
+              <label style={styles.label}>
+                Objetivo de ventas
+              </label>
 
               <input
                 type="number"
-                value={objetivoVentas}
-                onChange={(e) => setObjetivoVentas(e.target.value)}
+                value={
+                  objetivoVentas
+                }
+                onChange={(e) =>
+                  setObjetivoVentas(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
               />
             </div>
+
           </div>
 
           <div style={styles.grid2}>
+
             <div>
-              <label style={styles.label}>Estado SPH</label>
+              <label style={styles.label}>
+                Estado SPH
+              </label>
 
               <select
                 value={estadoSph}
-                onChange={(e) => setEstadoSph(e.target.value)}
+                onChange={(e) =>
+                  setEstadoSph(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
               >
-                <option value="">Seleccionar estado</option>
-                {estados.map((estado) => (
-                  <option key={estado}>{estado}</option>
-                ))}
+                <option value="">
+                  Seleccionar estado
+                </option>
+
+                {estados.map(
+                  (estado) => (
+                    <option
+                      key={estado}
+                    >
+                      {estado}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 
             <div>
-              <label style={styles.label}>Estado ventas</label>
+              <label style={styles.label}>
+                Estado ventas
+              </label>
 
               <select
-                value={estadoVentas}
-                onChange={(e) => setEstadoVentas(e.target.value)}
+                value={
+                  estadoVentas
+                }
+                onChange={(e) =>
+                  setEstadoVentas(
+                    e.target.value
+                  )
+                }
                 style={styles.input}
               >
-                <option value="">Seleccionar estado</option>
-                {estados.map((estado) => (
-                  <option key={estado}>{estado}</option>
-                ))}
+                <option value="">
+                  Seleccionar estado
+                </option>
+
+                {estados.map(
+                  (estado) => (
+                    <option
+                      key={estado}
+                    >
+                      {estado}
+                    </option>
+                  )
+                )}
               </select>
             </div>
+
           </div>
 
           <label style={styles.label}>
-            Objetivo de campaña — Resultado semanal
+            Objetivo de campaña —
+            Resultado semanal
           </label>
 
           <input
-            value={objetivoCampania}
-            onChange={(e) => setObjetivoCampania(e.target.value)}
+            value={
+              objetivoCampania
+            }
+            onChange={(e) =>
+              setObjetivoCampania(
+                e.target.value
+              )
+            }
             style={styles.input}
           />
 
@@ -892,9 +1376,13 @@ export default function AdminPage() {
           </label>
 
           <textarea
-            value={descripcionCampania}
+            value={
+              descripcionCampania
+            }
             onChange={(e) =>
-              setDescripcionCampania(e.target.value)
+              setDescripcionCampania(
+                e.target.value
+              )
             }
             style={styles.textarea}
           />
@@ -904,40 +1392,75 @@ export default function AdminPage() {
           </label>
 
           <select
-            value={estadoCampania}
-            onChange={(e) => setEstadoCampania(e.target.value)}
+            value={
+              estadoCampania
+            }
+            onChange={(e) =>
+              setEstadoCampania(
+                e.target.value
+              )
+            }
             style={styles.input}
           >
-            <option value="">Seleccionar estado</option>
-            {estados.map((estado) => (
-              <option key={estado}>{estado}</option>
-            ))}
+            <option value="">
+              Seleccionar estado
+            </option>
+
+            {estados.map(
+              (estado) => (
+                <option
+                  key={estado}
+                >
+                  {estado}
+                </option>
+              )
+            )}
           </select>
 
           <MultiSelect
             label="Items trabajados"
-            options={itemsProductividad}
-            value={itemsProductividadSeleccionados}
-            onChange={setItemsProductividadSeleccionados}
+            options={
+              itemsProductividad
+            }
+            value={
+              itemsProductividadSeleccionados
+            }
+            onChange={
+              setItemsProductividadSeleccionados
+            }
           />
 
           <MultiSelect
             label="Acción realizada"
-            options={accionesProductividad}
-            value={accionesProductividadSeleccionadas}
-            onChange={setAccionesProductividadSeleccionadas}
+            options={
+              accionesProductividad
+            }
+            value={
+              accionesProductividadSeleccionadas
+            }
+            onChange={
+              setAccionesProductividadSeleccionadas
+            }
           />
 
-          <label style={styles.label}>Observaciones</label>
+          <label style={styles.label}>
+            Observaciones
+          </label>
 
           <textarea
-            value={observacionesProductividad}
+            value={
+              observacionesProductividad
+            }
             onChange={(e) =>
-              setObservacionesProductividad(e.target.value)
+              setObservacionesProductividad(
+                e.target.value
+              )
             }
             style={styles.textarea}
           />
         </Section>
+
+        {/* COMPARATIVA */}
 
         <Section
           title="📊 Comparativa de productividad"
@@ -945,92 +1468,179 @@ export default function AdminPage() {
         >
           {historico.length > 0 ? (
             <>
-              <div style={styles.productivityChart}>
-                {historico.map((item, index) => {
-                  const value = Number(item.sph) || 0;
-                  const max = Math.max(
-                    objetivoSPH || 0.5,
-                    ...historico.map((x) => Number(x.sph) || 0),
-                    0.6
-                  );
+              <div
+                style={
+                  styles.productivityChart
+                }
+              >
+                {historico.map(
+                  (item, index) => {
+                    const value =
+                      Number(
+                        item.sph
+                      ) || 0;
 
-                  return (
-                    <div key={index} style={styles.chartColumn}>
+                    const max =
+                      Math.max(
+                        objetivoSPH ||
+                          0.5,
+                        ...historico.map(
+                          (x) =>
+                            Number(
+                              x.sph
+                            ) || 0
+                        ),
+                        0.6
+                      );
+
+                    return (
                       <div
-                        style={{
-                          ...styles.chartBar,
-                          height: `${Math.max(
-                            8,
-                            (value / max) * 100
-                          )}%`,
-                        }}
+                        key={index}
+                        style={
+                          styles.chartColumn
+                        }
                       >
-                        <span style={styles.chartValue}>
-                          {value.toFixed(2)}
-                        </span>
-                      </div>
+                        <div
+                          style={{
+                            ...styles.chartBar,
+                            height:
+                              `${Math.max(
+                                8,
+                                (value /
+                                  max) *
+                                  100
+                              )}%`,
+                          }}
+                        >
+                          <span
+                            style={
+                              styles.chartValue
+                            }
+                          >
+                            {value.toFixed(
+                              2
+                            )}
+                          </span>
+                        </div>
 
-                      <small>
-                        {item.semana?.replace("Semana ", "S")}
-                      </small>
-                    </div>
-                  );
-                })}
+                        <small>
+                          {item.semana?.replace(
+                            "Semana ",
+                            "S"
+                          )}
+                        </small>
+                      </div>
+                    );
+                  }
+                )}
               </div>
 
-              <div style={styles.comparisonTable}>
+              <div
+                style={
+                  styles.comparisonTable
+                }
+              >
                 <div>Semana</div>
                 <div>SPH</div>
                 <div>Ventas</div>
                 <div>Objetivo</div>
 
-                {historico.map((item, index) => (
-                  <div key={index} style={styles.tableRow}>
-                    <span>{item.semana}</span>
-                    <span>
-                      {Number(item.sph || 0).toFixed(2)}
-                    </span>
-                    <span>{item.ventas ?? "-"}</span>
-                    <span>
-                      {Number(
-                        item.objetivo_sph || objetivoSPH || 0
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                {historico.map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      style={
+                        styles.tableRow
+                      }
+                    >
+                      <span>
+                        {item.semana}
+                      </span>
+
+                      <span>
+                        {Number(
+                          item.sph ||
+                            0
+                        ).toFixed(
+                          2
+                        )}
+                      </span>
+
+                      <span>
+                        {item.ventas ??
+                          "-"}
+                      </span>
+
+                      <span>
+                        {Number(
+                          item.objetivo_sph ||
+                            objetivoSPH ||
+                            0
+                        ).toFixed(
+                          2
+                        )}
+                      </span>
+                    </div>
+                  )
+                )}
               </div>
             </>
           ) : (
-            <div style={styles.empty}>
-              Seleccioná un asesor para visualizar su evolución.
+            <div
+              style={
+                styles.empty
+              }
+            >
+              Seleccioná un asesor para
+              visualizar su evolución.
             </div>
           )}
         </Section>
+
+        {/* TIPIFICACIONES */}
 
         <Section
           title="📈 Desvíos de tipificaciones"
           subtitle="Registrá el desvío, el objetivo y el resultado del seguimiento."
         >
-          <label style={styles.label}>Tipificación</label>
+          <label style={styles.label}>
+            Tipificación
+          </label>
 
           <select
             value={tipificacion}
-            onChange={(e) => setTipificacion(e.target.value)}
+            onChange={(e) =>
+              setTipificacion(
+                e.target.value
+              )
+            }
             style={styles.input}
           >
-            <option value="">Seleccionar tipificación</option>
+            <option value="">
+              Seleccionar tipificación
+            </option>
 
-            {tipificaciones.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
+            {tipificaciones.map(
+              (item) => (
+                <option key={item}>
+                  {item}
+                </option>
+              )
+            )}
           </select>
 
-          <label style={styles.label}>Desvío</label>
+          <label style={styles.label}>
+            Desvío
+          </label>
 
           <input
-            value={desvioTipificacion}
+            value={
+              desvioTipificacion
+            }
             onChange={(e) =>
-              setDesvioTipificacion(e.target.value)
+              setDesvioTipificacion(
+                e.target.value
+              )
             }
             style={styles.input}
           />
@@ -1041,49 +1651,84 @@ export default function AdminPage() {
 
           <input
             type="number"
-            value={objetivoTipificacion}
+            value={
+              objetivoTipificacion
+            }
             onChange={(e) =>
-              setObjetivoTipificacion(e.target.value)
+              setObjetivoTipificacion(
+                e.target.value
+              )
             }
             style={styles.input}
             placeholder="Ejemplo: 90"
           />
 
-          <label style={styles.label}>Resultado</label>
+          <label style={styles.label}>
+            Resultado
+          </label>
 
           <input
-            value={resultadoTipificacion}
+            value={
+              resultadoTipificacion
+            }
             onChange={(e) =>
-              setResultadoTipificacion(e.target.value)
+              setResultadoTipificacion(
+                e.target.value
+              )
             }
             style={styles.input}
           />
 
-          <label style={styles.label}>Compromiso esperado</label>
+          <label style={styles.label}>
+            Compromiso esperado
+          </label>
 
           <select
-            value={compromisoTipificacion}
+            value={
+              compromisoTipificacion
+            }
             onChange={(e) =>
-              setCompromisoTipificacion(e.target.value)
+              setCompromisoTipificacion(
+                e.target.value
+              )
             }
             style={styles.input}
           >
-            <option value="">Seleccionar</option>
-            <option>APLICA DEVOLUCIÓN</option>
-            <option>SEGUIMIENTO</option>
-            <option>NO APLICA</option>
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option>
+              APLICA DEVOLUCIÓN
+            </option>
+
+            <option>
+              SEGUIMIENTO
+            </option>
+
+            <option>
+              NO APLICA
+            </option>
           </select>
 
-          <label style={styles.label}>Observaciones</label>
+          <label style={styles.label}>
+            Observaciones
+          </label>
 
           <textarea
-            value={observacionesTipificacion}
+            value={
+              observacionesTipificacion
+            }
             onChange={(e) =>
-              setObservacionesTipificacion(e.target.value)
+              setObservacionesTipificacion(
+                e.target.value
+              )
             }
             style={styles.textarea}
           />
         </Section>
+
+        {/* NO VENTAS */}
 
         <Section
           title="📈 Auditorías de no ventas"
@@ -1095,85 +1740,155 @@ export default function AdminPage() {
 
           <input
             type="number"
-            value={cantidadNoVentas}
+            value={
+              cantidadNoVentas
+            }
             onChange={(e) =>
-              setCantidadNoVentas(e.target.value)
+              setCantidadNoVentas(
+                e.target.value
+              )
             }
             style={styles.input}
           />
 
           <MultiSelect
             label="Principales O.M. detectadas"
-            options={itemsProductividad}
-            value={principalesOM}
-            onChange={setPrincipalesOM}
+            options={
+              itemsProductividad
+            }
+            value={
+              principalesOM
+            }
+            onChange={
+              setPrincipalesOM
+            }
           />
 
           <MultiSelect
             label="Coaching brindado"
-            options={accionesNoVentas}
-            value={coachingNoVentas}
-            onChange={setCoachingNoVentas}
+            options={
+              accionesProductividad
+            }
+            value={
+              coachingNoVentas
+            }
+            onChange={
+              setCoachingNoVentas
+            }
           />
 
-          <label style={styles.label}>Registro en sistema</label>
+          <label style={styles.label}>
+            Registro en sistema
+          </label>
 
           <select
-            value={registroSistema}
+            value={
+              registroSistema
+            }
             onChange={(e) =>
-              setRegistroSistema(e.target.value)
+              setRegistroSistema(
+                e.target.value
+              )
             }
             style={styles.input}
           >
-            <option value="">Seleccionar</option>
-            <option>CORRECTA</option>
-            <option>INCORRECTA</option>
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option>
+              CORRECTA
+            </option>
+
+            <option>
+              INCORRECTA
+            </option>
           </select>
 
-          <label style={styles.label}>Compromiso esperado</label>
+          <label style={styles.label}>
+            Compromiso esperado
+          </label>
 
           <select
-            value={compromisoNoVentas}
+            value={
+              compromisoNoVentas
+            }
             onChange={(e) =>
-              setCompromisoNoVentas(e.target.value)
+              setCompromisoNoVentas(
+                e.target.value
+              )
             }
             style={styles.input}
           >
-            <option value="">Seleccionar</option>
-            <option>APLICA DEVOLUCIÓN</option>
-            <option>SEGUIMIENTO</option>
-            <option>NO APLICA</option>
+            <option value="">
+              Seleccionar
+            </option>
+
+            <option>
+              APLICA DEVOLUCIÓN
+            </option>
+
+            <option>
+              SEGUIMIENTO
+            </option>
+
+            <option>
+              NO APLICA
+            </option>
           </select>
 
           <MultiSelect
             label="Fortalezas destacadas"
             options={fortalezas}
-            value={fortalezasSeleccionadas}
-            onChange={setFortalezasSeleccionadas}
+            value={
+              fortalezasSeleccionadas
+            }
+            onChange={
+              setFortalezasSeleccionadas
+            }
           />
 
-          <label style={styles.label}>Observaciones</label>
+          <label style={styles.label}>
+            Observaciones
+          </label>
 
           <textarea
-            value={observacionesNoVentas}
+            value={
+              observacionesNoVentas
+            }
             onChange={(e) =>
-              setObservacionesNoVentas(e.target.value)
+              setObservacionesNoVentas(
+                e.target.value
+              )
             }
             style={styles.textarea}
           />
         </Section>
 
-        <div style={styles.saveBox}>
+        {/* GUARDAR */}
+
+        <div
+          style={
+            styles.saveBox
+          }
+        >
           {mensaje && (
             <div
               style={{
                 ...styles.message,
-                background: mensaje.startsWith("❌")
-                  ? "#fff1f2"
-                  : "#ecfdf5",
-                color: mensaje.startsWith("❌")
-                  ? "#be123c"
-                  : "#047857",
+                background:
+                  mensaje.startsWith(
+                    "❌"
+                  )
+                    ? "#fff1f2"
+                    : "#ecfdf5",
+
+                color:
+                  mensaje.startsWith(
+                    "❌"
+                  )
+                    ? "#be123c"
+                    : "#047857",
               }}
             >
               {mensaje}
@@ -1181,11 +1896,18 @@ export default function AdminPage() {
           )}
 
           <button
-            onClick={guardarReporte}
-            disabled={guardando}
+            onClick={
+              guardarReporte
+            }
+            disabled={
+              guardando
+            }
             style={{
               ...styles.saveButton,
-              opacity: guardando ? 0.6 : 1,
+              opacity:
+                guardando
+                  ? 0.6
+                  : 1,
             }}
           >
             {guardando
@@ -1194,8 +1916,12 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={limpiarFormulario}
-            style={styles.clearButton}
+            onClick={
+              limpiarFormulario
+            }
+            style={
+              styles.clearButton
+            }
           >
             LIMPIAR FORMULARIO
           </button>
@@ -1210,7 +1936,8 @@ const styles = {
     minHeight: "100vh",
     background:
       "linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%)",
-    padding: "30px 16px 60px",
+    padding:
+      "30px 16px 60px",
     fontFamily:
       "Arial, Helvetica, sans-serif",
     color: "#172033",
@@ -1229,21 +1956,27 @@ const styles = {
     padding: "30px",
     marginBottom: "22px",
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
     gap: "20px",
-    boxShadow: "0 18px 45px rgba(15,23,42,0.18)",
+    boxShadow:
+      "0 18px 45px rgba(15,23,42,0.18)",
   },
 
   badge: {
     display: "inline-block",
-    background: "rgba(255,255,255,0.14)",
+    background:
+      "rgba(255,255,255,0.14)",
     borderRadius: "999px",
-    padding: "8px 14px",
+    padding:
+      "8px 14px",
     fontSize: "12px",
     fontWeight: "bold",
-    letterSpacing: "0.5px",
-    marginBottom: "12px",
+    letterSpacing:
+      "0.5px",
+    marginBottom:
+      "12px",
   },
 
   heroTitle: {
@@ -1257,26 +1990,36 @@ const styles = {
   },
 
   darkButton: {
-    border: "1px solid rgba(255,255,255,0.25)",
-    background: "rgba(255,255,255,0.12)",
+    border:
+      "1px solid rgba(255,255,255,0.25)",
+    background:
+      "rgba(255,255,255,0.12)",
     color: "white",
-    padding: "12px 18px",
-    borderRadius: "12px",
+    padding:
+      "12px 18px",
+    borderRadius:
+      "12px",
     cursor: "pointer",
-    whiteSpace: "nowrap",
+    whiteSpace:
+      "nowrap",
   },
 
   section: {
     background: "white",
-    borderRadius: "22px",
+    borderRadius:
+      "22px",
     padding: "26px",
-    marginBottom: "20px",
-    boxShadow: "0 8px 30px rgba(15,23,42,0.07)",
-    border: "1px solid #eef2f7",
+    marginBottom:
+      "20px",
+    boxShadow:
+      "0 8px 30px rgba(15,23,42,0.07)",
+    border:
+      "1px solid #eef2f7",
   },
 
   sectionHeader: {
-    marginBottom: "22px",
+    marginBottom:
+      "22px",
   },
 
   sectionTitle: {
@@ -1302,11 +2045,15 @@ const styles = {
 
   input: {
     width: "100%",
-    padding: "12px 13px",
-    borderRadius: "11px",
-    border: "1px solid #d8dee8",
+    padding:
+      "12px 13px",
+    borderRadius:
+      "11px",
+    border:
+      "1px solid #d8dee8",
     fontSize: "14px",
-    boxSizing: "border-box",
+    boxSizing:
+      "border-box",
     background: "white",
     color: "#1e293b",
     outline: "none",
@@ -1316,12 +2063,16 @@ const styles = {
     width: "100%",
     minHeight: "105px",
     padding: "13px",
-    borderRadius: "11px",
-    border: "1px solid #d8dee8",
+    borderRadius:
+      "11px",
+    border:
+      "1px solid #d8dee8",
     fontSize: "14px",
-    boxSizing: "border-box",
+    boxSizing:
+      "border-box",
     resize: "vertical",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      "Arial, sans-serif",
   },
 
   grid2: {
@@ -1339,9 +2090,12 @@ const styles = {
   audioBox: {
     marginTop: "22px",
     padding: "20px",
-    borderRadius: "18px",
-    background: "#f8fafc",
-    border: "1px dashed #cbd5e1",
+    borderRadius:
+      "18px",
+    background:
+      "#f8fafc",
+    border:
+      "1px dashed #cbd5e1",
   },
 
   audioTitle: {
@@ -1368,30 +2122,39 @@ const styles = {
 
   metricCard: {
     padding: "20px",
-    borderRadius: "18px",
+    borderRadius:
+      "18px",
     background:
       "linear-gradient(135deg, #f8fafc, #eef2ff)",
-    border: "1px solid #e2e8f0",
+    border:
+      "1px solid #e2e8f0",
     display: "flex",
-    flexDirection: "column",
+    flexDirection:
+      "column",
     gap: "7px",
   },
 
   progressOuter: {
     width: "100%",
     height: "16px",
-    background: "#e2e8f0",
-    borderRadius: "999px",
-    overflow: "hidden",
-    marginTop: "20px",
+    background:
+      "#e2e8f0",
+    borderRadius:
+      "999px",
+    overflow:
+      "hidden",
+    marginTop:
+      "20px",
   },
 
   progressInner: {
     height: "100%",
     background:
       "linear-gradient(90deg, #4f46e5, #7c3aed)",
-    borderRadius: "999px",
-    transition: "width 0.4s ease",
+    borderRadius:
+      "999px",
+    transition:
+      "width 0.4s ease",
   },
 
   progressText: {
@@ -1402,8 +2165,10 @@ const styles = {
   chartCard: {
     marginTop: "24px",
     padding: "22px",
-    background: "#f8fafc",
-    borderRadius: "18px",
+    background:
+      "#f8fafc",
+    borderRadius:
+      "18px",
   },
 
   chartTitle: {
@@ -1413,22 +2178,31 @@ const styles = {
   chart: {
     height: "220px",
     display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
+    alignItems:
+      "flex-end",
+    justifyContent:
+      "space-around",
     gap: "12px",
-    borderBottom: "1px solid #cbd5e1",
-    padding: "20px 10px 0",
+    borderBottom:
+      "1px solid #cbd5e1",
+    padding:
+      "20px 10px 0",
   },
 
   productivityChart: {
     height: "250px",
     display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
+    alignItems:
+      "flex-end",
+    justifyContent:
+      "space-around",
     gap: "15px",
-    borderBottom: "1px solid #cbd5e1",
-    padding: "20px 20px 0",
-    marginBottom: "25px",
+    borderBottom:
+      "1px solid #cbd5e1",
+    padding:
+      "20px 20px 0",
+    marginBottom:
+      "25px",
   },
 
   chartColumn: {
@@ -1436,23 +2210,30 @@ const styles = {
     flex: 1,
     maxWidth: "90px",
     display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-end",
-    alignItems: "center",
+    flexDirection:
+      "column",
+    justifyContent:
+      "flex-end",
+    alignItems:
+      "center",
     gap: "7px",
   },
 
   chartBar: {
     width: "55px",
     minHeight: "8px",
-    borderRadius: "10px 10px 3px 3px",
+    borderRadius:
+      "10px 10px 3px 3px",
     background:
       "linear-gradient(180deg, #6366f1, #312e81)",
     display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "center",
+    alignItems:
+      "flex-start",
+    justifyContent:
+      "center",
     paddingTop: "5px",
-    transition: "height 0.4s ease",
+    transition:
+      "height 0.4s ease",
   },
 
   chartValue: {
@@ -1463,64 +2244,85 @@ const styles = {
 
   comparisonTable: {
     display: "grid",
-    gridTemplateColumns: "1.5fr 1fr 1fr 1fr",
+    gridTemplateColumns:
+      "1.5fr 1fr 1fr 1fr",
     gap: "0",
-    border: "1px solid #e2e8f0",
-    borderRadius: "14px",
-    overflow: "hidden",
+    border:
+      "1px solid #e2e8f0",
+    borderRadius:
+      "14px",
+    overflow:
+      "hidden",
     fontSize: "14px",
   },
 
   tableRow: {
-    gridColumn: "1 / -1",
+    gridColumn:
+      "1 / -1",
     display: "grid",
-    gridTemplateColumns: "1.5fr 1fr 1fr 1fr",
+    gridTemplateColumns:
+      "1.5fr 1fr 1fr 1fr",
     padding: "12px",
-    borderTop: "1px solid #e2e8f0",
+    borderTop:
+      "1px solid #e2e8f0",
   },
 
   empty: {
     padding: "35px",
-    textAlign: "center",
+    textAlign:
+      "center",
     color: "#64748b",
-    background: "#f8fafc",
-    borderRadius: "15px",
+    background:
+      "#f8fafc",
+    borderRadius:
+      "15px",
   },
 
   saveBox: {
-    background: "#111827",
+    background:
+      "#111827",
     padding: "25px",
-    borderRadius: "22px",
-    marginTop: "25px",
+    borderRadius:
+      "22px",
+    marginTop:
+      "25px",
   },
 
   message: {
     padding: "14px",
-    borderRadius: "12px",
-    marginBottom: "15px",
-    fontWeight: "bold",
+    borderRadius:
+      "12px",
+    marginBottom:
+      "15px",
+    fontWeight:
+      "bold",
   },
 
   saveButton: {
     width: "100%",
     border: "none",
-    borderRadius: "14px",
+    borderRadius:
+      "14px",
     padding: "16px",
     background:
       "linear-gradient(135deg, #4f46e5, #7c3aed)",
     color: "white",
-    fontWeight: "bold",
+    fontWeight:
+      "bold",
     fontSize: "16px",
     cursor: "pointer",
   },
 
   clearButton: {
     width: "100%",
-    border: "1px solid #475569",
-    borderRadius: "14px",
+    border:
+      "1px solid #475569",
+    borderRadius:
+      "14px",
     padding: "13px",
     marginTop: "10px",
-    background: "transparent",
+    background:
+      "transparent",
     color: "white",
     cursor: "pointer",
   },
