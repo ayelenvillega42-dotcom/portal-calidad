@@ -31,50 +31,35 @@ const asesores = [
   ["Viniegra, Agustín", "8199", "viniegra.agustin@portalcalidad.com"],
 ];
 
-const OM_OPTIONS = [
-  "Generación de interés",
-  "Cambio apertura",
-  "Escucha activa",
-  "Venta consultiva",
-  "Venta conversacional",
-  "Detección de necesidad",
-  "Manejo de objeciones",
-  "Rebate comercial",
-  "Cierre",
+const estadoOptions = [
+  "ARRIBA DEL OBJETIVO",
+  "EN OBJETIVO",
+  "DEBAJO DEL OBJETIVO",
+  "EN PROCESO",
 ];
 
-const FORTALEZAS_OPTIONS = [
-  "Adaptabilidad",
-  "Buena detección de necesidad",
-  "Claridad en explicación",
-  "Buen manejo de silencios",
-  "Correcta contención",
-  "Buena escucha activa",
-  "Seguridad comercial",
-  "Buena argumentación",
-  "Buen manejo de objeciones",
+const auditoriaOptions = [
+  "No hay información de auditoría",
+  "Auditoría realizada",
+  "Auditoría pendiente",
+  "Auditoría de venta",
 ];
 
-const COACHING_OPTIONS = [
-  "Realizado",
-  "Pendiente",
-  "No aplica",
-];
-
-const REGISTRO_OPTIONS = [
+const registroOptions = [
   "CORRECTA",
   "INCORRECTA",
   "PENDIENTE",
+  "NO APLICA",
 ];
 
-const COMPROMISO_AUDITORIA_OPTIONS = [
-  "APLICA DEVOLUCIÓN",
+const compromisoOptions = [
   "SEGUIMIENTO",
+  "APLICA DEVOLUCIÓN",
   "SIN COMPROMISO",
-  "PENDIENTE",
+  "NO APLICA",
 ];
 
-const initialForm = {
+const formInicial = {
   usuario: "",
   semana: "",
   nota: "",
@@ -86,6 +71,7 @@ const initialForm = {
   objetivo: "",
   items_calidad: "",
   acciones_calidad: "",
+  auditoria: "",
   observaciones: "",
 
   sph: "",
@@ -109,11 +95,11 @@ const initialForm = {
   tipificacion_observaciones: "",
 
   auditoria_cantidad: "",
-  auditoria_om: [],
+  auditoria_om: "",
   auditoria_coaching: "",
   auditoria_registro: "",
   auditoria_compromiso: "",
-  auditoria_fortalezas: [],
+  auditoria_fortalezas: "",
   auditoria_observaciones: "",
 
   audio_url: "",
@@ -136,15 +122,10 @@ export default function Page() {
   const [adminReportes, setAdminReportes] = useState([]);
   const [cargandoAdmin, setCargandoAdmin] = useState(false);
 
-  const [form, setForm] = useState(initialForm);
-
+  const [form, setForm] = useState(formInicial);
+  const [audioFile, setAudioFile] = useState(null);
   const [mensajeAdmin, setMensajeAdmin] = useState("");
   const [guardando, setGuardando] = useState(false);
-
-  const [audioFile, setAudioFile] = useState(null);
-  const [subiendoAudio, setSubiendoAudio] = useState(false);
-
-  const [pestana, setPestana] = useState("calidad");
 
   useEffect(() => {
     async function verificarSesion() {
@@ -159,7 +140,7 @@ export default function Page() {
 
         if (correo === ADMIN_EMAIL.toLowerCase()) {
           setModo("admin");
-          cargarReportesAdmin();
+          await cargarReportesAdmin();
         } else {
           const asesor = asesores.find(
             ([, , emailAsesor]) =>
@@ -169,7 +150,7 @@ export default function Page() {
           if (asesor) {
             setAsesorActual(asesor);
             setModo("asesor");
-            cargarReportes(asesor[1]);
+            await cargarReportes(asesor[1]);
           } else {
             await supabase.auth.signOut();
             setModo("login");
@@ -304,65 +285,49 @@ export default function Page() {
     }));
   }
 
-  function alternarOpcion(campo, opcion) {
-    setForm((anterior) => {
-      const actual = anterior[campo] || [];
-
-      if (actual.includes(opcion)) {
-        return {
-          ...anterior,
-          [campo]: actual.filter((item) => item !== opcion),
-        };
-      }
-
-      return {
-        ...anterior,
-        [campo]: [...actual, opcion],
-      };
-    });
+  function limpiarFormulario() {
+    setForm(formInicial);
+    setAudioFile(null);
   }
 
-  function limpiarFormulario() {
-    setForm({ ...initialForm });
-    setAudioFile(null);
-    setMensajeAdmin("");
+  function convertirLista(texto) {
+    return texto
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   async function subirAudio() {
     if (!audioFile) return null;
 
-    setSubiendoAudio(true);
-
     const extension =
       audioFile.name.split(".").pop() || "mp3";
 
-    const nombreArchivo = `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}.${extension}`;
+    const nombreSeguro =
+      `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 10)}.${extension}`;
 
-    const ruta = `reportes/${nombreArchivo}`;
+    const ruta = `reportes/${form.usuario}/${nombreSeguro}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error } = await supabase.storage
       .from("audios")
       .upload(ruta, audioFile, {
         cacheControl: "3600",
         upsert: false,
+        contentType: audioFile.type || "audio/mpeg",
       });
 
-    if (uploadError) {
-      console.error(uploadError);
-      setSubiendoAudio(false);
-
+    if (error) {
+      console.error(error);
       throw new Error(
-        "No se pudo subir el audio. Verificá que exista el bucket 'audios' en Supabase."
+        "No se pudo subir el audio. Revisá que exista el bucket 'audios' en Supabase."
       );
     }
 
     const { data } = supabase.storage
       .from("audios")
       .getPublicUrl(ruta);
-
-    setSubiendoAudio(false);
 
     return data?.publicUrl || null;
   }
@@ -387,54 +352,9 @@ export default function Page() {
         audioUrl = await subirAudio();
       }
 
-      const itemsCalidad = form.items_calidad
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      const accionesCalidad = form.acciones_calidad
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      const itemsProductividad = form.items_productividad
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      const accionesProductividad =
-        form.acciones_productividad
-          .split("\n")
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-      const tipificaciones = form.tipificaciones
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      /*
-        Auditoría se guarda dentro de la columna
-        "auditoria" como JSON.
-
-        De esta manera no necesitamos modificar
-        todavía la tabla de Supabase.
-      */
-      const auditoria = JSON.stringify({
-        cantidad: form.auditoria_cantidad || "",
-        om: form.auditoria_om || [],
-        coaching: form.auditoria_coaching || "",
-        registro: form.auditoria_registro || "",
-        compromiso: form.auditoria_compromiso || "",
-        fortalezas: form.auditoria_fortalezas || [],
-        observaciones:
-          form.auditoria_observaciones || "",
-      });
-
       const nuevoReporte = {
         usuario: form.usuario,
         semana: form.semana,
-
         nota: form.nota || null,
         objetivo_calidad:
           form.objetivo_calidad || null,
@@ -445,8 +365,13 @@ export default function Page() {
         recomendacion:
           form.recomendacion || null,
         objetivo: form.objetivo || null,
-        items_calidad: itemsCalidad,
-        acciones_calidad: accionesCalidad,
+        items_calidad:
+          convertirLista(form.items_calidad),
+        acciones_calidad:
+          convertirLista(form.acciones_calidad),
+        auditoria:
+          form.auditoria || null,
+        audio_url: audioUrl,
         observaciones:
           form.observaciones || null,
 
@@ -463,14 +388,14 @@ export default function Page() {
         comparativo_productividad:
           form.comparativo_productividad || null,
         items_productividad:
-          itemsProductividad,
+          convertirLista(form.items_productividad),
         acciones_productividad:
-          accionesProductividad,
+          convertirLista(form.acciones_productividad),
         observaciones_productividad:
-          form.observaciones_productividad ||
-          null,
+          form.observaciones_productividad || null,
 
-        tipificaciones,
+        tipificaciones:
+          convertirLista(form.tipificaciones),
         objetivo_tipificaciones:
           form.objetivo_tipificaciones || null,
         estado_tipificaciones:
@@ -484,12 +409,22 @@ export default function Page() {
         tipificacion_compromiso:
           form.tipificacion_compromiso || null,
         tipificacion_observaciones:
-          form.tipificacion_observaciones ||
-          null,
+          form.tipificacion_observaciones || null,
 
-        auditoria,
-
-        audio_url: audioUrl,
+        auditoria_cantidad:
+          form.auditoria_cantidad || null,
+        auditoria_om:
+          convertirLista(form.auditoria_om),
+        auditoria_coaching:
+          form.auditoria_coaching || null,
+        auditoria_registro:
+          form.auditoria_registro || null,
+        auditoria_compromiso:
+          form.auditoria_compromiso || null,
+        auditoria_fortalezas:
+          convertirLista(form.auditoria_fortalezas),
+        auditoria_observaciones:
+          form.auditoria_observaciones || null,
       };
 
       const { error } = await supabase
@@ -498,13 +433,10 @@ export default function Page() {
 
       if (error) {
         console.error(error);
-
-        setMensajeAdmin(
-          "No se pudo guardar el reporte. Revisá la configuración de Supabase."
+        throw new Error(
+          error.message ||
+            "No se pudo guardar el reporte."
         );
-
-        setGuardando(false);
-        return;
       }
 
       setMensajeAdmin(
@@ -512,25 +444,25 @@ export default function Page() {
       );
 
       limpiarFormulario();
-
       await cargarReportesAdmin();
     } catch (error) {
       console.error(error);
 
       setMensajeAdmin(
         error.message ||
-          "Ocurrió un error al guardar el reporte."
+          "No se pudo guardar el reporte."
       );
+    } finally {
+      setGuardando(false);
     }
-
-    setGuardando(false);
   }
 
   if (cargando) {
     return (
       <main style={styles.page}>
         <div style={styles.centerBox}>
-          <div style={styles.card}>
+          <div style={styles.loadingCard}>
+            <div style={styles.loadingLogo}>✓</div>
             <h2>Portal de Calidad</h2>
             <p style={styles.muted}>
               Verificando acceso...
@@ -548,7 +480,7 @@ export default function Page() {
           <div style={styles.loginCard}>
             <div style={styles.logo}>✓</div>
 
-            <div style={styles.portalLabel}>
+            <div style={styles.loginEyebrow}>
               PORTAL DE CALIDAD
             </div>
 
@@ -600,7 +532,10 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={entrando}
-                style={styles.primaryButton}
+                style={{
+                  ...styles.primaryButton,
+                  opacity: entrando ? 0.6 : 1,
+                }}
               >
                 {entrando
                   ? "INGRESANDO..."
@@ -618,17 +553,14 @@ export default function Page() {
       <AdminPanel
         form={form}
         cambiarFormulario={cambiarFormulario}
-        alternarOpcion={alternarOpcion}
         guardarReporte={guardarReporte}
         limpiarFormulario={limpiarFormulario}
-        asesores={asesores}
-        adminReportes={adminReportes}
-        cargandoAdmin={cargandoAdmin}
-        mensajeAdmin={mensajeAdmin}
-        guardando={guardando}
         audioFile={audioFile}
         setAudioFile={setAudioFile}
-        subiendoAudio={subiendoAudio}
+        mensajeAdmin={mensajeAdmin}
+        guardando={guardando}
+        adminReportes={adminReportes}
+        cargandoAdmin={cargandoAdmin}
         cerrarSesion={cerrarSesion}
       />
     );
@@ -641,8 +573,6 @@ export default function Page() {
         reportes={reportes}
         cargandoReportes={cargandoReportes}
         cerrarSesion={cerrarSesion}
-        pestana={pestana}
-        setPestana={setPestana}
       />
     );
   }
@@ -653,17 +583,13 @@ export default function Page() {
 function AdminPanel({
   form,
   cambiarFormulario,
-  alternarOpcion,
   guardarReporte,
-  limpiarFormulario,
-  asesores,
-  adminReportes,
-  cargandoAdmin,
-  mensajeAdmin,
-  guardando,
   audioFile,
   setAudioFile,
-  subiendoAudio,
+  mensajeAdmin,
+  guardando,
+  adminReportes,
+  cargandoAdmin,
   cerrarSesion,
 }) {
   return (
@@ -692,543 +618,469 @@ function AdminPanel({
           </button>
         </header>
 
-        <section style={styles.heroCard}>
+        <section style={styles.adminHero}>
           <div>
-            <p style={styles.heroSmall}>
+            <div style={styles.heroEyebrow}>
               ADMINISTRACIÓN
-            </p>
+            </div>
 
-            <h2 style={styles.heroTitle}>
+            <h2 style={styles.adminHeroTitle}>
               Cargar nuevo reporte
             </h2>
 
-            <p style={styles.heroText}>
-              El reporte quedará disponible
-              automáticamente para el asesor
-              seleccionado.
+            <p style={styles.adminHeroText}>
+              Toda la información cargada acá se
+              mostrará en el portal del asesor.
             </p>
           </div>
         </section>
 
         <form onSubmit={guardarReporte}>
-          <section style={styles.card}>
-            <SectionTitle
-              number="01"
-              title="DATOS DEL REPORTE"
-            />
+          <section style={styles.adminCard}>
+            <SectionNumber number="01" title="CALIDAD" />
 
             <div style={styles.formGrid}>
-              <Field label="Asesor">
-                <select
-                  name="usuario"
-                  value={form.usuario}
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                  required
-                >
-                  <option value="">
-                    Seleccioná un asesor
-                  </option>
+              <Field
+                label="Asesor"
+                name="usuario"
+                value={form.usuario}
+                onChange={cambiarFormulario}
+                type="select"
+                options={asesores.map(
+                  (asesor) => ({
+                    value: asesor[1],
+                    label: `${asesor[0]} — ${asesor[1]}`,
+                  })
+                )}
+                required
+              />
 
-                  {asesores.map((asesor) => (
-                    <option
-                      key={asesor[1]}
-                      value={asesor[1]}
-                    >
-                      {asesor[0]} — {asesor[1]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <Field
+                label="Semana / período"
+                name="semana"
+                value={form.semana}
+                onChange={cambiarFormulario}
+                placeholder="Ej: Semana 3 - Agosto"
+                required
+              />
 
-              <Field label="Semana / período">
-                <input
-                  name="semana"
-                  value={form.semana}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: Semana 3 - Agosto"
-                  style={styles.input}
-                  required
-                />
-              </Field>
+              <Field
+                label="Nota de calidad"
+                name="nota"
+                value={form.nota}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 50"
+              />
 
-              <Field label="Nota de calidad">
-                <input
-                  name="nota"
-                  value={form.nota}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 50"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo de calidad"
+                name="objetivo_calidad"
+                value={form.objetivo_calidad}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 70"
+              />
 
-              <Field label="Objetivo de calidad">
-                <input
-                  name="objetivo_calidad"
-                  value={form.objetivo_calidad}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 70"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Estado"
+                name="estado_objetivo"
+                value={form.estado_objetivo}
+                onChange={cambiarFormulario}
+                type="select"
+                options={estadoOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
 
-              <Field label="Estado del objetivo">
-                <input
-                  name="estado_objetivo"
-                  value={form.estado_objetivo}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: DEBAJO DEL OBJETIVO"
-                  style={styles.input}
-                />
-              </Field>
-
-              <Field label="Producto">
-                <input
-                  name="producto"
-                  value={form.producto}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: AP"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Producto"
+                name="producto"
+                value={form.producto}
+                onChange={cambiarFormulario}
+                placeholder="Ej: AP"
+              />
             </div>
-          </section>
 
-          <section style={styles.card}>
-            <SectionTitle
-              number="02"
-              title="CALIDAD"
+            <TextField
+              label="Desvío principal"
+              name="desvio"
+              value={form.desvio}
+              onChange={cambiarFormulario}
+              placeholder="Ej: Validación de datos"
             />
 
-            <Field label="Desvío principal">
-              <textarea
-                name="desvio"
-                value={form.desvio}
-                onChange={cambiarFormulario}
-                placeholder="Ej: Validación de datos"
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Recomendación"
+              name="recomendacion"
+              value={form.recomendacion}
+              onChange={cambiarFormulario}
+              placeholder="Qué debería trabajar el asesor..."
+            />
 
-            <Field label="Recomendación">
-              <textarea
-                name="recomendacion"
-                value={form.recomendacion}
-                onChange={cambiarFormulario}
-                placeholder="Qué debería trabajar el asesor..."
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Objetivo de trabajo"
+              name="objetivo"
+              value={form.objetivo}
+              onChange={cambiarFormulario}
+              placeholder="Objetivo para la próxima evaluación..."
+            />
 
-            <Field label="Objetivo de trabajo">
-              <textarea
-                name="objetivo"
-                value={form.objetivo}
-                onChange={cambiarFormulario}
-                placeholder="Objetivo para la próxima evaluación..."
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Items trabajados"
+              name="items_calidad"
+              value={form.items_calidad}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Un item por línea.\nValidación de datos\nCláusula de aceptación\nInformación"
+              }
+            />
 
-            <Field label="Items trabajados">
-              <textarea
-                name="items_calidad"
-                value={form.items_calidad}
-                onChange={cambiarFormulario}
-                placeholder={
-                  "Un item por línea.\nEj: Validación de datos\nCláusula de aceptación"
-                }
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Acciones realizadas"
+              name="acciones_calidad"
+              value={form.acciones_calidad}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Una acción por línea.\nFeedback individual\nEspacio de coaching"
+              }
+            />
 
-            <Field label="Acciones realizadas">
-              <textarea
-                name="acciones_calidad"
-                value={form.acciones_calidad}
-                onChange={cambiarFormulario}
-                placeholder={
-                  "Una acción por línea.\nEj: Feedback individual\nEspacio de coaching"
-                }
-                style={styles.textarea}
-              />
-            </Field>
+            <div style={styles.subSection}>
+              <h3 style={styles.subTitle}>
+                Auditoría
+              </h3>
 
-            <Field label="Comparativo semanal">
-              <textarea
-                name="comparativo_calidad"
-                value={form.comparativo_calidad || ""}
-                onChange={cambiarFormulario}
-                placeholder="Ej: Semana anterior: 45% → Semana actual: 50%"
-                style={styles.textarea}
-              />
-            </Field>
+              <p style={styles.muted}>
+                Seleccioná la información que querés
+                mostrar en la sección Calidad.
+              </p>
 
-            <Field label="Observaciones">
-              <textarea
-                name="observaciones"
-                value={form.observaciones}
+              <Field
+                label="Estado de auditoría"
+                name="auditoria"
+                value={form.auditoria}
                 onChange={cambiarFormulario}
-                placeholder="Observaciones de Calidad..."
-                style={styles.textarea}
+                type="select"
+                options={auditoriaOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
               />
-            </Field>
+            </div>
+
+            <TextField
+              label="Observaciones"
+              name="observaciones"
+              value={form.observaciones}
+              onChange={cambiarFormulario}
+              placeholder="Observaciones de calidad..."
+            />
           </section>
 
-          <section style={styles.card}>
-            <SectionTitle
-              number="03"
+          <section style={styles.adminCard}>
+            <SectionNumber
+              number="02"
               title="PRODUCTIVIDAD"
             />
 
             <div style={styles.formGrid}>
-              <Field label="SPH">
-                <input
-                  name="sph"
-                  value={form.sph}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 0.15"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="SPH"
+                name="sph"
+                value={form.sph}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 0.15"
+              />
 
-              <Field label="Objetivo SPH">
-                <input
-                  name="objetivo_sph"
-                  value={form.objetivo_sph}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 0.5"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo SPH"
+                name="objetivo_sph"
+                value={form.objetivo_sph}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 0.5"
+              />
 
-              <Field label="Ventas">
-                <input
-                  name="ventas"
-                  value={form.ventas}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 12"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Ventas"
+                name="ventas"
+                value={form.ventas}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 12"
+              />
 
-              <Field label="Objetivo ventas">
-                <input
-                  name="objetivo_ventas"
-                  value={form.objetivo_ventas}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 40"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo ventas"
+                name="objetivo_ventas"
+                value={form.objetivo_ventas}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 40"
+              />
 
-              <Field label="Objetivo de campaña">
-                <input
-                  name="objetivo_campania"
-                  value={form.objetivo_campania}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 50"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo de campaña"
+                name="objetivo_campania"
+                value={form.objetivo_campania}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 50"
+              />
 
-              <Field label="Estado">
-                <input
-                  name="estado_campania"
-                  value={form.estado_campania}
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: En proceso"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Estado"
+                name="estado_campania"
+                value={form.estado_campania}
+                onChange={cambiarFormulario}
+                type="select"
+                options={estadoOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
             </div>
 
-            <Field label="Comparativo semanal">
-              <textarea
-                name="comparativo_productividad"
-                value={
-                  form.comparativo_productividad
-                }
-                onChange={cambiarFormulario}
-                placeholder="Comparativo de productividad..."
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Comparativo semanal"
+              name="comparativo_productividad"
+              value={form.comparativo_productividad}
+              onChange={cambiarFormulario}
+              placeholder="Ej: Subió 5 ventas respecto de la semana anterior."
+            />
 
-            <Field label="Items trabajados">
-              <textarea
-                name="items_productividad"
-                value={form.items_productividad}
-                onChange={cambiarFormulario}
-                placeholder={
-                  "Un item por línea.\nEj: Cierre con seguridad comercial\nOfrecimiento"
-                }
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Items trabajados"
+              name="items_productividad"
+              value={form.items_productividad}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Un item por línea.\nCierre con seguridad comercial\nOfrecimiento\nRebate comercial"
+              }
+            />
 
-            <Field label="Acciones realizadas">
-              <textarea
-                name="acciones_productividad"
-                value={
-                  form.acciones_productividad
-                }
-                onChange={cambiarFormulario}
-                placeholder={
-                  "Una acción por línea.\nEj: Simulación de llamada\nAcompañamiento en línea"
-                }
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Acciones realizadas"
+              name="acciones_productividad"
+              value={form.acciones_productividad}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Una acción por línea.\nSimulación de llamada\nAcompañamiento en línea"
+              }
+            />
 
-            <Field label="Observaciones">
-              <textarea
-                name="observaciones_productividad"
-                value={
-                  form.observaciones_productividad
-                }
-                onChange={cambiarFormulario}
-                placeholder="Observaciones de productividad..."
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Observaciones"
+              name="observaciones_productividad"
+              value={form.observaciones_productividad}
+              onChange={cambiarFormulario}
+              placeholder="Observaciones de productividad..."
+            />
           </section>
 
-          <section style={styles.card}>
-            <SectionTitle
-              number="04"
+          <section style={styles.adminCard}>
+            <SectionNumber
+              number="03"
               title="TIPIFICACIONES"
             />
 
-            <Field label="Tipificaciones realizadas">
-              <textarea
-                name="tipificaciones"
-                value={form.tipificaciones}
-                onChange={cambiarFormulario}
-                placeholder={
-                  "Una tipificación por línea."
-                }
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Tipificaciones realizadas"
+              name="tipificaciones"
+              value={form.tipificaciones}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Una tipificación por línea.\nNo conforme con sumas aseguradas\nNo interesado - Producto"
+              }
+            />
 
             <div style={styles.formGrid}>
-              <Field label="Objetivo tipificaciones">
-                <input
-                  name="objetivo_tipificaciones"
-                  value={
-                    form.objetivo_tipificaciones
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo tipificaciones"
+                name="objetivo_tipificaciones"
+                value={form.objetivo_tipificaciones}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 14"
+              />
 
-              <Field label="Estado">
-                <input
-                  name="estado_tipificaciones"
-                  value={
-                    form.estado_tipificaciones
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Estado"
+                name="estado_tipificaciones"
+                value={form.estado_tipificaciones}
+                onChange={cambiarFormulario}
+                type="select"
+                options={estadoOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
 
-              <Field label="Desvío">
-                <input
-                  name="tipificacion_desvio"
-                  value={form.tipificacion_desvio}
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Desvío"
+                name="tipificacion_desvio"
+                value={form.tipificacion_desvio}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 1"
+              />
 
-              <Field label="Objetivo">
-                <input
-                  name="tipificacion_objetivo"
-                  value={
-                    form.tipificacion_objetivo
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Objetivo"
+                name="tipificacion_objetivo"
+                value={form.tipificacion_objetivo}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 14"
+              />
 
-              <Field label="Resultado">
-                <input
-                  name="tipificacion_resultado"
-                  value={
-                    form.tipificacion_resultado
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Resultado"
+                name="tipificacion_resultado"
+                value={form.tipificacion_resultado}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 12"
+              />
 
-              <Field label="Compromiso">
-                <input
-                  name="tipificacion_compromiso"
-                  value={
-                    form.tipificacion_compromiso
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Compromiso"
+                name="tipificacion_compromiso"
+                value={form.tipificacion_compromiso}
+                onChange={cambiarFormulario}
+                type="select"
+                options={compromisoOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
             </div>
 
-            <Field label="Observaciones">
-              <textarea
-                name="tipificacion_observaciones"
-                value={
-                  form.tipificacion_observaciones
-                }
-                onChange={cambiarFormulario}
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Observaciones"
+              name="tipificacion_observaciones"
+              value={form.tipificacion_observaciones}
+              onChange={cambiarFormulario}
+              placeholder="Observaciones de tipificación..."
+            />
           </section>
 
-          <section style={styles.card}>
-            <SectionTitle
-              number="05"
+          <section style={styles.adminCard}>
+            <SectionNumber
+              number="04"
               title="AUDITORÍAS DE NO VENTAS"
             />
 
             <div style={styles.formGrid}>
-              <Field label="Cantidad">
-                <input
-                  name="auditoria_cantidad"
-                  value={
-                    form.auditoria_cantidad
-                  }
-                  onChange={cambiarFormulario}
-                  placeholder="Ej: 5"
-                  style={styles.input}
-                />
-              </Field>
+              <Field
+                label="Cantidad"
+                name="auditoria_cantidad"
+                value={form.auditoria_cantidad}
+                onChange={cambiarFormulario}
+                placeholder="Ej: 5"
+              />
 
-              <Field label="Coaching">
-                <select
-                  name="auditoria_coaching"
-                  value={
-                    form.auditoria_coaching
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                >
-                  <option value="">
-                    Seleccioná
-                  </option>
+              <Field
+                label="Registro en sistema"
+                name="auditoria_registro"
+                value={form.auditoria_registro}
+                onChange={cambiarFormulario}
+                type="select"
+                options={registroOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
 
-                  {COACHING_OPTIONS.map((opcion) => (
-                    <option
-                      key={opcion}
-                      value={opcion}
-                    >
-                      {opcion}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Registro en sistema">
-                <select
-                  name="auditoria_registro"
-                  value={
-                    form.auditoria_registro
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                >
-                  <option value="">
-                    Seleccioná
-                  </option>
-
-                  {REGISTRO_OPTIONS.map((opcion) => (
-                    <option
-                      key={opcion}
-                      value={opcion}
-                    >
-                      {opcion}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Compromiso">
-                <select
-                  name="auditoria_compromiso"
-                  value={
-                    form.auditoria_compromiso
-                  }
-                  onChange={cambiarFormulario}
-                  style={styles.input}
-                >
-                  <option value="">
-                    Seleccioná
-                  </option>
-
-                  {COMPROMISO_AUDITORIA_OPTIONS.map(
-                    (opcion) => (
-                      <option
-                        key={opcion}
-                        value={opcion}
-                      >
-                        {opcion}
-                      </option>
-                    )
-                  )}
-                </select>
-              </Field>
+              <Field
+                label="Compromiso"
+                name="auditoria_compromiso"
+                value={form.auditoria_compromiso}
+                onChange={cambiarFormulario}
+                type="select"
+                options={compromisoOptions.map(
+                  (item) => ({
+                    value: item,
+                    label: item,
+                  })
+                )}
+              />
             </div>
 
-            <MultiSelect
-              title="Principales O.M."
-              options={OM_OPTIONS}
-              selected={form.auditoria_om}
-              onToggle={(opcion) =>
-                alternarOpcion(
-                  "auditoria_om",
-                  opcion
-                )
+            <TextField
+              label="Principales O.M."
+              name="auditoria_om"
+              value={form.auditoria_om}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Una por línea.\nGeneración de interés\nCambio apertura\nEscucha activa\nVenta consultiva"
               }
             />
 
-            <MultiSelect
-              title="Fortalezas"
-              options={FORTALEZAS_OPTIONS}
-              selected={form.auditoria_fortalezas}
-              onToggle={(opcion) =>
-                alternarOpcion(
-                  "auditoria_fortalezas",
-                  opcion
-                )
+            <TextField
+              label="Coaching"
+              name="auditoria_coaching"
+              value={form.auditoria_coaching}
+              onChange={cambiarFormulario}
+              placeholder="Detalle del coaching realizado..."
+            />
+
+            <TextField
+              label="Fortalezas"
+              name="auditoria_fortalezas"
+              value={form.auditoria_fortalezas}
+              onChange={cambiarFormulario}
+              placeholder={
+                "Una fortaleza por línea.\nAdaptabilidad\nBuena detección de necesidad\nClaridad en explicación"
               }
             />
 
-            <Field label="Observaciones">
-              <textarea
-                name="auditoria_observaciones"
-                value={
-                  form.auditoria_observaciones
-                }
-                onChange={cambiarFormulario}
-                placeholder="Observaciones de la auditoría..."
-                style={styles.textarea}
-              />
-            </Field>
+            <TextField
+              label="Observaciones"
+              name="auditoria_observaciones"
+              value={form.auditoria_observaciones}
+              onChange={cambiarFormulario}
+              placeholder="Observaciones de la auditoría..."
+            />
+          </section>
 
-            <div style={styles.uploadBox}>
+          <section style={styles.adminCard}>
+            <SectionNumber
+              number="05"
+              title="ACTIVIDADES"
+            />
+
+            <div style={styles.emptyAdmin}>
+              <strong>
+                Próximamente
+              </strong>
+
+              <p style={styles.muted}>
+                Esta sección queda preparada para
+                incorporar actividades más adelante.
+              </p>
+            </div>
+          </section>
+
+          <section style={styles.adminCard}>
+            <SectionNumber
+              number="06"
+              title="AUDITORÍA / AUDIO"
+            />
+
+            <div style={styles.audioUpload}>
               <div>
-                <strong>
-                  Audio de la llamada auditada
-                </strong>
+                <h3 style={styles.subTitle}>
+                  Subir llamada auditada
+                </h3>
 
                 <p style={styles.muted}>
                   Seleccioná directamente el archivo
-                  de audio.
+                  de audio desde tu computadora.
                 </p>
               </div>
 
@@ -1244,7 +1096,7 @@ function AdminPanel({
               />
 
               {audioFile && (
-                <div style={styles.fileName}>
+                <div style={styles.fileSelected}>
                   ✓ {audioFile.name}
                 </div>
               )}
@@ -1253,19 +1105,13 @@ function AdminPanel({
 
           <button
             type="submit"
-            disabled={guardando || subiendoAudio}
+            disabled={guardando}
             style={{
-              ...styles.primaryButton,
-              marginBottom: "30px",
-              opacity:
-                guardando || subiendoAudio
-                  ? 0.6
-                  : 1,
+              ...styles.saveButton,
+              opacity: guardando ? 0.6 : 1,
             }}
           >
-            {subiendoAudio
-              ? "SUBIENDO AUDIO..."
-              : guardando
+            {guardando
               ? "GUARDANDO..."
               : "GUARDAR REPORTE"}
           </button>
@@ -1274,7 +1120,8 @@ function AdminPanel({
             <div
               style={{
                 ...styles.success,
-                marginBottom: "25px",
+                marginTop: "16px",
+                marginBottom: "22px",
               }}
             >
               {mensajeAdmin}
@@ -1282,16 +1129,20 @@ function AdminPanel({
           )}
         </form>
 
-        <section style={styles.card}>
+        <section style={styles.adminCard}>
           <div style={styles.historyHeader}>
             <div>
-              <p style={styles.sectionEyebrow}>
+              <div style={styles.smallEyebrow}>
                 HISTORIAL
-              </p>
+              </div>
 
-              <h2 style={{ margin: 0 }}>
+              <h2 style={styles.cardTitle}>
                 Reportes cargados
               </h2>
+            </div>
+
+            <div style={styles.historyCount}>
+              {adminReportes.length} reportes
             </div>
           </div>
 
@@ -1328,12 +1179,10 @@ function AdminPanel({
 
                 <tbody>
                   {adminReportes.map((reporte) => {
-                    const asesor =
-                      asesores.find(
-                        (item) =>
-                          item[1] ===
-                          reporte.usuario
-                      );
+                    const asesor = asesores.find(
+                      (item) =>
+                        item[1] === reporte.usuario
+                    );
 
                     return (
                       <tr key={reporte.id}>
@@ -1372,54 +1221,74 @@ function AsesorPanel({
   reportes,
   cargandoReportes,
   cerrarSesion,
-  pestana,
-  setPestana,
 }) {
+  const [pestana, setPestana] = useState("calidad");
+  const [feedback, setFeedback] = useState("");
+  const [enviandoFeedback, setEnviandoFeedback] =
+    useState(false);
+  const [mensajeFeedback, setMensajeFeedback] =
+    useState("");
+
   const reporteActual = reportes[0];
 
-  const auditoria = leerAuditoria(
-    reporteActual?.auditoria
-  );
+  async function enviarFeedback() {
+    if (!feedback.trim()) return;
 
-  if (cargandoReportes) {
-    return (
-      <main style={styles.page}>
-        <div style={styles.centerBox}>
-          <div style={styles.card}>
-            <h2>
-              Cargando información...
-            </h2>
-          </div>
-        </div>
-      </main>
-    );
+    setEnviandoFeedback(true);
+    setMensajeFeedback("");
+
+    const { error } = await supabase
+      .from("feedback")
+      .insert([
+        {
+          usuario: asesorActual?.[1],
+          semana: reporteActual?.semana || "",
+          mensaje: feedback.trim(),
+        },
+      ]);
+
+    if (error) {
+      console.error(error);
+      setMensajeFeedback(
+        "No se pudo enviar el feedback."
+      );
+    } else {
+      setFeedback("");
+      setMensajeFeedback(
+        "✓ Feedback enviado correctamente."
+      );
+    }
+
+    setEnviandoFeedback(false);
   }
 
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        <header style={styles.asesorHeader}>
+        <header style={styles.advisorHeader}>
           <div>
-            <div style={styles.portalText}>
+            <div style={styles.portalBadge}>
               PORTAL DE CALIDAD
             </div>
 
-            <h1 style={styles.asesorTitle}>
+            <h1 style={styles.advisorTitle}>
               Hola, {nombreCorto(asesorActual?.[0])}
             </h1>
 
-            <div style={styles.weekText}>
+            <p style={styles.advisorWeek}>
               {reporteActual?.semana ||
-                "Sin reporte disponible"}
-            </div>
+                "Semana actual"}
+            </p>
           </div>
 
-          <div style={styles.headerRight}>
+          <div style={styles.advisorHeaderRight}>
             <div
-              style={styles.generalStatus}
+              style={styles.generalStatus(
+                reporteActual?.estado_objetivo
+              )}
             >
               {reporteActual?.estado_objetivo ||
-                "SIN ESTADO"}
+                "EN SEGUIMIENTO"}
             </div>
 
             <button
@@ -1431,7 +1300,65 @@ function AsesorPanel({
           </div>
         </header>
 
-        {!reporteActual ? (
+        <nav style={styles.tabs}>
+          <Tab
+            active={pestana === "calidad"}
+            onClick={() => setPestana("calidad")}
+            number="01"
+            title="CALIDAD"
+          />
+
+          <Tab
+            active={pestana === "productividad"}
+            onClick={() =>
+              setPestana("productividad")
+            }
+            number="02"
+            title="PRODUCTIVIDAD"
+          />
+
+          <Tab
+            active={pestana === "tipificaciones"}
+            onClick={() =>
+              setPestana("tipificaciones")
+            }
+            number="03"
+            title="TIPIFICACIONES"
+          />
+
+          <Tab
+            active={pestana === "auditorias"}
+            onClick={() =>
+              setPestana("auditorias")
+            }
+            number="04"
+            title="AUDITORÍAS"
+          />
+
+          <Tab
+            active={pestana === "actividades"}
+            onClick={() =>
+              setPestana("actividades")
+            }
+            number="05"
+            title="ACTIVIDADES"
+          />
+
+          <Tab
+            active={pestana === "historico"}
+            onClick={() =>
+              setPestana("historico")
+            }
+            number="06"
+            title="HISTÓRICO"
+          />
+        </nav>
+
+        {cargandoReportes ? (
+          <section style={styles.card}>
+            <h2>Cargando información...</h2>
+          </section>
+        ) : !reporteActual ? (
           <section style={styles.card}>
             <h2>
               Todavía no hay reportes
@@ -1439,78 +1366,12 @@ function AsesorPanel({
 
             <p style={styles.muted}>
               Cuando Calidad cargue tu primer
-              reporte semanal, vas a poder
-              verlo desde acá.
+              reporte semanal, vas a poder verlo
+              desde acá.
             </p>
           </section>
         ) : (
           <>
-            <nav style={styles.tabs}>
-              <Tab
-                active={pestana === "calidad"}
-                onClick={() =>
-                  setPestana("calidad")
-                }
-              >
-                CALIDAD
-              </Tab>
-
-              <Tab
-                active={
-                  pestana === "productividad"
-                }
-                onClick={() =>
-                  setPestana("productividad")
-                }
-              >
-                PRODUCTIVIDAD
-              </Tab>
-
-              <Tab
-                active={
-                  pestana === "tipificaciones"
-                }
-                onClick={() =>
-                  setPestana("tipificaciones")
-                }
-              >
-                TIPIFICACIONES
-              </Tab>
-
-              <Tab
-                active={
-                  pestana === "auditorias"
-                }
-                onClick={() =>
-                  setPestana("auditorias")
-                }
-              >
-                AUDITORÍAS
-              </Tab>
-
-              <Tab
-                active={
-                  pestana === "actividades"
-                }
-                onClick={() =>
-                  setPestana("actividades")
-                }
-              >
-                ACTIVIDADES
-              </Tab>
-
-              <Tab
-                active={
-                  pestana === "historico"
-                }
-                onClick={() =>
-                  setPestana("historico")
-                }
-              >
-                HISTÓRICO
-              </Tab>
-            </nav>
-
             {pestana === "calidad" && (
               <CalidadTab
                 reporte={reporteActual}
@@ -1532,28 +1393,11 @@ function AsesorPanel({
             {pestana === "auditorias" && (
               <AuditoriasTab
                 reporte={reporteActual}
-                auditoria={auditoria}
               />
             )}
 
             {pestana === "actividades" && (
-              <section style={styles.card}>
-                <div style={styles.emptyActivities}>
-                  <div style={styles.emptyIcon}>
-                    +
-                  </div>
-
-                  <h2>
-                    Próximamente
-                  </h2>
-
-                  <p style={styles.muted}>
-                    Esta sección quedará
-                    disponible para registrar
-                    y consultar actividades.
-                  </p>
-                </div>
-              </section>
+              <ActividadesTab />
             )}
 
             {pestana === "historico" && (
@@ -1561,10 +1405,65 @@ function AsesorPanel({
                 reportes={reportes}
               />
             )}
-
-            <FeedbackSection />
           </>
         )}
+
+        <section style={styles.feedbackCard}>
+          <div style={styles.feedbackNumber}>
+            07
+          </div>
+
+          <div>
+            <div style={styles.smallEyebrow}>
+              ÚLTIMA SECCIÓN
+            </div>
+
+            <h2 style={styles.feedbackTitle}>
+              FEEDBACK DEL ASESOR
+            </h2>
+
+            <p style={styles.feedbackText}>
+              ¿Querés dejar algún comentario sobre
+              tu reporte, una consulta o algo que
+              quieras trabajar con Calidad?
+            </p>
+
+            <textarea
+              value={feedback}
+              onChange={(e) =>
+                setFeedback(e.target.value)
+              }
+              placeholder="Escribí tu comentario..."
+              style={styles.feedbackTextarea}
+            />
+
+            <button
+              onClick={enviarFeedback}
+              disabled={
+                enviandoFeedback ||
+                !feedback.trim()
+              }
+              style={{
+                ...styles.feedbackButton,
+                opacity:
+                  enviandoFeedback ||
+                  !feedback.trim()
+                    ? 0.6
+                    : 1,
+              }}
+            >
+              {enviandoFeedback
+                ? "ENVIANDO..."
+                : "ENVIAR FEEDBACK"}
+            </button>
+
+            {mensajeFeedback && (
+              <div style={styles.feedbackSuccess}>
+                {mensajeFeedback}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -1576,283 +1475,234 @@ function CalidadTab({ reporte }) {
     reporte.objetivo_calidad
   );
 
-  const faltan =
-    objetivo !== null && nota !== null
-      ? Math.max(objetivo - nota, 0)
-      : null;
-
-  const progreso =
-    objetivo && objetivo > 0 && nota !== null
+  const porcentaje =
+    objetivo > 0
       ? Math.min(
-          Math.round((nota / objetivo) * 100),
-          100
+          100,
+          Math.round((nota / objetivo) * 100)
         )
       : 0;
 
+  const falta =
+    objetivo > nota ? objetivo - nota : 0;
+
   return (
-    <section style={styles.card}>
-      <SectionTitle
-        number="01"
-        title="CALIDAD"
-      />
+    <section style={styles.tabCard}>
+      <SectionNumber number="01" title="CALIDAD" />
 
-      <div style={styles.bigMetricRow}>
+      <div style={styles.scoreGrid}>
         <div style={styles.bigScore}>
-          <span>
+          <div style={styles.scoreLabel}>
+            NOTA
+          </div>
+
+          <div style={styles.scoreNumber}>
             {reporte.nota || "-"}
-          </span>
+          </div>
 
-          <small>/ 100</small>
+          <div style={styles.scoreOutOf}>
+            / 100
+          </div>
         </div>
 
-        <div style={styles.metricCard}>
-          <span>OBJETIVO</span>
-          <strong>
-            {reporte.objetivo_calidad ||
-              "-"}
-          </strong>
-        </div>
+        <Metric
+          title="OBJETIVO"
+          value={reporte.objetivo_calidad || "-"}
+        />
 
-        <div style={styles.metricCard}>
-          <span>ESTADO</span>
-          <strong>
-            {reporte.estado_objetivo ||
-              "-"}
-          </strong>
-        </div>
+        <Metric
+          title="ESTADO"
+          value={
+            reporte.estado_objetivo || "-"
+          }
+        />
 
-        <div style={styles.metricCard}>
-          <span>PRODUCTO</span>
-          <strong>
-            {reporte.producto || "-"}
-          </strong>
-        </div>
+        <Metric
+          title="PRODUCTO"
+          value={reporte.producto || "-"}
+        />
       </div>
 
       <div style={styles.progressCard}>
-        <div style={styles.progressHeader}>
+        <div style={styles.progressTop}>
           <strong>
             Progreso hacia el objetivo
           </strong>
 
-          <strong>{progreso}%</strong>
+          <strong>{porcentaje}%</strong>
         </div>
 
         <div style={styles.progressTrack}>
           <div
             style={{
-              ...styles.progressBar,
-              width: `${progreso}%`,
+              ...styles.progressFill,
+              width: `${porcentaje}%`,
             }}
           />
         </div>
       </div>
 
-      <div style={styles.highlightGrid}>
-        <div style={styles.highlight}>
-          <span>
-            CUÁNTO FALTA PARA ALCANZAR EL
-            OBJETIVO
-          </span>
+      <div style={styles.twoColumn}>
+        <InfoBlock
+          title="CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO"
+          value={
+            falta > 0
+              ? `${falta} puntos`
+              : "Objetivo alcanzado"
+          }
+        />
 
-          <strong>
-            {faltan !== null
-              ? `${faltan} puntos`
-              : "-"}
-          </strong>
-        </div>
-
-        <div style={styles.highlight}>
-          <span>
-            DESVÍO PRINCIPAL
-          </span>
-
-          <strong>
-            {reporte.desvio || "-"}
-          </strong>
-        </div>
+        <InfoBlock
+          title="DESVÍO PRINCIPAL"
+          value={
+            reporte.desvio ||
+            "No hay desvíos cargados."
+          }
+        />
       </div>
 
-      <ContentBlock title="COMPARATIVO SEMANAL">
-        <p style={styles.textContent}>
-          {reporte.comparativo_calidad ||
-            "Todavía no hay una semana anterior para comparar."}
-        </p>
-      </ContentBlock>
+      <InfoBlock
+        title="COMPARATIVO SEMANAL"
+        value={
+          reporte.comparativo_calidad ||
+          "Todavía no hay una semana anterior para comparar."
+        }
+      />
 
-      <ContentBlock title="ITEMS TRABAJADOS">
-        <ArrayList
-          items={reporte.items_calidad}
-          empty="No se registraron items."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="ITEMS TRABAJADOS"
+        items={reporte.items_calidad}
+      />
 
-      <ContentBlock title="ACCIONES REALIZADAS">
-        <ArrayList
-          items={reporte.acciones_calidad}
-          empty="No se registraron acciones."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="ACCIONES REALIZADAS"
+        items={reporte.acciones_calidad}
+      />
 
-      <ContentBlock title="AUDITORÍA">
-        {reporte.auditoria ? (
-          <AuditoriaResumen
-            auditoria={leerAuditoria(
-              reporte.auditoria
-            )}
-          />
-        ) : (
-          <p style={styles.muted}>
-            No hay información de auditoría.
-          </p>
-        )}
-      </ContentBlock>
+      <InfoBlock
+        title="AUDITORÍA"
+        value={
+          reporte.auditoria ||
+          "No hay información de auditoría."
+        }
+      />
 
-      <ContentBlock title="OBSERVACIONES">
-        <p style={styles.textContent}>
-          {reporte.observaciones ||
-            "No hay observaciones cargadas."}
-        </p>
-      </ContentBlock>
+      <InfoBlock
+        title="OBSERVACIONES"
+        value={
+          reporte.observaciones ||
+          "No hay observaciones cargadas."
+        }
+      />
     </section>
   );
 }
 
 function ProductividadTab({ reporte }) {
   return (
-    <section style={styles.card}>
-      <SectionTitle
+    <section style={styles.tabCard}>
+      <SectionNumber
         number="02"
         title="PRODUCTIVIDAD"
       />
 
-      <div style={styles.bigMetricRow}>
-        <div style={styles.metricCardLarge}>
-          <span>SPH</span>
+      <div style={styles.scoreGrid}>
+        <Metric
+          title="SPH"
+          value={reporte.sph || "-"}
+          extra={`Objetivo SPH: ${
+            reporte.objetivo_sph || "-"
+          }`}
+        />
 
-          <strong>
-            {reporte.sph || "-"}
-          </strong>
+        <Metric
+          title="VENTAS"
+          value={reporte.ventas || "-"}
+          extra={`Objetivo ventas: ${
+            reporte.objetivo_ventas || "-"
+          }`}
+        />
 
-          <small>
-            Objetivo SPH:{" "}
-            {reporte.objetivo_sph ||
-              "-"}
-          </small>
-        </div>
+        <Metric
+          title="OBJETIVO DE CAMPAÑA"
+          value={
+            reporte.objetivo_campania || "-"
+          }
+        />
 
-        <div style={styles.metricCardLarge}>
-          <span>VENTAS</span>
-
-          <strong>
-            {reporte.ventas || "-"}
-          </strong>
-
-          <small>
-            Objetivo ventas:{" "}
-            {reporte.objetivo_ventas ||
-              "-"}
-          </small>
-        </div>
-
-        <div style={styles.metricCardLarge}>
-          <span>
-            OBJETIVO DE CAMPAÑA
-          </span>
-
-          <strong>
-            {reporte.objetivo_campania ||
-              "-"}
-          </strong>
-
-          <small>
-            {reporte.estado_campania ||
-              "-"}
-          </small>
-        </div>
+        <Metric
+          title="ESTADO"
+          value={
+            reporte.estado_campania || "-"
+          }
+        />
       </div>
 
-      <ContentBlock title="ESTADO">
-        <StatusBadge
-          text={
-            reporte.estado_campania ||
-            "Sin estado"
-          }
-        />
-      </ContentBlock>
+      <InfoBlock
+        title="COMPARATIVO SEMANAL"
+        value={
+          reporte.comparativo_productividad ||
+          "Todavía no hay una semana anterior para comparar."
+        }
+      />
 
-      <ContentBlock title="COMPARATIVO SEMANAL">
-        <p style={styles.textContent}>
-          {reporte.comparativo_productividad ||
-            "Todavía no hay una semana anterior para comparar."}
-        </p>
-      </ContentBlock>
+      <ListBlock
+        title="ITEMS TRABAJADOS"
+        items={reporte.items_productividad}
+      />
 
-      <ContentBlock title="ITEMS TRABAJADOS">
-        <ArrayList
-          items={reporte.items_productividad}
-          empty="No se registraron items."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="ACCIONES REALIZADAS"
+        items={reporte.acciones_productividad}
+      />
 
-      <ContentBlock title="ACCIONES REALIZADAS">
-        <ArrayList
-          items={
-            reporte.acciones_productividad
-          }
-          empty="No se registraron acciones."
-        />
-      </ContentBlock>
-
-      <ContentBlock title="OBSERVACIONES">
-        <p style={styles.textContent}>
-          {reporte.observaciones_productividad ||
-            "No hay observaciones cargadas."}
-        </p>
-      </ContentBlock>
+      <InfoBlock
+        title="OBSERVACIONES"
+        value={
+          reporte.observaciones_productividad ||
+          "No hay observaciones cargadas."
+        }
+      />
     </section>
   );
 }
 
 function TipificacionesTab({ reporte }) {
   return (
-    <section style={styles.card}>
-      <SectionTitle
+    <section style={styles.tabCard}>
+      <SectionNumber
         number="03"
         title="TIPIFICACIONES"
       />
 
-      <div style={styles.tipStatus}>
+      <div style={styles.statusLarge}>
         {reporte.estado_tipificaciones ||
           "Sin estado"}
       </div>
 
-      <div style={styles.fourMetrics}>
-        <SmallMetric
+      <div style={styles.scoreGrid}>
+        <Metric
           title="DESVÍO"
           value={
-            reporte.tipificacion_desvio ||
-            "-"
+            reporte.tipificacion_desvio || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="OBJETIVO"
           value={
-            reporte.tipificacion_objetivo ||
-            "-"
+            reporte.tipificacion_objetivo || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="RESULTADO"
           value={
-            reporte.tipificacion_resultado ||
-            "-"
+            reporte.tipificacion_resultado || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="COMPROMISO"
           value={
             reporte.tipificacion_compromiso ||
@@ -1861,98 +1711,88 @@ function TipificacionesTab({ reporte }) {
         />
       </div>
 
-      <ContentBlock title="TIPIFICACIONES">
-        <ArrayList
-          items={reporte.tipificaciones}
-          empty="No se registraron tipificaciones."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="TIPIFICACIONES"
+        items={reporte.tipificaciones}
+      />
 
-      <ContentBlock title="OBSERVACIONES">
-        <p style={styles.textContent}>
-          {reporte.tipificacion_observaciones ||
-            "Sin observaciones cargadas."}
-        </p>
-      </ContentBlock>
+      <InfoBlock
+        title="OBSERVACIONES"
+        value={
+          reporte.tipificacion_observaciones ||
+          "Sin observaciones cargadas."
+        }
+      />
     </section>
   );
 }
 
-function AuditoriasTab({
-  reporte,
-  auditoria,
-}) {
+function AuditoriasTab({ reporte }) {
   return (
-    <section style={styles.card}>
-      <SectionTitle
+    <section style={styles.tabCard}>
+      <SectionNumber
         number="04"
         title="AUDITORÍAS DE NO VENTAS"
       />
 
-      <div style={styles.fourMetrics}>
-        <SmallMetric
+      <div style={styles.scoreGrid}>
+        <Metric
           title="CANTIDAD"
           value={
-            auditoria.cantidad || "-"
+            reporte.auditoria_cantidad || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="COACHING"
           value={
-            auditoria.coaching || "-"
+            reporte.auditoria_coaching || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="REGISTRO EN SISTEMA"
           value={
-            auditoria.registro || "-"
+            reporte.auditoria_registro || "-"
           }
         />
 
-        <SmallMetric
+        <Metric
           title="COMPROMISO"
           value={
-            auditoria.compromiso || "-"
+            reporte.auditoria_compromiso || "-"
           }
         />
       </div>
 
-      <ContentBlock title="PRINCIPALES O.M.">
-        <ArrayList
-          items={auditoria.om}
-          empty="No hay O.M. cargadas."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="PRINCIPALES O.M."
+        items={reporte.auditoria_om}
+      />
 
-      <ContentBlock title="FORTALEZAS">
-        <ArrayList
-          items={auditoria.fortalezas}
-          empty="No hay fortalezas cargadas."
-        />
-      </ContentBlock>
+      <ListBlock
+        title="FORTALEZAS"
+        items={reporte.auditoria_fortalezas}
+      />
 
-      <ContentBlock title="OBSERVACIONES">
-        <p style={styles.textContent}>
-          {auditoria.observaciones ||
-            "No hay observaciones cargadas."}
-        </p>
-      </ContentBlock>
+      <InfoBlock
+        title="OBSERVACIONES"
+        value={
+          reporte.auditoria_observaciones ||
+          "No hay observaciones cargadas."
+        }
+      />
 
       {reporte.audio_url && (
-        <div style={styles.audioBox}>
-          <h3>
-            Escuchar llamada auditada
+        <div style={styles.audioViewer}>
+          <h3 style={styles.subTitle}>
+            Llamada auditada
           </h3>
 
           <audio
             controls
             src={reporte.audio_url}
-            style={{
-              width: "100%",
-              marginTop: "12px",
-            }}
+            style={{ width: "100%" }}
           />
         </div>
       )}
@@ -1960,60 +1800,97 @@ function AuditoriasTab({
   );
 }
 
+function ActividadesTab() {
+  return (
+    <section style={styles.tabCard}>
+      <SectionNumber
+        number="05"
+        title="ACTIVIDADES"
+      />
+
+      <div style={styles.emptyState}>
+        <div style={styles.emptyIcon}>+</div>
+
+        <h2>Próximamente</h2>
+
+        <p style={styles.muted}>
+          Esta sección quedará disponible para
+          registrar y consultar actividades.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function HistoricoTab({ reportes }) {
   return (
-    <section style={styles.card}>
-      <SectionTitle
+    <section style={styles.tabCard}>
+      <SectionNumber
         number="06"
         title="HISTÓRICO"
       />
 
       {reportes.length <= 1 ? (
-        <div style={styles.emptyHistory}>
+        <div style={styles.emptyStateSmall}>
           <h3>
-            Todavía no hay historial
+            Todavía no hay semanas anteriores.
           </h3>
 
           <p style={styles.muted}>
-            Cuando se carguen nuevas semanas,
-            vas a poder ver tu evolución acá.
+            Cuando se carguen nuevos reportes,
+            vas a poder ver tu evolución semanal
+            desde acá.
           </p>
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={styles.historyTable}>
+          <table style={styles.table}>
             <thead>
               <tr>
-                <th>Semana</th>
-                <th>Nota</th>
-                <th>Objetivo</th>
-                <th>Estado</th>
-                <th>Producto</th>
+                <th style={styles.th}>
+                  Semana
+                </th>
+
+                <th style={styles.th}>
+                  Nota
+                </th>
+
+                <th style={styles.th}>
+                  Objetivo
+                </th>
+
+                <th style={styles.th}>
+                  Estado
+                </th>
+
+                <th style={styles.th}>
+                  Producto
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {reportes.map((reporte) => (
                 <tr key={reporte.id}>
-                  <td>
+                  <td style={styles.td}>
                     {reporte.semana || "-"}
                   </td>
 
-                  <td>
+                  <td style={styles.td}>
                     {reporte.nota || "-"}
                   </td>
 
-                  <td>
+                  <td style={styles.td}>
                     {reporte.objetivo_calidad ||
                       "-"}
                   </td>
 
-                  <td>
+                  <td style={styles.td}>
                     {reporte.estado_objetivo ||
                       "-"}
                   </td>
 
-                  <td>
+                  <td style={styles.td}>
                     {reporte.producto || "-"}
                   </td>
                 </tr>
@@ -2026,361 +1903,238 @@ function HistoricoTab({ reportes }) {
   );
 }
 
-function FeedbackSection() {
-  const [feedback, setFeedback] =
-    useState("");
-  const [enviado, setEnviado] =
-    useState(false);
-
-  function enviarFeedback(e) {
-    e.preventDefault();
-
-    if (!feedback.trim()) return;
-
-    setEnviado(true);
-    setFeedback("");
-  }
-
-  return (
-    <section style={styles.feedbackCard}>
-      <div style={styles.feedbackNumber}>
-        07
-      </div>
-
-      <div>
-        <p style={styles.sectionEyebrow}>
-          COMUNICACIÓN
-        </p>
-
-        <h2 style={{ marginTop: 0 }}>
-          FEEDBACK DEL ASESOR
-        </h2>
-
-        <p style={styles.muted}>
-          ¿Querés dejar algún comentario
-          sobre tu reporte, una consulta o
-          algo que quieras trabajar con
-          Calidad?
-        </p>
-
-        <form onSubmit={enviarFeedback}>
-          <textarea
-            value={feedback}
-            onChange={(e) =>
-              setFeedback(e.target.value)
-            }
-            placeholder="Escribí tu comentario..."
-            style={styles.textarea}
-          />
-
-          <button
-            type="submit"
-            style={styles.primaryButtonSmall}
-          >
-            ENVIAR FEEDBACK
-          </button>
-
-          {enviado && (
-            <div style={styles.success}>
-              ✓ Feedback enviado correctamente.
-            </div>
-          )}
-        </form>
-      </div>
-    </section>
-  );
-}
-
-function AuditoriaResumen({ auditoria }) {
-  return (
-    <div>
-      <div style={styles.fourMetrics}>
-        <SmallMetric
-          title="CANTIDAD"
-          value={
-            auditoria.cantidad || "-"
-          }
-        />
-
-        <SmallMetric
-          title="COACHING"
-          value={
-            auditoria.coaching || "-"
-          }
-        />
-
-        <SmallMetric
-          title="REGISTRO"
-          value={
-            auditoria.registro || "-"
-          }
-        />
-
-        <SmallMetric
-          title="COMPROMISO"
-          value={
-            auditoria.compromiso || "-"
-          }
-        />
-      </div>
-
-      <div style={styles.auditMiniGrid}>
-        <div>
-          <strong>
-            Principales O.M.
-          </strong>
-
-          <ArrayList
-            items={auditoria.om}
-            empty="-"
-          />
-        </div>
-
-        <div>
-          <strong>
-            Fortalezas
-          </strong>
-
-          <ArrayList
-            items={auditoria.fortalezas}
-            empty="-"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MultiSelect({
+function Tab({
+  active,
+  onClick,
+  number,
   title,
-  options,
-  selected,
-  onToggle,
 }) {
   return (
-    <div style={styles.multiSelectBox}>
-      <div style={styles.multiSelectTitle}>
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.tabButton,
+        ...(active
+          ? styles.tabButtonActive
+          : {}),
+      }}
+    >
+      <span
+        style={{
+          ...styles.tabNumber,
+          ...(active
+            ? styles.tabNumberActive
+            : {}),
+        }}
+      >
+        {number}
+      </span>
+
+      <span>{title}</span>
+    </button>
+  );
+}
+
+function SectionNumber({ number, title }) {
+  return (
+    <div style={styles.sectionHeading}>
+      <div style={styles.sectionNumber}>
+        {number}
+      </div>
+
+      <h2 style={styles.sectionTitle}>
         {title}
-      </div>
-
-      <div style={styles.optionGrid}>
-        {options.map((opcion) => {
-          const activo =
-            selected?.includes(opcion);
-
-          return (
-            <button
-              type="button"
-              key={opcion}
-              onClick={() =>
-                onToggle(opcion)
-              }
-              style={{
-                ...styles.optionButton,
-                ...(activo
-                  ? styles.optionButtonActive
-                  : {}),
-              }}
-            >
-              <span>
-                {activo ? "✓" : "+"}
-              </span>
-
-              {opcion}
-            </button>
-          );
-        })}
-      </div>
+      </h2>
     </div>
   );
 }
 
-function Field({ label, children }) {
+function Field({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  options = [],
+  placeholder,
+  required,
+}) {
   return (
     <div>
       <label style={styles.label}>
         {label}
       </label>
 
-      {children}
-    </div>
-  );
-}
-
-function SectionTitle({
-  number,
-  title,
-}) {
-  return (
-    <div style={styles.sectionTitleWrap}>
-      <div style={styles.sectionNumber}>
-        {number}
-      </div>
-
-      <div>
-        <p style={styles.sectionEyebrow}>
-          SECCIÓN
-        </p>
-
-        <h2 style={styles.sectionTitle}>
-          {title}
-        </h2>
-      </div>
-    </div>
-  );
-}
-
-function ContentBlock({
-  title,
-  children,
-}) {
-  return (
-    <div style={styles.contentBlock}>
-      <h3 style={styles.contentTitle}>
-        {title}
-      </h3>
-
-      {children}
-    </div>
-  );
-}
-
-function SmallMetric({
-  title,
-  value,
-}) {
-  return (
-    <div style={styles.smallMetric}>
-      <span>{title}</span>
-
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function StatusBadge({ text }) {
-  return (
-    <span style={styles.statusBadge}>
-      {text}
-    </span>
-  );
-}
-
-function Tab({
-  active,
-  onClick,
-  children,
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        ...styles.tab,
-        ...(active ? styles.tabActive : {}),
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ArrayList({ items, empty }) {
-  let lista = [];
-
-  if (Array.isArray(items)) {
-    lista = items;
-  } else if (typeof items === "string") {
-    try {
-      const convertido = JSON.parse(items);
-
-      if (Array.isArray(convertido)) {
-        lista = convertido;
-      } else {
-        lista = items
-          .split("\n")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }
-    } catch {
-      lista = items
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-  }
-
-  if (!lista.length) {
-    return (
-      <p style={styles.muted}>
-        {empty}
-      </p>
-    );
-  }
-
-  return (
-    <ul style={styles.list}>
-      {lista.map((item, index) => (
-        <li
-          key={index}
-          style={styles.listItem}
+      {type === "select" ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          style={styles.input}
+          required={required}
         >
-          {item}
-        </li>
-      ))}
-    </ul>
+          <option value="">
+            Seleccioná una opción
+          </option>
+
+          {options.map((option) => (
+            <option
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={styles.input}
+          required={required}
+        />
+      )}
+    </div>
   );
 }
 
-function leerAuditoria(valor) {
-  const vacio = {
-    cantidad: "",
-    om: [],
-    coaching: "",
-    registro: "",
-    compromiso: "",
-    fortalezas: [],
-    observaciones: "",
-  };
+function TextField({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+}) {
+  return (
+    <div>
+      <label style={styles.label}>
+        {label}
+      </label>
 
-  if (!valor) return vacio;
+      <textarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={styles.textarea}
+      />
+    </div>
+  );
+}
+
+function Metric({ title, value, extra }) {
+  return (
+    <div style={styles.metric}>
+      <div style={styles.metricTitle}>
+        {title}
+      </div>
+
+      <div style={styles.metricValue}>
+        {value}
+      </div>
+
+      {extra && (
+        <div style={styles.metricExtra}>
+          {extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoBlock({ title, value }) {
+  return (
+    <div style={styles.infoSection}>
+      <div style={styles.blockTitle}>
+        {title}
+      </div>
+
+      <div style={styles.infoBox}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ListBlock({ title, items }) {
+  const lista = normalizarLista(items);
+
+  return (
+    <div style={styles.infoSection}>
+      <div style={styles.blockTitle}>
+        {title}
+      </div>
+
+      {lista.length === 0 ? (
+        <div style={styles.infoBox}>
+          No hay información cargada.
+        </div>
+      ) : (
+        <div style={styles.listGrid}>
+          {lista.map((item, index) => (
+            <div
+              key={index}
+              style={styles.listCard}
+            >
+              <span style={styles.listDot}>
+                ✓
+              </span>
+
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function normalizarLista(items) {
+  if (Array.isArray(items)) {
+    return items.filter(Boolean);
+  }
+
+  if (typeof items !== "string") {
+    return [];
+  }
 
   try {
-    const resultado = JSON.parse(valor);
+    const parsed = JSON.parse(items);
 
-    return {
-      ...vacio,
-      ...resultado,
-    };
-  } catch {
-    return {
-      ...vacio,
-      observaciones: valor,
-    };
-  }
+    if (Array.isArray(parsed)) {
+      return parsed.filter(Boolean);
+    }
+  } catch {}
+
+  return items
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function numero(valor) {
-  if (
-    valor === null ||
-    valor === undefined ||
-    valor === ""
-  ) {
-    return null;
+  if (valor === null || valor === undefined) {
+    return 0;
   }
 
-  const n = Number(
-    String(valor).replace(",", ".")
-  );
+  const texto = String(valor)
+    .replace("%", "")
+    .replace(",", ".")
+    .trim();
 
-  return Number.isNaN(n) ? null : n;
+  const resultado = Number(texto);
+
+  return Number.isFinite(resultado)
+    ? resultado
+    : 0;
 }
 
 function nombreCorto(nombreCompleto) {
-  if (!nombreCompleto) return "";
+  if (!nombreCompleto) return "asesor/a";
 
-  const partes =
-    nombreCompleto.split(",");
+  const partes = nombreCompleto.split(",");
 
   if (partes.length > 1) {
     return partes[1].trim();
@@ -2393,10 +2147,18 @@ const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg, #eef7f7 0%, #f6f9f9 45%, #edf3f5 100%)",
-    color: "#16343a",
+      "linear-gradient(145deg, #edf7f8 0%, #f5f9fa 48%, #eef4f6 100%)",
+    color: "#16343b",
     fontFamily:
       "Arial, Helvetica, sans-serif",
+  },
+
+  container: {
+    width: "100%",
+    maxWidth: "1180px",
+    margin: "0 auto",
+    padding: "30px 20px 70px",
+    boxSizing: "border-box",
   },
 
   centerBox: {
@@ -2405,6 +2167,15 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "20px",
+  },
+
+  loadingCard: {
+    background: "#ffffff",
+    borderRadius: "24px",
+    padding: "40px",
+    textAlign: "center",
+    boxShadow:
+      "0 20px 60px rgba(16, 62, 70, 0.12)",
   },
 
   loginContainer: {
@@ -2420,46 +2191,39 @@ const styles = {
     maxWidth: "430px",
     background: "#ffffff",
     padding: "42px",
-    borderRadius: "24px",
+    borderRadius: "26px",
     boxShadow:
-      "0 25px 70px rgba(15, 72, 78, 0.13)",
-    border:
-      "1px solid #dcebed",
+      "0 24px 70px rgba(16, 62, 70, 0.13)",
+    border: "1px solid #dcecef",
+    boxSizing: "border-box",
   },
 
   logo: {
-    width: "58px",
-    height: "58px",
-    borderRadius: "17px",
-    background: "#0d5961",
+    width: "60px",
+    height: "60px",
+    borderRadius: "18px",
+    background:
+      "linear-gradient(135deg, #0b5963, #16808a)",
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "28px",
-    fontWeight: "800",
-    marginBottom: "18px",
+    fontSize: "29px",
+    fontWeight: "900",
+    marginBottom: "22px",
   },
 
-  portalLabel: {
-    color: "#0d5961",
+  loginEyebrow: {
+    color: "#16808a",
     fontSize: "12px",
-    fontWeight: "800",
-    letterSpacing: "1.5px",
-    marginBottom: "7px",
+    fontWeight: "900",
+    letterSpacing: "1.4px",
   },
 
   loginTitle: {
-    margin: 0,
-    fontSize: "30px",
-  },
-
-  container: {
-    width: "100%",
-    maxWidth: "1180px",
-    margin: "0 auto",
-    padding: "32px 22px 70px",
-    boxSizing: "border-box",
+    fontSize: "32px",
+    margin: "8px 0",
+    color: "#16343b",
   },
 
   header: {
@@ -2467,628 +2231,697 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "20px",
-    marginBottom: "28px",
+    marginBottom: "25px",
     flexWrap: "wrap",
   },
 
+  advisorHeader: {
+    background: "#ffffff",
+    borderRadius: "24px",
+    padding: "25px 28px",
+    marginBottom: "20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "20px",
+    flexWrap: "wrap",
+    border: "1px solid #dcecef",
+    boxShadow:
+      "0 10px 35px rgba(16, 62, 70, 0.07)",
+  },
+
+  advisorHeaderRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+
+  advisorTitle: {
+    margin: "10px 0 4px",
+    fontSize: "34px",
+    color: "#16343b",
+  },
+
+  advisorWeek: {
+    margin: 0,
+    color: "#5b747a",
+    fontWeight: "700",
+  },
+
   pageTitle: {
-    margin: "8px 0 0",
-    fontSize: "30px",
+    margin: "9px 0 3px",
+    color: "#16343b",
   },
 
   portalBadge: {
     display: "inline-block",
-    background: "#0d5961",
+    background: "#0b5963",
     color: "#ffffff",
     padding: "8px 14px",
     borderRadius: "999px",
     fontSize: "11px",
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: "1px",
+  },
+
+  generalStatus: (estado) => ({
+    background:
+      estado === "ARRIBA DEL OBJETIVO"
+        ? "#e6f7ef"
+        : estado === "EN OBJETIVO"
+        ? "#e7f5f6"
+        : "#fff4dc",
+    color:
+      estado === "ARRIBA DEL OBJETIVO"
+        ? "#087443"
+        : estado === "EN OBJETIVO"
+        ? "#0b6872"
+        : "#966500",
+    padding: "10px 15px",
+    borderRadius: "999px",
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing: ".5px",
+  }),
+
+  adminHero: {
+    background:
+      "linear-gradient(135deg, #0b5963 0%, #126f79 55%, #19848d 100%)",
+    color: "#ffffff",
+    borderRadius: "25px",
+    padding: "32px",
+    marginBottom: "22px",
+    boxShadow:
+      "0 18px 45px rgba(11, 89, 99, 0.2)",
+  },
+
+  heroEyebrow: {
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing: "1.5px",
+    opacity: 0.8,
+  },
+
+  adminHeroTitle: {
+    fontSize: "30px",
+    margin: "8px 0",
+  },
+
+  adminHeroText: {
+    margin: 0,
+    opacity: 0.85,
   },
 
   card: {
     background: "#ffffff",
     borderRadius: "22px",
+    padding: "28px",
+    marginBottom: "22px",
+    border: "1px solid #dcecef",
+    boxShadow:
+      "0 10px 35px rgba(16, 62, 70, 0.07)",
+  },
+
+  adminCard: {
+    background: "#ffffff",
+    borderRadius: "22px",
     padding: "30px",
     marginBottom: "22px",
-    border:
-      "1px solid #dcebed",
+    border: "1px solid #dcecef",
     boxShadow:
-      "0 12px 40px rgba(15, 72, 78, 0.07)",
-    boxSizing: "border-box",
+      "0 10px 35px rgba(16, 62, 70, 0.07)",
   },
 
-  heroCard: {
-    background:
-      "linear-gradient(135deg, #0b4f57 0%, #13717a 100%)",
-    color: "#ffffff",
+  tabCard: {
+    background: "#ffffff",
     borderRadius: "24px",
-    padding: "34px",
+    padding: "32px",
     marginBottom: "22px",
+    border: "1px solid #dcecef",
+    boxShadow:
+      "0 12px 40px rgba(16, 62, 70, 0.08)",
+  },
+
+  sectionHeading: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: "30px",
-    boxShadow:
-      "0 18px 45px rgba(10, 76, 84, 0.2)",
+    gap: "13px",
+    marginBottom: "28px",
   },
 
-  heroSmall: {
-    margin: "0 0 8px",
-    fontSize: "11px",
-    fontWeight: "800",
-    letterSpacing: "1.5px",
-    opacity: 0.8,
+  sectionNumber: {
+    width: "39px",
+    height: "39px",
+    borderRadius: "13px",
+    background: "#dff2f3",
+    color: "#0b5963",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "12px",
+    fontWeight: "900",
   },
 
-  heroTitle: {
-    margin: "0 0 10px",
-    fontSize: "30px",
-  },
-
-  heroText: {
+  sectionTitle: {
     margin: 0,
-    opacity: 0.88,
+    color: "#16343b",
+    fontSize: "24px",
+    letterSpacing: "-.4px",
   },
 
-  muted: {
-    color: "#6a7d82",
-    lineHeight: 1.6,
+  tabs: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "9px",
+    background: "#ffffff",
+    padding: "9px",
+    borderRadius: "20px",
+    border: "1px solid #dcecef",
+    marginBottom: "22px",
+    boxShadow:
+      "0 8px 25px rgba(16, 62, 70, 0.05)",
+  },
+
+  tabButton: {
+    border: "none",
+    background: "transparent",
+    borderRadius: "14px",
+    padding: "13px 10px",
+    cursor: "pointer",
+    color: "#547077",
+    fontWeight: "800",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    fontSize: "11px",
+    letterSpacing: ".3px",
+  },
+
+  tabButtonActive: {
+    background: "#0b5963",
+    color: "#ffffff",
+    boxShadow:
+      "0 7px 20px rgba(11, 89, 99, 0.2)",
+  },
+
+  tabNumber: {
+    fontSize: "10px",
+    fontWeight: "900",
+  },
+
+  tabNumberActive: {
+    color: "#bde8ea",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: "5px 18px",
   },
 
   label: {
     display: "block",
-    fontWeight: "700",
+    fontWeight: "800",
     marginBottom: "8px",
-    marginTop: "18px",
-    color: "#31565c",
-    fontSize: "14px",
+    marginTop: "17px",
+    color: "#35545b",
+    fontSize: "13px",
   },
 
   input: {
     width: "100%",
     boxSizing: "border-box",
     padding: "13px 14px",
-    borderRadius: "11px",
-    border:
-      "1px solid #cddfe2",
+    borderRadius: "12px",
+    border: "1px solid #cddfe2",
     background: "#ffffff",
-    color: "#16343a",
-    fontSize: "15px",
+    color: "#16343b",
+    fontSize: "14px",
     outline: "none",
   },
 
   textarea: {
     width: "100%",
-    minHeight: "105px",
+    minHeight: "110px",
     boxSizing: "border-box",
     padding: "13px 14px",
-    borderRadius: "11px",
-    border:
-      "1px solid #cddfe2",
+    borderRadius: "12px",
+    border: "1px solid #cddfe2",
     background: "#ffffff",
-    color: "#16343a",
-    fontSize: "15px",
+    color: "#16343b",
+    fontSize: "14px",
     resize: "vertical",
     fontFamily:
       "Arial, Helvetica, sans-serif",
     lineHeight: 1.5,
+    outline: "none",
   },
 
   primaryButton: {
     width: "100%",
     border: "none",
     borderRadius: "12px",
-    padding: "15px 20px",
-    background: "#0d5961",
+    padding: "14px 18px",
+    background: "#0b5963",
     color: "#ffffff",
     fontSize: "14px",
-    fontWeight: "800",
+    fontWeight: "900",
     cursor: "pointer",
-    boxShadow:
-      "0 8px 20px rgba(13, 89, 97, 0.18)",
+    marginTop: "22px",
   },
 
-  primaryButtonSmall: {
+  saveButton: {
+    width: "100%",
     border: "none",
-    borderRadius: "11px",
-    padding: "13px 20px",
-    background: "#0d5961",
+    borderRadius: "14px",
+    padding: "17px",
+    background:
+      "linear-gradient(135deg, #0b5963, #16808a)",
     color: "#ffffff",
-    fontSize: "13px",
-    fontWeight: "800",
+    fontSize: "14px",
+    fontWeight: "900",
     cursor: "pointer",
+    boxShadow:
+      "0 10px 28px rgba(11, 89, 99, 0.18)",
   },
 
   secondaryButton: {
-    border:
-      "1px solid #cbdde0",
-    borderRadius: "11px",
-    padding: "12px 18px",
+    border: "1px solid #cddfe2",
+    borderRadius: "12px",
+    padding: "11px 17px",
     background: "#ffffff",
-    color: "#31565c",
-    fontWeight: "700",
+    color: "#35545b",
+    fontWeight: "800",
     cursor: "pointer",
   },
 
   error: {
-    background: "#fff2f2",
+    background: "#fff0f0",
     color: "#b42318",
-    border:
-      "1px solid #f3c5c2",
+    border: "1px solid #f2c3c0",
     padding: "12px",
-    borderRadius: "10px",
+    borderRadius: "11px",
     margin: "18px 0",
     fontSize: "14px",
   },
 
   success: {
-    background: "#edf9f3",
+    background: "#e9f8f0",
     color: "#087443",
-    border:
-      "1px solid #b6e5ca",
-    padding: "13px",
-    borderRadius: "11px",
-    fontWeight: "700",
-    marginTop: "15px",
-  },
-
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "5px 18px",
-  },
-
-  sectionTitleWrap: {
-    display: "flex",
-    alignItems: "center",
-    gap: "15px",
-    marginBottom: "25px",
-  },
-
-  sectionNumber: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "13px",
-    background: "#dff1f2",
-    color: "#0d5961",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "900",
-    fontSize: "13px",
-  },
-
-  sectionEyebrow: {
-    margin: "0 0 4px",
-    color: "#739096",
-    fontSize: "10px",
+    border: "1px solid #b7e8ca",
+    padding: "14px",
+    borderRadius: "12px",
     fontWeight: "800",
-    letterSpacing: "1.3px",
   },
 
-  sectionTitle: {
-    margin: 0,
-    fontSize: "23px",
-    color: "#123f46",
+  muted: {
+    color: "#647b81",
+    lineHeight: 1.6,
   },
 
-  uploadBox: {
-    marginTop: "24px",
-    padding: "20px",
-    borderRadius: "15px",
-    border:
-      "1px dashed #a9c9cd",
-    background: "#f4fafb",
+  subSection: {
+    background: "#f3f9fa",
+    border: "1px solid #d8eaec",
+    borderRadius: "17px",
+    padding: "22px",
+    marginTop: "22px",
+  },
+
+  subTitle: {
+    margin: "0 0 7px",
+    color: "#16343b",
+  },
+
+  audioUpload: {
+    background: "#f3f9fa",
+    border: "1px dashed #9fc8cc",
+    borderRadius: "17px",
+    padding: "24px",
   },
 
   fileInput: {
-    marginTop: "12px",
     width: "100%",
+    marginTop: "12px",
+    padding: "12px",
+    background: "#ffffff",
+    borderRadius: "10px",
+    border: "1px solid #cddfe2",
   },
 
-  fileName: {
-    marginTop: "10px",
+  fileSelected: {
+    marginTop: "12px",
+    background: "#e9f8f0",
     color: "#087443",
+    padding: "11px 13px",
+    borderRadius: "10px",
     fontWeight: "700",
     fontSize: "13px",
   },
 
-  multiSelectBox: {
-    marginTop: "22px",
-    padding: "20px",
-    borderRadius: "16px",
-    background: "#f5fafb",
-    border:
-      "1px solid #d8e9eb",
-  },
-
-  multiSelectTitle: {
-    fontWeight: "800",
-    color: "#234f56",
-    marginBottom: "14px",
-  },
-
-  optionGrid: {
+  scoreGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit, minmax(190px, 1fr))",
-    gap: "9px",
+      "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "15px",
+    marginBottom: "20px",
   },
 
-  optionButton: {
-    textAlign: "left",
-    border:
-      "1px solid #d4e3e5",
-    background: "#ffffff",
-    color: "#48646a",
-    borderRadius: "10px",
-    padding: "11px 12px",
-    cursor: "pointer",
+  bigScore: {
+    background:
+      "linear-gradient(145deg, #0b5963, #16808a)",
+    color: "#ffffff",
+    borderRadius: "18px",
+    padding: "21px",
+    minHeight: "130px",
+  },
+
+  scoreLabel: {
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+    opacity: 0.8,
+  },
+
+  scoreNumber: {
+    fontSize: "43px",
+    fontWeight: "900",
+    marginTop: "10px",
+    display: "inline-block",
+  },
+
+  scoreOutOf: {
+    display: "inline-block",
+    marginLeft: "7px",
+    opacity: 0.75,
+    fontWeight: "700",
+  },
+
+  metric: {
+    background: "#f4f9fa",
+    border: "1px solid #dcecef",
+    borderRadius: "17px",
+    padding: "20px",
+    minHeight: "88px",
+  },
+
+  metricTitle: {
+    color: "#6a8186",
+    fontSize: "11px",
+    fontWeight: "900",
+    marginBottom: "10px",
+    letterSpacing: ".5px",
+  },
+
+  metricValue: {
+    fontSize: "23px",
+    fontWeight: "900",
+    color: "#0b5963",
+    wordBreak: "break-word",
+  },
+
+  metricExtra: {
+    marginTop: "7px",
+    fontSize: "12px",
+    color: "#647b81",
+  },
+
+  progressCard: {
+    background: "#edf7f8",
+    border: "1px solid #d5eaec",
+    borderRadius: "17px",
+    padding: "18px",
+    marginBottom: "20px",
+  },
+
+  progressTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "10px",
+    color: "#35545b",
     fontSize: "13px",
+    marginBottom: "11px",
   },
 
-  optionButtonActive: {
-    background: "#dff1f2",
-    border:
-      "1px solid #6daeb4",
-    color: "#0d5961",
-    fontWeight: "800",
+  progressTrack: {
+    width: "100%",
+    height: "10px",
+    background: "#d4e4e6",
+    borderRadius: "999px",
+    overflow: "hidden",
+  },
+
+  progressFill: {
+    height: "100%",
+    background:
+      "linear-gradient(90deg, #0b5963, #24a0a8)",
+    borderRadius: "999px",
+  },
+
+  twoColumn: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "15px",
+  },
+
+  infoSection: {
+    marginTop: "22px",
+  },
+
+  blockTitle: {
+    color: "#0b5963",
+    fontSize: "12px",
+    fontWeight: "900",
+    letterSpacing: ".8px",
+    marginBottom: "9px",
+  },
+
+  infoBox: {
+    background: "#f7fafb",
+    border: "1px solid #dcecef",
+    borderRadius: "14px",
+    padding: "17px",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+    color: "#29474e",
+  },
+
+  listGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "10px",
+  },
+
+  listCard: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+    background: "#f7fafb",
+    border: "1px solid #dcecef",
+    borderRadius: "13px",
+    padding: "14px",
+    lineHeight: 1.45,
+    color: "#29474e",
+  },
+
+  listDot: {
+    flexShrink: 0,
+    width: "23px",
+    height: "23px",
+    borderRadius: "50%",
+    background: "#dff2f3",
+    color: "#0b5963",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "11px",
+    fontWeight: "900",
+  },
+
+  statusLarge: {
+    display: "inline-block",
+    background: "#fff4dc",
+    color: "#966500",
+    border: "1px solid #f0d58f",
+    padding: "10px 15px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: "900",
+    marginBottom: "20px",
+  },
+
+  audioViewer: {
+    background: "#f3f9fa",
+    border: "1px solid #d8eaec",
+    borderRadius: "17px",
+    padding: "20px",
+    marginTop: "22px",
+  },
+
+  emptyState: {
+    textAlign: "center",
+    padding: "65px 20px",
+    background: "#f7fafb",
+    borderRadius: "18px",
+    border: "1px dashed #bfd9dc",
+  },
+
+  emptyStateSmall: {
+    textAlign: "center",
+    padding: "40px 20px",
+    background: "#f7fafb",
+    borderRadius: "18px",
+    border: "1px dashed #bfd9dc",
+  },
+
+  emptyIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "50%",
+    background: "#dff2f3",
+    color: "#0b5963",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 15px",
+    fontSize: "28px",
+    fontWeight: "400",
   },
 
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "600px",
+    minWidth: "650px",
   },
 
   th: {
     textAlign: "left",
     padding: "13px",
     background: "#edf7f8",
-    borderBottom:
-      "1px solid #d7e6e8",
-    fontSize: "13px",
+    color: "#35545b",
+    borderBottom: "1px solid #d7e7e9",
+    fontSize: "12px",
+    fontWeight: "900",
   },
 
   td: {
     padding: "13px",
-    borderBottom:
-      "1px solid #edf1f2",
-    fontSize: "14px",
+    borderBottom: "1px solid #edf2f3",
+    fontSize: "13px",
+    color: "#38555b",
   },
 
   historyHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "15px",
     marginBottom: "20px",
   },
 
-  asesorHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "20px",
-    marginBottom: "24px",
-    flexWrap: "wrap",
-  },
-
-  portalText: {
-    color: "#0d5961",
+  smallEyebrow: {
+    color: "#16808a",
+    fontSize: "10px",
     fontWeight: "900",
-    letterSpacing: "1.6px",
-    fontSize: "12px",
+    letterSpacing: "1.1px",
+    marginBottom: "5px",
   },
 
-  asesorTitle: {
-    margin: "7px 0 3px",
-    fontSize: "31px",
-    color: "#123f46",
+  cardTitle: {
+    margin: 0,
+    color: "#16343b",
   },
 
-  weekText: {
-    color: "#6b8186",
-    fontSize: "14px",
-  },
-
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-
-  generalStatus: {
-    background: "#fff6df",
-    color: "#8a5b00",
-    border:
-      "1px solid #efd38b",
-    padding: "9px 13px",
+  historyCount: {
+    background: "#dff2f3",
+    color: "#0b5963",
+    padding: "8px 12px",
     borderRadius: "999px",
     fontSize: "11px",
     fontWeight: "900",
   },
 
-  tabs: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    background: "#ffffff",
-    padding: "8px",
-    borderRadius: "16px",
-    border:
-      "1px solid #dcebed",
-    marginBottom: "22px",
-    boxShadow:
-      "0 8px 25px rgba(15,72,78,0.06)",
-  },
-
-  tab: {
-    border: "none",
-    background: "transparent",
-    color: "#5d777c",
-    borderRadius: "10px",
-    padding: "11px 14px",
-    fontSize: "12px",
-    fontWeight: "800",
-    cursor: "pointer",
-  },
-
-  tabActive: {
-    background: "#0d5961",
-    color: "#ffffff",
-  },
-
-  bigMetricRow: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "14px",
-    marginBottom: "20px",
-  },
-
-  bigScore: {
-    minHeight: "145px",
-    borderRadius: "18px",
-    background:
-      "linear-gradient(135deg, #0d5961, #16808a)",
-    color: "#ffffff",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  bigScore span: {
-    fontSize: "43px",
-    fontWeight: "900",
-  },
-
-  bigScore small: {
-    opacity: 0.8,
-  },
-
-  metricCard: {
-    minHeight: "110px",
-    padding: "18px",
-    borderRadius: "16px",
-    background: "#f4f9fa",
-    border:
-      "1px solid #dcebed",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    gap: "8px",
-  },
-
-  metricCardLarge: {
-    minHeight: "125px",
-    padding: "20px",
-    borderRadius: "17px",
-    background: "#f4f9fa",
-    border:
-      "1px solid #dcebed",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    gap: "8px",
-  },
-
-  progressCard: {
-    padding: "18px",
+  emptyAdmin: {
+    background: "#f7fafb",
     borderRadius: "15px",
-    background: "#f5fafb",
-    marginBottom: "18px",
-  },
-
-  progressHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "10px",
-    fontSize: "13px",
-    color: "#31565c",
-  },
-
-  progressTrack: {
-    height: "10px",
-    borderRadius: "99px",
-    background: "#dce8ea",
-    overflow: "hidden",
-  },
-
-  progressBar: {
-    height: "100%",
-    borderRadius: "99px",
-    background:
-      "linear-gradient(90deg, #0d5961, #32a1a9)",
-  },
-
-  highlightGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "14px",
-    marginBottom: "20px",
-  },
-
-  highlight: {
-    padding: "19px",
-    borderRadius: "16px",
-    background: "#fff9e9",
-    border:
-      "1px solid #f1dda5",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-
-  contentBlock: {
-    borderTop:
-      "1px solid #e6eff0",
-    paddingTop: "20px",
-    marginTop: "20px",
-  },
-
-  contentTitle: {
-    margin: "0 0 12px",
-    color: "#527076",
-    fontSize: "12px",
-    fontWeight: "900",
-    letterSpacing: "1px",
-  },
-
-  textContent: {
-    whiteSpace: "pre-wrap",
-    lineHeight: 1.65,
-    margin: 0,
-  },
-
-  list: {
-    margin: 0,
-    paddingLeft: "22px",
-  },
-
-  listItem: {
-    marginBottom: "9px",
-    lineHeight: 1.5,
-  },
-
-  fourMetrics: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(160px, 1fr))",
-    gap: "12px",
-  },
-
-  smallMetric: {
-    padding: "17px",
-    background: "#f5fafb",
-    border:
-      "1px solid #dcebed",
-    borderRadius: "15px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  smallMetric span: {
-    color: "#70888d",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "0.8px",
-  },
-
-  smallMetric strong: {
-    color: "#123f46",
-    fontSize: "21px",
-  },
-
-  tipStatus: {
-    display: "inline-block",
-    background: "#fff6df",
-    color: "#8a5b00",
-    border:
-      "1px solid #efd38b",
-    borderRadius: "999px",
-    padding: "9px 14px",
-    fontSize: "12px",
-    fontWeight: "900",
-    marginBottom: "18px",
-  },
-
-  audioBox: {
-    marginTop: "20px",
-    padding: "20px",
-    borderRadius: "16px",
-    background: "#f3f8f9",
-    border:
-      "1px solid #dcebed",
-  },
-
-  auditMiniGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "25px",
-    marginTop: "20px",
-  },
-
-  emptyActivities: {
-    minHeight: "260px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    textAlign: "center",
-  },
-
-  emptyIcon: {
-    width: "55px",
-    height: "55px",
-    borderRadius: "50%",
-    background: "#dff1f2",
-    color: "#0d5961",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "28px",
-    fontWeight: "400",
-    marginBottom: "14px",
-  },
-
-  emptyHistory: {
-    padding: "35px 10px",
-    textAlign: "center",
-  },
-
-  historyTable: {
-    width: "100%",
-    borderCollapse: "collapse",
+    padding: "25px",
+    border: "1px dashed #bfd9dc",
   },
 
   feedbackCard: {
     background:
-      "linear-gradient(135deg, #e5f3f4 0%, #f7fbfb 100%)",
-    borderRadius: "22px",
+      "linear-gradient(145deg, #0b5963, #126f79)",
+    color: "#ffffff",
+    borderRadius: "24px",
     padding: "30px",
     display: "grid",
-    gridTemplateColumns: "50px 1fr",
+    gridTemplateColumns: "58px 1fr",
     gap: "20px",
-    border:
-      "1px solid #cfe4e6",
-    marginBottom: "22px",
+    boxShadow:
+      "0 18px 45px rgba(11, 89, 99, 0.18)",
   },
 
   feedbackNumber: {
-    width: "42px",
-    height: "42px",
+    width: "44px",
+    height: "44px",
     borderRadius: "13px",
-    background: "#0d5961",
-    color: "#ffffff",
+    background: "rgba(255,255,255,.14)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "900",
+    fontSize: "12px",
+  },
+
+  feedbackTitle: {
+    margin: "0 0 10px",
+    fontSize: "25px",
+  },
+
+  feedbackText: {
+    opacity: 0.86,
+    lineHeight: 1.6,
+    marginTop: 0,
+  },
+
+  feedbackTextarea: {
+    width: "100%",
+    minHeight: "120px",
+    boxSizing: "border-box",
+    padding: "14px",
+    borderRadius: "13px",
+    border: "none",
+    background: "#ffffff",
+    color: "#16343b",
+    fontSize: "14px",
+    resize: "vertical",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+    outline: "none",
+  },
+
+  feedbackButton: {
+    marginTop: "12px",
+    border: "none",
+    borderRadius: "12px",
+    padding: "13px 20px",
+    background: "#ffffff",
+    color: "#0b5963",
+    fontWeight: "900",
+    cursor: "pointer",
+  },
+
+  feedbackSuccess: {
+    marginTop: "12px",
+    background: "rgba(255,255,255,.13)",
+    borderRadius: "10px",
+    padding: "11px",
     fontSize: "13px",
+    fontWeight: "700",
   },
 };
