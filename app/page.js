@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const ADMIN_EMAIL = "ayelenvillega42@gmail.com";
@@ -25,11 +25,51 @@ const asesores = [
   ["Peralta, Belen", "8207", "peralta.belen@portalcalidad.com"],
   ["Reartes, Maia", "8201", "reartes.maia@portalcalidad.com"],
   ["Rojek, Luna", "8213", "rojek.luna@portalcalidad.com"],
-  ["Simonetta, Valentina", "8191, "simonetta.valentina@portalcalidad.com"],
+  ["Simonetta, Valentina", "8191", "simonetta.valentina@portalcalidad.com"],
   ["Tello, Marianela", "8042", "tello.marianela@portalcalidad.com"],
   ["Vasquez, Agustin", "8136", "vasquez.agustin@portalcalidad.com"],
   ["Viniegra, Agustín", "8199", "viniegra.agustin@portalcalidad.com"],
 ];
+
+const initialForm = {
+  usuario: "",
+  semana: "",
+  nota: "",
+  objetivo_calidad: "",
+  estado_objetivo: "",
+  producto: "",
+  desvio: "",
+  recomendacion: "",
+  objetivo: "",
+  items_calidad: "",
+  acciones_calidad: "",
+  auditoria: "",
+  observaciones: "",
+  sph: "",
+  objetivo_sph: "",
+  ventas: "",
+  objetivo_ventas: "",
+  objetivo_campania: "",
+  estado_campania: "",
+  items_productividad: "",
+  acciones_productividad: "",
+  observaciones_productividad: "",
+  tipificaciones: "",
+  objetivo_tipificaciones: "",
+  estado_tipificaciones: "",
+  tipificacion_desvio: "",
+  tipificacion_objetivo: "",
+  tipificacion_resultado: "",
+  tipificacion_compromiso: "",
+  tipificacion_observaciones: "",
+  auditoria_no_ventas_cantidad: "",
+  principales_om: "",
+  auditoria_coaching: "",
+  registro_sistema: "",
+  auditoria_compromiso: "",
+  fortalezas: "",
+  auditoria_no_ventas_observaciones: "",
+};
 
 export default function Page() {
   const [session, setSession] = useState(null);
@@ -48,50 +88,7 @@ export default function Page() {
   const [adminReportes, setAdminReportes] = useState([]);
   const [cargandoAdmin, setCargandoAdmin] = useState(false);
 
-  const [pestana, setPestana] = useState("inicio");
-  const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
-
-  const [form, setForm] = useState({
-    usuario: "",
-    semana: "",
-    nota: "",
-    objetivo_calidad: "",
-    estado_objetivo: "",
-    producto: "",
-    desvio: "",
-    recomendacion: "",
-    objetivo: "",
-    items_calidad: "",
-    acciones_calidad: "",
-    auditoria: "",
-    audio_url: "",
-    observaciones: "",
-    sph: "",
-    objetivo_sph: "",
-    ventas: "",
-    objetivo_ventas: "",
-    objetivo_campania: "",
-    estado_campania: "",
-    items_productividad: "",
-    acciones_productividad: "",
-    observaciones_productividad: "",
-    tipificaciones: "",
-    objetivo_tipificaciones: "",
-    estado_tipificaciones: "",
-    tipificacion_desvio: "",
-    tipificacion_objetivo: "",
-    tipificacion_resultado: "",
-    tipificacion_compromiso: "",
-    tipificacion_observaciones: "",
-    auditorias_no_ventas: "",
-    principales_om: "",
-    coaching: "",
-    registro_sistema: "",
-    compromiso_no_ventas: "",
-    fortalezas: "",
-    observaciones_no_ventas: "",
-  });
-
+  const [form, setForm] = useState(initialForm);
   const [mensajeAdmin, setMensajeAdmin] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -111,8 +108,8 @@ export default function Page() {
           cargarReportesAdmin();
         } else {
           const asesor = asesores.find(
-            ([, , emailAsesor]) =>
-              emailAsesor.toLowerCase() === correo
+            ([, , correoAsesor]) =>
+              correoAsesor.toLowerCase() === correo
           );
 
           if (asesor) {
@@ -188,11 +185,10 @@ export default function Page() {
     setEntrando(true);
     setLoginError("");
 
-    const { data, error } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     if (error) {
       console.error(error);
@@ -242,7 +238,6 @@ export default function Page() {
     setEmail("");
     setPassword("");
     setModo("login");
-    setPestana("inicio");
   }
 
   function cambiarFormulario(e) {
@@ -255,46 +250,14 @@ export default function Page() {
   }
 
   function limpiarFormulario() {
-    setForm({
-      usuario: "",
-      semana: "",
-      nota: "",
-      objetivo_calidad: "",
-      estado_objetivo: "",
-      producto: "",
-      desvio: "",
-      recomendacion: "",
-      objetivo: "",
-      items_calidad: "",
-      acciones_calidad: "",
-      auditoria: "",
-      audio_url: "",
-      observaciones: "",
-      sph: "",
-      objetivo_sph: "",
-      ventas: "",
-      objetivo_ventas: "",
-      objetivo_campania: "",
-      estado_campania: "",
-      items_productividad: "",
-      acciones_productividad: "",
-      observaciones_productividad: "",
-      tipificaciones: "",
-      objetivo_tipificaciones: "",
-      estado_tipificaciones: "",
-      tipificacion_desvio: "",
-      tipificacion_objetivo: "",
-      tipificacion_resultado: "",
-      tipificacion_compromiso: "",
-      tipificacion_observaciones: "",
-      auditorias_no_ventas: "",
-      principales_om: "",
-      coaching: "",
-      registro_sistema: "",
-      compromiso_no_ventas: "",
-      fortalezas: "",
-      observaciones_no_ventas: "",
-    });
+    setForm(initialForm);
+  }
+
+  function convertirLista(texto) {
+    return texto
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   async function guardarReporte(e) {
@@ -310,20 +273,6 @@ export default function Page() {
     setGuardando(true);
     setMensajeAdmin("");
 
-    const itemsCalidad = convertirLista(form.items_calidad);
-    const accionesCalidad = convertirLista(form.acciones_calidad);
-    const itemsProductividad = convertirLista(
-      form.items_productividad
-    );
-    const accionesProductividad = convertirLista(
-      form.acciones_productividad
-    );
-    const tipificaciones = convertirLista(
-      form.tipificaciones
-    );
-    const principalesOM = convertirLista(form.principales_om);
-    const fortalezas = convertirLista(form.fortalezas);
-
     const nuevoReporte = {
       usuario: form.usuario,
       semana: form.semana,
@@ -334,22 +283,30 @@ export default function Page() {
       desvio: form.desvio || null,
       recomendacion: form.recomendacion || null,
       objetivo: form.objetivo || null,
-      items_calidad: itemsCalidad,
-      acciones_calidad: accionesCalidad,
+
+      items_calidad: convertirLista(form.items_calidad),
+      acciones_calidad: convertirLista(form.acciones_calidad),
+
       auditoria: form.auditoria || null,
-      audio_url: form.audio_url || null,
       observaciones: form.observaciones || null,
+
       sph: form.sph || null,
       objetivo_sph: form.objetivo_sph || null,
       ventas: form.ventas || null,
       objetivo_ventas: form.objetivo_ventas || null,
       objetivo_campania: form.objetivo_campania || null,
       estado_campania: form.estado_campania || null,
-      items_productividad: itemsProductividad,
-      acciones_productividad: accionesProductividad,
+
+      items_productividad: convertirLista(
+        form.items_productividad
+      ),
+      acciones_productividad: convertirLista(
+        form.acciones_productividad
+      ),
       observaciones_productividad:
         form.observaciones_productividad || null,
-      tipificaciones,
+
+      tipificaciones: convertirLista(form.tipificaciones),
       objetivo_tipificaciones:
         form.objetivo_tipificaciones || null,
       estado_tipificaciones:
@@ -364,17 +321,19 @@ export default function Page() {
         form.tipificacion_compromiso || null,
       tipificacion_observaciones:
         form.tipificacion_observaciones || null,
-      auditorias_no_ventas:
-        form.auditorias_no_ventas || null,
-      principales_om: principalesOM,
-      coaching: form.coaching || null,
+
+      auditoria_no_ventas_cantidad:
+        form.auditoria_no_ventas_cantidad || null,
+      principales_om: form.principales_om || null,
+      auditoria_coaching:
+        form.auditoria_coaching || null,
       registro_sistema:
         form.registro_sistema || null,
-      compromiso_no_ventas:
-        form.compromiso_no_ventas || null,
-      fortalezas,
-      observaciones_no_ventas:
-        form.observaciones_no_ventas || null,
+      auditoria_compromiso:
+        form.auditoria_compromiso || null,
+      fortalezas: form.fortalezas || null,
+      auditoria_no_ventas_observaciones:
+        form.auditoria_no_ventas_observaciones || null,
     };
 
     const { error } = await supabase
@@ -395,46 +354,16 @@ export default function Page() {
     setMensajeAdmin("✓ REPORTE GUARDADO CORRECTAMENTE");
 
     limpiarFormulario();
-
     await cargarReportesAdmin();
 
     setGuardando(false);
   }
 
-  const reporteActual = reportes[0];
-
-  const reporteAnterior = reportes.length > 1
-    ? reportes[1]
-    : null;
-
-  const diferenciaCalidad =
-    obtenerNumero(reporteActual?.nota) !== null &&
-    obtenerNumero(reporteAnterior?.nota) !== null
-      ? obtenerNumero(reporteActual.nota) -
-        obtenerNumero(reporteAnterior.nota)
-      : null;
-
-  const porcentajeObjetivo = calcularProgreso(
-    reporteActual?.nota,
-    reporteActual?.objetivo_calidad
-  );
-
-  const faltanteObjetivo =
-    obtenerNumero(reporteActual?.objetivo_calidad) !== null &&
-    obtenerNumero(reporteActual?.nota) !== null
-      ? Math.max(
-          0,
-          obtenerNumero(reporteActual.objetivo_calidad) -
-            obtenerNumero(reporteActual.nota)
-        )
-      : null;
-
   if (cargando) {
     return (
       <main style={styles.page}>
         <div style={styles.centerBox}>
-          <div style={styles.loadingCard}>
-            <div style={styles.loadingIcon}>✓</div>
+          <div style={styles.card}>
             <h2>Portal de Calidad</h2>
             <p style={styles.muted}>
               Verificando acceso...
@@ -447,74 +376,66 @@ export default function Page() {
 
   if (modo === "login") {
     return (
-      <main style={styles.page}>
-        <div style={styles.loginContainer}>
-          <div style={styles.loginCard}>
-            <div style={styles.logo}>✓</div>
+      <main style={styles.loginPage}>
+        <div style={styles.loginCard}>
+          <div style={styles.logo}>✓</div>
 
-            <div style={styles.loginEyebrow}>
-              PORTAL DE CALIDAD
+          <p style={styles.loginEyebrow}>
+            PORTAL DE CALIDAD
+          </p>
+
+          <h1 style={styles.loginTitle}>
+            Bienvenido/a
+          </h1>
+
+          <p style={styles.muted}>
+            Ingresá con tu email y contraseña.
+          </p>
+
+          {loginError && (
+            <div style={styles.error}>
+              {loginError}
             </div>
+          )}
 
-            <h1 style={styles.loginTitle}>
-              Bienvenido/a
-            </h1>
+          <form onSubmit={iniciarSesion}>
+            <label style={styles.label}>
+              Email
+            </label>
 
-            <p style={styles.muted}>
-              Ingresá con tu email y contraseña.
-            </p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Ingresá tu email"
+              style={styles.input}
+              autoComplete="email"
+            />
 
-            {loginError && (
-              <div style={styles.error}>
-                {loginError}
-              </div>
-            )}
+            <label style={styles.label}>
+              Contraseña
+            </label>
 
-            <form onSubmit={iniciarSesion}>
-              <label style={styles.label}>
-                Email
-              </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Ingresá tu contraseña"
+              style={styles.input}
+              autoComplete="current-password"
+            />
 
-              <input
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-                placeholder="Ingresá tu email"
-                style={styles.input}
-                autoComplete="email"
-              />
-
-              <label style={styles.label}>
-                Contraseña
-              </label>
-
-              <input
-                type="password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-                placeholder="Ingresá tu contraseña"
-                style={styles.input}
-                autoComplete="current-password"
-              />
-
-              <button
-                type="submit"
-                disabled={entrando}
-                style={{
-                  ...styles.primaryButton,
-                  opacity: entrando ? 0.65 : 1,
-                }}
-              >
-                {entrando
-                  ? "INGRESANDO..."
-                  : "INGRESAR"}
-              </button>
-            </form>
-          </div>
+            <button
+              type="submit"
+              disabled={entrando}
+              style={{
+                ...styles.primaryButton,
+                opacity: entrando ? 0.6 : 1,
+              }}
+            >
+              {entrando ? "INGRESANDO..." : "INGRESAR"}
+            </button>
+          </form>
         </div>
       </main>
     );
@@ -526,16 +447,16 @@ export default function Page() {
         <div style={styles.container}>
           <header style={styles.header}>
             <div>
-              <div style={styles.portalBadge}>
+              <span style={styles.portalBadge}>
                 PORTAL DE CALIDAD
-              </div>
+              </span>
 
-              <h1 style={styles.headerTitle}>
+              <h1 style={styles.pageTitle}>
                 Panel de Calidad
               </h1>
 
               <p style={styles.muted}>
-                Carga y gestión de reportes
+                Carga y gestión de reportes.
               </p>
             </div>
 
@@ -547,7 +468,7 @@ export default function Page() {
             </button>
           </header>
 
-          <section style={styles.adminHero}>
+          <section style={styles.heroCard}>
             <div>
               <p style={styles.heroSmall}>
                 ADMINISTRACIÓN
@@ -559,8 +480,7 @@ export default function Page() {
 
               <p style={styles.heroText}>
                 El reporte quedará disponible
-                automáticamente para el asesor
-                seleccionado.
+                automáticamente para el asesor seleccionado.
               </p>
             </div>
           </section>
@@ -573,12 +493,12 @@ export default function Page() {
                   name="usuario"
                   value={form.usuario}
                   onChange={cambiarFormulario}
-                  type="select"
-                  options={asesores.map((asesor) => ({
-                    value: asesor[1],
-                    label: `${asesor[0]} — ${asesor[1]}`,
-                  }))}
+                  select
                   required
+                  options={asesores.map((a) => ({
+                    value: a[1],
+                    label: `${a[0]} — ${a[1]}`,
+                  }))}
                 />
 
                 <Field
@@ -595,7 +515,7 @@ export default function Page() {
                   name="nota"
                   value={form.nota}
                   onChange={cambiarFormulario}
-                  placeholder="Ej: 50"
+                  placeholder="Ej: 82"
                 />
 
                 <Field
@@ -607,11 +527,11 @@ export default function Page() {
                 />
 
                 <Field
-                  label="Estado del objetivo"
+                  label="Estado"
                   name="estado_objetivo"
                   value={form.estado_objetivo}
                   onChange={cambiarFormulario}
-                  placeholder="Ej: Debajo del objetivo"
+                  placeholder="Ej: EN OBJETIVO"
                 />
 
                 <Field
@@ -623,84 +543,46 @@ export default function Page() {
                 />
               </div>
 
-              <Field
+              <AdminTextarea
                 label="Desvío principal"
                 name="desvio"
                 value={form.desvio}
                 onChange={cambiarFormulario}
-                type="textarea"
                 placeholder="Ej: Validación de datos"
               />
 
-              <Field
+              <AdminTextarea
                 label="Recomendación"
                 name="recomendacion"
                 value={form.recomendacion}
                 onChange={cambiarFormulario}
-                type="textarea"
-                placeholder="Qué debería trabajar el asesor..."
               />
 
-              <Field
+              <AdminTextarea
                 label="Objetivo de trabajo"
                 name="objetivo"
                 value={form.objetivo}
                 onChange={cambiarFormulario}
-                type="textarea"
-                placeholder="Objetivo para la próxima evaluación..."
               />
 
-              <Field
+              <AdminTextarea
                 label="Items trabajados en Calidad"
                 name="items_calidad"
                 value={form.items_calidad}
                 onChange={cambiarFormulario}
-                type="textarea"
-                placeholder={
-                  "Un item por línea.\nValidación de datos\nCláusula de aceptación\nInformación"
-                }
+                placeholder="Un item por línea"
               />
 
-              <Field
+              <AdminTextarea
                 label="Acciones realizadas en Calidad"
                 name="acciones_calidad"
                 value={form.acciones_calidad}
                 onChange={cambiarFormulario}
-                type="textarea"
-                placeholder={
-                  "Una acción por línea.\nFeedback individual\nEspacio de coaching\nSeguimiento"
-                }
-              />
-
-              <Field
-                label="Auditoría"
-                name="auditoria"
-                value={form.auditoria}
-                onChange={cambiarFormulario}
-                placeholder="Referencia de auditoría"
-              />
-
-              <Field
-                label="URL del audio"
-                name="audio_url"
-                value={form.audio_url}
-                onChange={cambiarFormulario}
-                placeholder="Pegá la URL del audio"
-              />
-
-              <Field
-                label="Observaciones de Calidad"
-                name="observaciones"
-                value={form.observaciones}
-                onChange={cambiarFormulario}
-                type="textarea"
-                placeholder="Observaciones..."
+                placeholder="Una acción por línea"
               />
 
               <div style={styles.adminSection}>
-                <h2 style={styles.adminSectionTitle}>
-                  Productividad
-                </h2>
+                <SectionHeading title="PRODUCTIVIDAD" />
 
                 <div style={styles.formGrid}>
                   <Field
@@ -716,7 +598,7 @@ export default function Page() {
                     name="objetivo_sph"
                     value={form.objetivo_sph}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: 0.5"
+                    placeholder="Ej: 0.50"
                   />
 
                   <Field
@@ -744,7 +626,7 @@ export default function Page() {
                   />
 
                   <Field
-                    label="Estado de campaña"
+                    label="Estado"
                     name="estado_campania"
                     value={form.estado_campania}
                     onChange={cambiarFormulario}
@@ -752,57 +634,44 @@ export default function Page() {
                   />
                 </div>
 
-                <Field
-                  label="Items trabajados en Productividad"
+                <AdminTextarea
+                  label="Items trabajados"
                   name="items_productividad"
                   value={form.items_productividad}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder={
-                    "Un item por línea.\nCierre con seguridad comercial\nOfrecimiento\nRebate comercial"
-                  }
+                  placeholder="Un item por línea"
                 />
 
-                <Field
-                  label="Acciones realizadas en Productividad"
+                <AdminTextarea
+                  label="Acciones realizadas"
                   name="acciones_productividad"
                   value={form.acciones_productividad}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder={
-                    "Una acción por línea.\nSimulación de llamada\nAcompañamiento en línea\nDevolución personalizada"
-                  }
+                  placeholder="Una acción por línea"
                 />
 
-                <Field
-                  label="Observaciones de Productividad"
+                <AdminTextarea
+                  label="Observaciones"
                   name="observaciones_productividad"
                   value={form.observaciones_productividad}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder="Observaciones..."
                 />
               </div>
 
               <div style={styles.adminSection}>
-                <h2 style={styles.adminSectionTitle}>
-                  Tipificaciones
-                </h2>
+                <SectionHeading title="TIPIFICACIONES" />
 
-                <Field
+                <AdminTextarea
                   label="Tipificaciones"
                   name="tipificaciones"
                   value={form.tipificaciones}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder={
-                    "Una tipificación por línea.\nNo conforme con sumas aseguradas\nNo interesado - Producto\nProblemas económicos"
-                  }
+                  placeholder="Una tipificación por línea"
                 />
 
                 <div style={styles.formGrid}>
                   <Field
-                    label="Estado"
+                    label="Indicador / Estado"
                     name="estado_tipificaciones"
                     value={form.estado_tipificaciones}
                     onChange={cambiarFormulario}
@@ -814,7 +683,6 @@ export default function Page() {
                     name="tipificacion_desvio"
                     value={form.tipificacion_desvio}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: 1"
                   />
 
                   <Field
@@ -822,7 +690,6 @@ export default function Page() {
                     name="tipificacion_objetivo"
                     value={form.tipificacion_objetivo}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: 14"
                   />
 
                   <Field
@@ -830,7 +697,6 @@ export default function Page() {
                     name="tipificacion_resultado"
                     value={form.tipificacion_resultado}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: 14"
                   />
 
                   <Field
@@ -838,40 +704,33 @@ export default function Page() {
                     name="tipificacion_compromiso"
                     value={form.tipificacion_compromiso}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: SEGUIMIENTO"
+                  />
+
+                  <Field
+                    label="Objetivo general"
+                    name="objetivo_tipificaciones"
+                    value={form.objetivo_tipificaciones}
+                    onChange={cambiarFormulario}
                   />
                 </div>
 
-                <Field
-                  label="Observaciones de Tipificaciones"
+                <AdminTextarea
+                  label="Observaciones"
                   name="tipificacion_observaciones"
                   value={form.tipificacion_observaciones}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder="Observaciones..."
                 />
               </div>
 
               <div style={styles.adminSection}>
-                <h2 style={styles.adminSectionTitle}>
-                  Auditorías de no ventas
-                </h2>
+                <SectionHeading title="AUDITORÍAS DE NO VENTAS" />
 
                 <div style={styles.formGrid}>
                   <Field
                     label="Cantidad"
-                    name="auditorias_no_ventas"
-                    value={form.auditorias_no_ventas}
+                    name="auditoria_no_ventas_cantidad"
+                    value={form.auditoria_no_ventas_cantidad}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: 5"
-                  />
-
-                  <Field
-                    label="Coaching"
-                    name="coaching"
-                    value={form.coaching}
-                    onChange={cambiarFormulario}
-                    placeholder="Ej: Realizado"
                   />
 
                   <Field
@@ -879,47 +738,62 @@ export default function Page() {
                     name="registro_sistema"
                     value={form.registro_sistema}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: Correcta"
                   />
 
                   <Field
                     label="Compromiso"
-                    name="compromiso_no_ventas"
-                    value={form.compromiso_no_ventas}
+                    name="auditoria_compromiso"
+                    value={form.auditoria_compromiso}
                     onChange={cambiarFormulario}
-                    placeholder="Ej: Aplica devolución"
+                  />
+
+                  <Field
+                    label="Coaching"
+                    name="auditoria_coaching"
+                    value={form.auditoria_coaching}
+                    onChange={cambiarFormulario}
                   />
                 </div>
 
-                <Field
+                <AdminTextarea
                   label="Principales O.M."
                   name="principales_om"
                   value={form.principales_om}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder={
-                    "Una por línea.\nGeneración de interés\nCambio apertura\nEscucha activa"
-                  }
+                  placeholder="Ej: Generación de interés, escucha activa..."
                 />
 
-                <Field
+                <AdminTextarea
                   label="Fortalezas"
                   name="fortalezas"
                   value={form.fortalezas}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder={
-                    "Una por línea.\nAdaptabilidad\nBuena detección de necesidad\nClaridad en explicación"
-                  }
                 />
 
-                <Field
+                <AdminTextarea
                   label="Observaciones"
-                  name="observaciones_no_ventas"
-                  value={form.observaciones_no_ventas}
+                  name="auditoria_no_ventas_observaciones"
+                  value={form.auditoria_no_ventas_observaciones}
                   onChange={cambiarFormulario}
-                  type="textarea"
-                  placeholder="Observaciones..."
+                />
+              </div>
+
+              <div style={styles.adminSection}>
+                <SectionHeading title="AUDITORÍA" />
+
+                <Field
+                  label="Referencia de auditoría"
+                  name="auditoria"
+                  value={form.auditoria}
+                  onChange={cambiarFormulario}
+                  placeholder="Ej: Llamada 15482"
+                />
+
+                <AdminTextarea
+                  label="Observaciones de auditoría"
+                  name="observaciones"
+                  value={form.observaciones}
+                  onChange={cambiarFormulario}
                 />
               </div>
 
@@ -928,8 +802,7 @@ export default function Page() {
                 disabled={guardando}
                 style={{
                   ...styles.primaryButton,
-                  marginTop: "20px",
-                  opacity: guardando ? 0.65 : 1,
+                  opacity: guardando ? 0.6 : 1,
                 }}
               >
                 {guardando
@@ -938,12 +811,7 @@ export default function Page() {
               </button>
 
               {mensajeAdmin && (
-                <div
-                  style={{
-                    ...styles.success,
-                    marginTop: "15px",
-                  }}
-                >
+                <div style={styles.success}>
                   {mensajeAdmin}
                 </div>
               )}
@@ -951,10 +819,10 @@ export default function Page() {
           </section>
 
           <section style={styles.card}>
-            <div style={styles.sectionTop}>
+            <div style={styles.sectionHeader}>
               <div>
-                <p style={styles.eyebrow}>
-                  HISTORIAL ADMINISTRATIVO
+                <p style={styles.sectionEyebrow}>
+                  HISTÓRICO
                 </p>
 
                 <h2 style={{ margin: 0 }}>
@@ -987,8 +855,7 @@ export default function Page() {
                   <tbody>
                     {adminReportes.map((reporte) => {
                       const asesor = asesores.find(
-                        (item) =>
-                          item[1] === reporte.usuario
+                        (item) => item[1] === reporte.usuario
                       );
 
                       return (
@@ -1028,33 +895,37 @@ export default function Page() {
   }
 
   if (modo === "asesor") {
+    const reporteActual = reportes[0];
+
     return (
       <main style={styles.page}>
         <div style={styles.container}>
-          <header style={styles.header}>
+          <header style={styles.advisorHeader}>
             <div>
-              <div style={styles.portalBadge}>
+              <span style={styles.portalBadge}>
                 PORTAL DE CALIDAD
-              </div>
+              </span>
 
-              <h1 style={styles.headerTitle}>
-                Hola, {obtenerNombre(asesorActual?.[0])}
+              <h1 style={styles.advisorTitle}>
+                Hola,{" "}
+                {asesorActual?.[0]?.split(",")[1]?.trim() ||
+                  asesorActual?.[0]}
               </h1>
 
-              <p style={styles.headerPeriod}>
-                {reporteActual?.semana || "Sin reporte cargado"}
+              <p style={styles.advisorWeek}>
+                {reporteActual?.semana || "Sin reporte disponible"}
               </p>
             </div>
 
             <div style={styles.headerRight}>
-              {reporteActual && (
-                <StatusBadge
-                  estado={
-                    reporteActual.estado_objetivo ||
-                    "En seguimiento"
-                  }
-                />
-              )}
+              <span
+                style={getStatusStyle(
+                  reporteActual?.estado_objetivo
+                )}
+              >
+                {reporteActual?.estado_objetivo ||
+                  "SIN ESTADO"}
+              </span>
 
               <button
                 onClick={cerrarSesion}
@@ -1070,143 +941,443 @@ export default function Page() {
               <h2>Cargando información...</h2>
             </section>
           ) : reportes.length === 0 ? (
-            <section style={styles.emptyState}>
-              <div style={styles.emptyIcon}>✓</div>
+            <section style={styles.card}>
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>✓</div>
 
-              <h2>Todavía no hay reportes</h2>
+                <h2>Todavía no hay reportes</h2>
 
-              <p style={styles.muted}>
-                Cuando Calidad cargue tu primer
-                reporte semanal, vas a poder verlo
-                desde acá.
-              </p>
+                <p style={styles.muted}>
+                  Cuando Calidad cargue tu primer reporte,
+                  vas a poder verlo desde acá.
+                </p>
+              </div>
             </section>
           ) : (
             <>
-              <nav style={styles.tabs}>
-                <TabButton
-                  active={pestana === "inicio"}
-                  onClick={() => setPestana("inicio")}
-                  icon="⌂"
-                  label="Inicio"
-                />
+              <AdvisorTabs />
 
-                <TabButton
-                  active={pestana === "calidad"}
-                  onClick={() => setPestana("calidad")}
-                  icon="01"
-                  label="Calidad"
-                />
+              <section style={styles.tabContent}>
+                <div style={styles.sectionNumber}>
+                  01
+                </div>
 
-                <TabButton
-                  active={pestana === "productividad"}
-                  onClick={() =>
-                    setPestana("productividad")
+                <SectionHeading title="CALIDAD" />
+
+                <div style={styles.qualityTopGrid}>
+                  <div style={styles.bigScoreCard}>
+                    <span style={styles.metricLabel}>
+                      NOTA
+                    </span>
+
+                    <div style={styles.bigScore}>
+                      {reporteActual?.nota || "-"}
+                    </div>
+
+                    <span style={styles.scoreSub}>
+                      / 100
+                    </span>
+                  </div>
+
+                  <Metric
+                    title="OBJETIVO"
+                    value={
+                      reporteActual?.objetivo_calidad || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="ESTADO"
+                    value={
+                      reporteActual?.estado_objetivo || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="PRODUCTO"
+                    value={
+                      reporteActual?.producto || "-"
+                    }
+                  />
+                </div>
+
+                <div style={styles.progressCard}>
+                  <div style={styles.progressHeader}>
+                    <span>Progreso hacia el objetivo</span>
+                    <strong>
+                      {calcularProgreso(
+                        reporteActual?.nota,
+                        reporteActual?.objetivo_calidad
+                      )}
+                      %
+                    </strong>
+                  </div>
+
+                  <div style={styles.progressTrack}>
+                    <div
+                      style={{
+                        ...styles.progressBar,
+                        width: `${Math.min(
+                          100,
+                          calcularProgreso(
+                            reporteActual?.nota,
+                            reporteActual?.objetivo_calidad
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.remainingCard}>
+                  <span style={styles.metricLabel}>
+                    CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO
+                  </span>
+
+                  <strong>
+                    {calcularFalta(
+                      reporteActual?.nota,
+                      reporteActual?.objetivo_calidad
+                    )}
+                  </strong>
+                </div>
+
+                <InfoBlock
+                  title="DESVÍO PRINCIPAL"
+                  value={
+                    reporteActual?.desvio ||
+                    "No hay desvíos cargados."
                   }
-                  icon="02"
-                  label="Productividad"
+                  type="warning"
                 />
 
-                <TabButton
-                  active={pestana === "tipificaciones"}
-                  onClick={() =>
-                    setPestana("tipificaciones")
-                  }
-                  icon="03"
-                  label="Tipificaciones"
-                />
-
-                <TabButton
-                  active={pestana === "auditorias"}
-                  onClick={() =>
-                    setPestana("auditorias")
-                  }
-                  icon="04"
-                  label="Auditorías"
-                />
-
-                <TabButton
-                  active={pestana === "historico"}
-                  onClick={() =>
-                    setPestana("historico")
-                  }
-                  icon="05"
-                  label="Histórico"
-                />
-
-                <TabButton
-                  active={pestana === "actividades"}
-                  onClick={() =>
-                    setPestana("actividades")
-                  }
-                  icon="06"
-                  label="Actividades"
-                />
-
-                <TabButton
-                  active={pestana === "feedback"}
-                  onClick={() =>
-                    setPestana("feedback")
-                  }
-                  icon="07"
-                  label="Feedback"
-                />
-              </nav>
-
-              {pestana === "inicio" && (
-                <Inicio
-                  reporte={reporteActual}
-                  asesorActual={asesorActual}
-                  porcentajeObjetivo={porcentajeObjetivo}
-                  faltanteObjetivo={faltanteObjetivo}
-                  diferenciaCalidad={diferenciaCalidad}
-                  reporteAnterior={reporteAnterior}
-                  irA={setPestana}
-                />
-              )}
-
-              {pestana === "calidad" && (
-                <Calidad
-                  reporte={reporteActual}
-                  porcentajeObjetivo={porcentajeObjetivo}
-                  faltanteObjetivo={faltanteObjetivo}
-                  diferenciaCalidad={diferenciaCalidad}
-                  reporteAnterior={reporteAnterior}
-                />
-              )}
-
-              {pestana === "productividad" && (
-                <Productividad
-                  reporte={reporteActual}
-                  reporteAnterior={reporteAnterior}
-                />
-              )}
-
-              {pestana === "tipificaciones" && (
-                <Tipificaciones reporte={reporteActual} />
-              )}
-
-              {pestana === "auditorias" && (
-                <AuditoriasNoVentas
-                  reporte={reporteActual}
-                />
-              )}
-
-              {pestana === "historico" && (
-                <Historico
+                <ComparisonBlock
                   reportes={reportes}
-                  seleccionarReporte={setReporteSeleccionado}
-                  reporteSeleccionado={reporteSeleccionado}
+                  campo="nota"
+                  titulo="COMPARATIVO SEMANAL"
                 />
+
+                <ListBlock
+                  title="ITEMS TRABAJADOS"
+                  items={reporteActual?.items_calidad}
+                  empty="No se registraron items de calidad."
+                />
+
+                <ListBlock
+                  title="ACCIONES REALIZADAS"
+                  items={reporteActual?.acciones_calidad}
+                  empty="No se registraron acciones."
+                />
+
+                <InfoBlock
+                  title="AUDITORÍA"
+                  value={
+                    reporteActual?.auditoria ||
+                    "No hay información de auditoría."
+                  }
+                />
+
+                <InfoBlock
+                  title="OBSERVACIONES"
+                  value={
+                    reporteActual?.observaciones ||
+                    "No hay observaciones cargadas."
+                  }
+                />
+              </section>
+
+              <section style={styles.tabContent}>
+                <div style={styles.sectionNumber}>
+                  02
+                </div>
+
+                <SectionHeading title="PRODUCTIVIDAD" />
+
+                <div style={styles.qualityTopGrid}>
+                  <Metric
+                    title="SPH"
+                    value={reporteActual?.sph || "-"}
+                    extra={`Objetivo SPH: ${
+                      reporteActual?.objetivo_sph || "-"
+                    }`}
+                  />
+
+                  <Metric
+                    title="VENTAS"
+                    value={reporteActual?.ventas || "-"}
+                    extra={`Objetivo ventas: ${
+                      reporteActual?.objetivo_ventas || "-"
+                    }`}
+                  />
+
+                  <Metric
+                    title="OBJETIVO DE CAMPAÑA"
+                    value={
+                      reporteActual?.objetivo_campania || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="ESTADO"
+                    value={
+                      reporteActual?.estado_campania || "-"
+                    }
+                  />
+                </div>
+
+                <ComparisonBlock
+                  reportes={reportes}
+                  campo="sph"
+                  titulo="COMPARATIVO SEMANAL"
+                />
+
+                <ListBlock
+                  title="ITEMS TRABAJADOS"
+                  items={reporteActual?.items_productividad}
+                  empty="No se registraron items."
+                />
+
+                <ListBlock
+                  title="ACCIONES REALIZADAS"
+                  items={reporteActual?.acciones_productividad}
+                  empty="No se registraron acciones."
+                />
+
+                <InfoBlock
+                  title="OBSERVACIONES"
+                  value={
+                    reporteActual?.observaciones_productividad ||
+                    "No hay observaciones cargadas."
+                  }
+                />
+              </section>
+
+              <section style={styles.tabContent}>
+                <div style={styles.sectionNumber}>
+                  03
+                </div>
+
+                <div style={styles.sectionHeader}>
+                  <SectionHeading title="TIPIFICACIONES" />
+
+                  <span
+                    style={getStatusStyle(
+                      reporteActual?.estado_tipificaciones
+                    )}
+                  >
+                    {reporteActual?.estado_tipificaciones ||
+                      "SIN ESTADO"}
+                  </span>
+                </div>
+
+                <div style={styles.qualityTopGrid}>
+                  <Metric
+                    title="DESVÍO"
+                    value={
+                      reporteActual?.tipificacion_desvio || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="OBJETIVO"
+                    value={
+                      reporteActual?.tipificacion_objetivo || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="RESULTADO"
+                    value={
+                      reporteActual?.tipificacion_resultado || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="COMPROMISO"
+                    value={
+                      reporteActual?.tipificacion_compromiso ||
+                      "-"
+                    }
+                  />
+                </div>
+
+                <ListBlock
+                  title="TIPIFICACIONES"
+                  items={reporteActual?.tipificaciones}
+                  empty="No se registraron tipificaciones."
+                />
+
+                <InfoBlock
+                  title="OBSERVACIONES"
+                  value={
+                    reporteActual?.tipificacion_observaciones ||
+                    "Sin observaciones cargadas."
+                  }
+                />
+              </section>
+
+              <section style={styles.tabContent}>
+                <div style={styles.sectionNumber}>
+                  04
+                </div>
+
+                <SectionHeading title="AUDITORÍAS DE NO VENTAS" />
+
+                <div style={styles.qualityTopGrid}>
+                  <Metric
+                    title="CANTIDAD"
+                    value={
+                      reporteActual?.auditoria_no_ventas_cantidad ||
+                      "-"
+                    }
+                  />
+
+                  <Metric
+                    title="COACHING"
+                    value={
+                      reporteActual?.auditoria_coaching || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="REGISTRO EN SISTEMA"
+                    value={
+                      reporteActual?.registro_sistema || "-"
+                    }
+                  />
+
+                  <Metric
+                    title="COMPROMISO"
+                    value={
+                      reporteActual?.auditoria_compromiso ||
+                      "-"
+                    }
+                  />
+                </div>
+
+                <InfoBlock
+                  title="PRINCIPALES O.M."
+                  value={
+                    reporteActual?.principales_om ||
+                    "No hay información cargada."
+                  }
+                />
+
+                <InfoBlock
+                  title="FORTALEZAS"
+                  value={
+                    reporteActual?.fortalezas ||
+                    "No hay fortalezas cargadas."
+                  }
+                />
+
+                <InfoBlock
+                  title="OBSERVACIONES"
+                  value={
+                    reporteActual?.auditoria_no_ventas_observaciones ||
+                    "No hay observaciones cargadas."
+                  }
+                />
+              </section>
+
+              <section style={styles.tabContent}>
+                <div style={styles.sectionNumber}>
+                  05
+                </div>
+
+                <SectionHeading title="ACTIVIDADES" />
+
+                <div style={styles.emptyActivity}>
+                  <div style={styles.activityIcon}>
+                    +
+                  </div>
+
+                  <h3>
+                    Próximamente
+                  </h3>
+
+                  <p style={styles.muted}>
+                    Esta sección quedará disponible para
+                    registrar y consultar actividades.
+                  </p>
+                </div>
+              </section>
+
+              {reportes.length > 1 && (
+                <section style={styles.tabContent}>
+                  <div style={styles.sectionNumber}>
+                    HISTÓRICO
+                  </div>
+
+                  <SectionHeading title="HISTÓRICO DE REPORTES" />
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>
+                            Semana
+                          </th>
+                          <th style={styles.th}>
+                            Nota
+                          </th>
+                          <th style={styles.th}>
+                            Producto
+                          </th>
+                          <th style={styles.th}>
+                            Estado
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {reportes.map((reporte) => (
+                          <tr key={reporte.id}>
+                            <td style={styles.td}>
+                              {reporte.semana || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.nota || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.producto || "-"}
+                            </td>
+
+                            <td style={styles.td}>
+                              {reporte.estado_objetivo || "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               )}
 
-              {pestana === "actividades" && (
-                <Actividades />
-              )}
+              <section style={styles.feedbackSection}>
+                <div style={styles.sectionNumber}>
+                  06
+                </div>
 
-              {pestana === "feedback" && (
-                <Feedback />
-              )}
+                <SectionHeading title="FEEDBACK DEL ASESOR" />
+
+                <p style={styles.feedbackQuestion}>
+                  ¿Querés dejar algún comentario sobre tu
+                  reporte, una consulta o algo que quieras
+                  trabajar con Calidad?
+                </p>
+
+                <textarea
+                  placeholder="Escribí acá tu comentario..."
+                  style={styles.feedbackInput}
+                />
+
+                <button style={styles.feedbackButton}>
+                  ENVIAR FEEDBACK
+                </button>
+              </section>
             </>
           )}
         </div>
@@ -1217,1298 +1388,15 @@ export default function Page() {
   return null;
 }
 
-function Inicio({
-  reporte,
-  porcentajeObjetivo,
-  faltanteObjetivo,
-  diferenciaCalidad,
-  reporteAnterior,
-  irA,
-}) {
-  return (
-    <>
-      <section style={styles.welcomeCard}>
-        <div>
-          <p style={styles.heroSmallDark}>
-            ÚLTIMO REPORTE
-          </p>
-
-          <h2 style={styles.welcomeTitle}>
-            {reporte?.semana}
-          </h2>
-
-          <p style={styles.welcomeText}>
-            Acá vas a encontrar el resumen de tu
-            evolución y los principales puntos de
-            trabajo.
-          </p>
-        </div>
-
-        <div style={styles.scoreLarge}>
-          {reporte?.nota || "-"}
-        </div>
-      </section>
-
-      <section style={styles.overviewGrid}>
-        <OverviewCard
-          number="01"
-          title="CALIDAD"
-          value={reporte?.nota || "-"}
-          subtitle="/ 100"
-          accent="petrol"
-          onClick={() => irA("calidad")}
-        />
-
-        <OverviewCard
-          number="02"
-          title="PRODUCTIVIDAD"
-          value={reporte?.sph || "-"}
-          subtitle="SPH"
-          accent="blue"
-          onClick={() => irA("productividad")}
-        />
-
-        <OverviewCard
-          number="03"
-          title="TIPIFICACIONES"
-          value={
-            reporte?.estado_tipificaciones ||
-            "En seguimiento"
-          }
-          subtitle=""
-          accent="teal"
-          onClick={() => irA("tipificaciones")}
-        />
-
-        <OverviewCard
-          number="04"
-          title="AUDITORÍAS"
-          value={reporte?.auditorias_no_ventas || "-"}
-          subtitle="No ventas"
-          accent="gold"
-          onClick={() => irA("auditorias")}
-        />
-      </section>
-
-      <section style={styles.summaryCard}>
-        <div style={styles.summaryHeader}>
-          <div>
-            <p style={styles.eyebrow}>
-              EVOLUCIÓN
-            </p>
-
-            <h2 style={{ margin: 0 }}>
-              Tu seguimiento
-            </h2>
-          </div>
-
-          <span style={styles.statusPill}>
-            {reporte?.estado_objetivo ||
-              "En seguimiento"}
-          </span>
-        </div>
-
-        <div style={styles.progressArea}>
-          <div style={styles.progressLabels}>
-            <span>
-              Progreso hacia el objetivo
-            </span>
-
-            <strong>
-              {porcentajeObjetivo !== null
-                ? `${porcentajeObjetivo}%`
-                : "-"}
-            </strong>
-          </div>
-
-          <ProgressBar
-            value={porcentajeObjetivo || 0}
-          />
-        </div>
-
-        <div style={styles.quickGrid}>
-          <MiniMetric
-            title="Objetivo"
-            value={
-              reporte?.objetivo_calidad || "-"
-            }
-          />
-
-          <MiniMetric
-            title="Cuánto falta"
-            value={
-              faltanteObjetivo !== null
-                ? `${faltanteObjetivo} puntos`
-                : "-"
-            }
-          />
-
-          <MiniMetric
-            title="Comparativo"
-            value={
-              diferenciaCalidad === null
-                ? "-"
-                : diferenciaCalidad > 0
-                ? `+${diferenciaCalidad}`
-                : diferenciaCalidad
-            }
-            positive={diferenciaCalidad > 0}
-          />
-
-          <MiniMetric
-            title="Producto"
-            value={reporte?.producto || "-"}
-          />
-        </div>
-      </section>
-
-      {!reporteAnterior && (
-        <section style={styles.noticeCard}>
-          <div style={styles.noticeIcon}>i</div>
-
-          <div>
-            <strong>
-              Primer reporte disponible
-            </strong>
-
-            <p style={styles.noticeText}>
-              Todavía no hay una semana anterior
-              para comparar.
-            </p>
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
-
-function Calidad({
-  reporte,
-  porcentajeObjetivo,
-  faltanteObjetivo,
-  diferenciaCalidad,
-  reporteAnterior,
-}) {
-  return (
-    <>
-      <SectionHeading
-        number="01"
-        title="CALIDAD"
-        description="Resultado, evolución y principales puntos de trabajo."
-      />
-
-      <section style={styles.qualityHero}>
-        <div>
-          <p style={styles.eyebrowLight}>
-            NOTA DE CALIDAD
-          </p>
-
-          <div style={styles.qualityScore}>
-            {reporte?.nota || "-"}
-            <span>/ 100</span>
-          </div>
-
-          <div style={styles.qualityState}>
-            <StatusBadge
-              estado={
-                reporte?.estado_objetivo ||
-                "En seguimiento"
-              }
-              light
-            />
-          </div>
-        </div>
-
-        <div style={styles.qualityObjective}>
-          <span>OBJETIVO</span>
-
-          <strong>
-            {reporte?.objetivo_calidad || "-"}
-          </strong>
-
-          <small>
-            {faltanteObjetivo !== null
-              ? `Faltan ${faltanteObjetivo} puntos`
-              : "Sin objetivo cargado"}
-          </small>
-        </div>
-      </section>
-
-      <section style={styles.card}>
-        <div style={styles.progressLabels}>
-          <span>Progreso hacia el objetivo</span>
-
-          <strong>
-            {porcentajeObjetivo !== null
-              ? `${porcentajeObjetivo}%`
-              : "-"}
-          </strong>
-        </div>
-
-        <ProgressBar
-          value={porcentajeObjetivo || 0}
-        />
-
-        <div style={styles.progressFooter}>
-          <span>
-            Actual: {reporte?.nota || "-"}
-          </span>
-
-          <span>
-            Objetivo:{" "}
-            {reporte?.objetivo_calidad || "-"}
-          </span>
-        </div>
-      </section>
-
-      <section style={styles.twoColumns}>
-        <InfoSection
-          title="Desvío principal"
-          accent="warning"
-        >
-          {reporte?.desvio ||
-            "No hay desvíos cargados."}
-        </InfoSection>
-
-        <InfoSection
-          title="Cuánto falta para alcanzar el objetivo"
-          accent="petrol"
-        >
-          {faltanteObjetivo !== null
-            ? `${faltanteObjetivo} puntos`
-            : "No disponible"}
-        </InfoSection>
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Comparativo semanal" />
-
-        <Comparison
-          actual={reporte?.nota}
-          anterior={reporteAnterior?.nota}
-          actualLabel={reporte?.semana}
-          anteriorLabel={reporteAnterior?.semana}
-        />
-      </section>
-
-      <section style={styles.twoColumns}>
-        <ListSection
-          title="Items trabajados"
-          items={reporte?.items_calidad}
-          empty="No se registraron items de calidad."
-        />
-
-        <ListSection
-          title="Acciones realizadas"
-          items={reporte?.acciones_calidad}
-          empty="No se registraron acciones de calidad."
-        />
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Auditoría" />
-
-        {reporte?.auditoria ? (
-          <div style={styles.auditReference}>
-            <span>REFERENCIA</span>
-            <strong>{reporte.auditoria}</strong>
-          </div>
-        ) : (
-          <p style={styles.muted}>
-            No hay información de auditoría.
-          </p>
-        )}
-
-        {reporte?.audio_url && (
-          <div style={styles.audioBox}>
-            <strong>Escuchar llamada auditada</strong>
-
-            <audio
-              controls
-              src={reporte.audio_url}
-              style={{
-                width: "100%",
-                marginTop: "12px",
-              }}
-            />
-          </div>
-        )}
-      </section>
-
-      <section style={styles.twoColumns}>
-        <InfoSection
-          title="Producto"
-          accent="petrol"
-        >
-          {reporte?.producto || "-"}
-        </InfoSection>
-
-        <InfoSection
-          title="Observaciones"
-          accent="blue"
-        >
-          {reporte?.observaciones ||
-            "No hay observaciones cargadas."}
-        </InfoSection>
-      </section>
-    </>
-  );
-}
-
-function Productividad({ reporte, reporteAnterior }) {
-  const sphActual = obtenerNumero(reporte?.sph);
-  const sphAnterior = obtenerNumero(
-    reporteAnterior?.sph
-  );
-
-  const ventasActual = obtenerNumero(
-    reporte?.ventas
-  );
-  const ventasAnterior = obtenerNumero(
-    reporteAnterior?.ventas
-  );
-
-  return (
-    <>
-      <SectionHeading
-        number="02"
-        title="PRODUCTIVIDAD"
-        description="Seguimiento de productividad, objetivos y acciones."
-      />
-
-      <section style={styles.productivityHero}>
-        <div style={styles.productivityMain}>
-          <span>SPH</span>
-          <strong>{reporte?.sph || "-"}</strong>
-          <small>
-            Objetivo SPH:{" "}
-            {reporte?.objetivo_sph || "-"}
-          </small>
-        </div>
-
-        <div style={styles.productivityDivider} />
-
-        <div style={styles.productivityMain}>
-          <span>VENTAS</span>
-          <strong>{reporte?.ventas || "-"}</strong>
-          <small>
-            Objetivo ventas:{" "}
-            {reporte?.objetivo_ventas || "-"}
-          </small>
-        </div>
-      </section>
-
-      <section style={styles.threeColumns}>
-        <MetricCard
-          title="SPH"
-          value={reporte?.sph || "-"}
-          extra={`Objetivo: ${
-            reporte?.objetivo_sph || "-"
-          }`}
-        />
-
-        <MetricCard
-          title="Ventas"
-          value={reporte?.ventas || "-"}
-          extra={`Objetivo: ${
-            reporte?.objetivo_ventas || "-"
-          }`}
-        />
-
-        <MetricCard
-          title="Objetivo de campaña"
-          value={reporte?.objetivo_campania || "-"}
-          extra={
-            reporte?.estado_campania ||
-            "Sin estado"
-          }
-        />
-      </section>
-
-      <section style={styles.card}>
-        <div style={styles.sectionTop}>
-          <div>
-            <p style={styles.eyebrow}>
-              ESTADO
-            </p>
-
-            <h2 style={{ margin: 0 }}>
-              {reporte?.estado_campania ||
-                "En proceso"}
-            </h2>
-          </div>
-
-          <StatusBadge
-            estado={
-              reporte?.estado_campania ||
-              "En proceso"
-            }
-          />
-        </div>
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Comparativo semanal" />
-
-        <div style={styles.comparisonGrid}>
-          <ComparisonMetric
-            title="SPH"
-            actual={sphActual}
-            anterior={sphAnterior}
-            suffix=""
-          />
-
-          <ComparisonMetric
-            title="Ventas"
-            actual={ventasActual}
-            anterior={ventasAnterior}
-            suffix=""
-          />
-        </div>
-      </section>
-
-      <section style={styles.twoColumns}>
-        <ListSection
-          title="Items trabajados"
-          items={reporte?.items_productividad}
-          empty="No se registraron items."
-        />
-
-        <ListSection
-          title="Acciones realizadas"
-          items={reporte?.acciones_productividad}
-          empty="No se registraron acciones."
-        />
-      </section>
-
-      <InfoSection
-        title="Observaciones"
-        accent="blue"
-      >
-        {reporte?.observaciones_productividad ||
-          "No hay observaciones cargadas."}
-      </InfoSection>
-    </>
-  );
-}
-
-function Tipificaciones({ reporte }) {
-  return (
-    <>
-      <SectionHeading
-        number="03"
-        title="TIPIFICACIONES"
-        description="Seguimiento de tipificaciones y compromiso."
-      />
-
-      <section style={styles.tipHero}>
-        <div>
-          <p style={styles.eyebrowLight}>
-            ESTADO
-          </p>
-
-          <h2 style={styles.tipHeroTitle}>
-            {reporte?.estado_tipificaciones ||
-              "En proceso"}
-          </h2>
-        </div>
-
-        <div style={styles.indicatorCircle}>
-          <span>03</span>
-        </div>
-      </section>
-
-      <section style={styles.fourColumns}>
-        <MetricCard
-          title="Desvío"
-          value={
-            reporte?.tipificacion_desvio || "-"
-          }
-        />
-
-        <MetricCard
-          title="Objetivo"
-          value={
-            reporte?.tipificacion_objetivo || "-"
-          }
-        />
-
-        <MetricCard
-          title="Resultado"
-          value={
-            reporte?.tipificacion_resultado || "-"
-          }
-        />
-
-        <MetricCard
-          title="Estado"
-          value={
-            reporte?.estado_tipificaciones ||
-            "-"
-          }
-        />
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Tipificaciones" />
-
-        <ArrayList
-          items={reporte?.tipificaciones}
-          empty="No se registraron tipificaciones."
-        />
-      </section>
-
-      <section style={styles.twoColumns}>
-        <InfoSection
-          title="Compromiso"
-          accent="teal"
-        >
-          {reporte?.tipificacion_compromiso ||
-            "Sin compromiso cargado."}
-        </InfoSection>
-
-        <InfoSection
-          title="Observaciones"
-          accent="blue"
-        >
-          {reporte?.tipificacion_observaciones ||
-            "Sin observaciones cargadas."}
-        </InfoSection>
-      </section>
-    </>
-  );
-}
-
-function AuditoriasNoVentas({ reporte }) {
-  return (
-    <>
-      <SectionHeading
-        number="04"
-        title="AUDITORÍAS DE NO VENTAS"
-        description="Análisis de oportunidades y seguimiento."
-      />
-
-      <section style={styles.auditHero}>
-        <div>
-          <p style={styles.eyebrowLight}>
-            CANTIDAD
-          </p>
-
-          <strong style={styles.auditNumber}>
-            {reporte?.auditorias_no_ventas || "-"}
-          </strong>
-
-          <span style={styles.auditLabel}>
-            auditorías
-          </span>
-        </div>
-
-        <div style={styles.auditStatus}>
-          <span>REGISTRO EN SISTEMA</span>
-
-          <strong>
-            {reporte?.registro_sistema || "-"}
-          </strong>
-        </div>
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Principales O.M." />
-
-        <ArrayList
-          items={reporte?.principales_om}
-          empty="No se registraron oportunidades de mejora."
-        />
-      </section>
-
-      <section style={styles.threeColumns}>
-        <MetricCard
-          title="Coaching"
-          value={reporte?.coaching || "-"}
-        />
-
-        <MetricCard
-          title="Registro en sistema"
-          value={reporte?.registro_sistema || "-"}
-        />
-
-        <MetricCard
-          title="Compromiso"
-          value={
-            reporte?.compromiso_no_ventas || "-"
-          }
-        />
-      </section>
-
-      <section style={styles.card}>
-        <SectionTitle title="Fortalezas" />
-
-        <ArrayList
-          items={reporte?.fortalezas}
-          empty="No se registraron fortalezas."
-        />
-      </section>
-
-      <InfoSection
-        title="Observaciones"
-        accent="blue"
-      >
-        {reporte?.observaciones_no_ventas ||
-          "No hay observaciones cargadas."}
-      </InfoSection>
-    </>
-  );
-}
-
-function Historico({
-  reportes,
-  seleccionarReporte,
-  reporteSeleccionado,
-}) {
-  return (
-    <>
-      <SectionHeading
-        number="05"
-        title="HISTÓRICO"
-        description="Tu evolución semana a semana."
-      />
-
-      <section style={styles.card}>
-        <div style={styles.historyIntro}>
-          <div>
-            <p style={styles.eyebrow}>
-              EVOLUCIÓN
-            </p>
-
-            <h2 style={{ margin: 0 }}>
-              Historial de reportes
-            </h2>
-
-            <p style={styles.muted}>
-              Seleccioná una semana para consultar
-              su información.
-            </p>
-          </div>
-        </div>
-
-        {reportes.length === 0 ? (
-          <p style={styles.muted}>
-            No hay reportes anteriores.
-          </p>
-        ) : (
-          <div style={styles.historyList}>
-            {reportes.map((reporte, index) => {
-              const seleccionado =
-                reporteSeleccionado?.id ===
-                reporte.id;
-
-              const anterior =
-                reportes[index + 1];
-
-              const actualNota =
-                obtenerNumero(reporte.nota);
-
-              const anteriorNota =
-                obtenerNumero(anterior?.nota);
-
-              let variacion = null;
-
-              if (
-                actualNota !== null &&
-                anteriorNota !== null
-              ) {
-                variacion =
-                  actualNota - anteriorNota;
-              }
-
-              return (
-                <button
-                  key={reporte.id}
-                  onClick={() =>
-                    seleccionarReporte(reporte)
-                  }
-                  style={{
-                    ...styles.historyRow,
-                    ...(seleccionado
-                      ? styles.historyRowActive
-                      : {}),
-                  }}
-                >
-                  <div style={styles.historyWeek}>
-                    <span>
-                      {reporte.semana || "-"}
-                    </span>
-
-                    <small>
-                      {reporte.producto || "-"}
-                    </small>
-                  </div>
-
-                  <div style={styles.historyScore}>
-                    <strong>
-                      {reporte.nota || "-"}
-                    </strong>
-
-                    <small>CALIDAD</small>
-                  </div>
-
-                  <div>
-                    <span style={styles.historyState}>
-                      {reporte.estado_objetivo ||
-                        "Sin estado"}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.variation,
-                      color:
-                        variacion === null
-                          ? "#667085"
-                          : variacion >= 0
-                          ? "#087f5b"
-                          : "#b54708",
-                    }}
-                  >
-                    {variacion === null
-                      ? "-"
-                      : variacion > 0
-                      ? `+${variacion}`
-                      : variacion}
-                  </div>
-
-                  <div style={styles.arrow}>
-                    →
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {reporteSeleccionado && (
-        <section style={styles.card}>
-          <div style={styles.sectionTop}>
-            <div>
-              <p style={styles.eyebrow}>
-                REPORTE SELECCIONADO
-              </p>
-
-              <h2 style={{ margin: 0 }}>
-                {reporteSeleccionado.semana}
-              </h2>
-            </div>
-
-            <button
-              onClick={() =>
-                seleccionarReporte(null)
-              }
-              style={styles.closeButton}
-            >
-              Cerrar
-            </button>
-          </div>
-
-          <div style={styles.threeColumns}>
-            <MetricCard
-              title="Calidad"
-              value={
-                reporteSeleccionado.nota || "-"
-              }
-            />
-
-            <MetricCard
-              title="Producto"
-              value={
-                reporteSeleccionado.producto || "-"
-              }
-            />
-
-            <MetricCard
-              title="Estado"
-              value={
-                reporteSeleccionado.estado_objetivo ||
-                "-"
-              }
-            />
-          </div>
-
-          <div style={styles.twoColumns}>
-            <InfoSection
-              title="Desvío principal"
-              accent="warning"
-            >
-              {reporteSeleccionado.desvio ||
-                "Sin desvío cargado."}
-            </InfoSection>
-
-            <InfoSection
-              title="Objetivo"
-              accent="petrol"
-            >
-              {reporteSeleccionado.objetivo ||
-                reporteSeleccionado.objetivo_calidad ||
-                "Sin objetivo cargado."}
-            </InfoSection>
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
-
-function Actividades() {
-  return (
-    <>
-      <SectionHeading
-        number="06"
-        title="ACTIVIDADES"
-        description="Próximamente vas a encontrar tus actividades de seguimiento acá."
-      />
-
-      <section style={styles.activitiesEmpty}>
-        <div style={styles.activitiesIcon}>
-          +
-        </div>
-
-        <h2>
-          Actividades
-        </h2>
-
-        <p style={styles.muted}>
-          Esta sección está preparada para
-          incorporar nuevas actividades.
-        </p>
-      </section>
-    </>
-  );
-}
-
-function Feedback() {
-  const [texto, setTexto] = useState("");
-  const [enviado, setEnviado] = useState(false);
-
-  function enviarFeedback(e) {
-    e.preventDefault();
-
-    if (!texto.trim()) return;
-
-    setEnviado(true);
-    setTexto("");
-  }
-
-  return (
-    <>
-      <SectionHeading
-        number="07"
-        title="FEEDBACK DEL ASESOR"
-        description="Tu opinión también forma parte del seguimiento."
-      />
-
-      <section style={styles.feedbackCard}>
-        <div style={styles.feedbackTop}>
-          <div style={styles.feedbackIcon}>
-            💬
-          </div>
-
-          <div>
-            <h2 style={{ margin: 0 }}>
-              Queremos escucharte
-            </h2>
-
-            <p style={styles.muted}>
-              ¿Querés dejar algún comentario sobre
-              tu reporte, una consulta o algo que
-              quieras trabajar con Calidad?
-            </p>
-          </div>
-        </div>
-
-        {enviado ? (
-          <div style={styles.feedbackSuccess}>
-            <strong>
-              ✓ Feedback enviado
-            </strong>
-
-            <p>
-              Gracias por compartirlo. Calidad
-              podrá tenerlo en cuenta para el
-              seguimiento.
-            </p>
-
-            <button
-              onClick={() => setEnviado(false)}
-              style={styles.secondaryButton}
-            >
-              Dejar otro comentario
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={enviarFeedback}>
-            <textarea
-              value={texto}
-              onChange={(e) =>
-                setTexto(e.target.value)
-              }
-              placeholder="Escribí acá tu comentario..."
-              style={styles.feedbackTextarea}
-            />
-
-            <button
-              type="submit"
-              style={{
-                ...styles.primaryButton,
-                maxWidth: "220px",
-              }}
-              disabled={!texto.trim()}
-            >
-              ENVIAR FEEDBACK
-            </button>
-          </form>
-        )}
-      </section>
-    </>
-  );
-}
-
-function SectionHeading({
-  number,
-  title,
-  description,
-}) {
-  return (
-    <div style={styles.sectionHeading}>
-      <div style={styles.sectionNumber}>
-        {number}
-      </div>
-
-      <div>
-        <h2 style={styles.sectionHeadingTitle}>
-          {title}
-        </h2>
-
-        <p style={styles.sectionHeadingDescription}>
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SectionTitle({ title }) {
-  return (
-    <div style={styles.sectionTitle}>
-      <span />
-      <h2>{title}</h2>
-    </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  icon,
-  label,
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.tab,
-        ...(active ? styles.tabActive : {}),
-      }}
-    >
-      <span style={styles.tabIcon}>
-        {icon}
-      </span>
-
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function OverviewCard({
-  number,
-  title,
-  value,
-  subtitle,
-  accent,
-  onClick,
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.overviewCard,
-        borderTop:
-          accent === "petrol"
-            ? "4px solid #0f5960"
-            : accent === "blue"
-            ? "4px solid #287b91"
-            : accent === "teal"
-            ? "4px solid #159a91"
-            : "4px solid #d99b28",
-      }}
-    >
-      <div style={styles.overviewTop}>
-        <span style={styles.overviewNumber}>
-          {number}
-        </span>
-
-        <span style={styles.overviewArrow}>
-          →
-        </span>
-      </div>
-
-      <div style={styles.overviewTitle}>
-        {title}
-      </div>
-
-      <div style={styles.overviewValue}>
-        {value}
-      </div>
-
-      {subtitle && (
-        <div style={styles.overviewSubtitle}>
-          {subtitle}
-        </div>
-      )}
-    </button>
-  );
-}
-
-function MetricCard({ title, value, extra }) {
-  return (
-    <div style={styles.metricCard}>
-      <span>{title}</span>
-
-      <strong>{value}</strong>
-
-      {extra && <small>{extra}</small>}
-    </div>
-  );
-}
-
-function MiniMetric({
-  title,
-  value,
-  positive,
-}) {
-  return (
-    <div style={styles.miniMetric}>
-      <span>{title}</span>
-
-      <strong
-        style={{
-          color: positive
-            ? "#087f5b"
-            : "#173f46",
-        }}
-      >
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-function InfoSection({
-  title,
-  children,
-  accent,
-}) {
-  const accentColor =
-    accent === "warning"
-      ? "#d99b28"
-      : accent === "teal"
-      ? "#159a91"
-      : accent === "blue"
-      ? "#287b91"
-      : "#0f5960";
-
-  return (
-    <section
-      style={{
-        ...styles.card,
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <SectionTitle title={title} />
-      <div style={styles.infoText}>
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function ListSection({
-  title,
-  items,
-  empty,
-}) {
-  return (
-    <section style={styles.card}>
-      <SectionTitle title={title} />
-
-      <ArrayList
-        items={items}
-        empty={empty}
-      />
-    </section>
-  );
-}
-
-function Comparison({
-  actual,
-  anterior,
-  actualLabel,
-  anteriorLabel,
-}) {
-  const actualNumber = obtenerNumero(actual);
-  const anteriorNumber = obtenerNumero(anterior);
-
-  if (
-    actualNumber === null ||
-    anteriorNumber === null
-  ) {
-    return (
-      <div style={styles.noComparison}>
-        Todavía no hay una semana anterior para
-        comparar.
-      </div>
-    );
-  }
-
-  const diferencia =
-    actualNumber - anteriorNumber;
-
-  return (
-    <div style={styles.comparisonBox}>
-      <div>
-        <span>
-          {anteriorLabel || "Semana anterior"}
-        </span>
-
-        <strong>{anterior}</strong>
-      </div>
-
-      <div style={styles.comparisonArrow}>
-        →
-      </div>
-
-      <div>
-        <span>
-          {actualLabel || "Semana actual"}
-        </span>
-
-        <strong>{actual}</strong>
-      </div>
-
-      <div
-        style={{
-          ...styles.comparisonResult,
-          color:
-            diferencia >= 0
-              ? "#087f5b"
-              : "#b54708",
-        }}
-      >
-        {diferencia > 0
-          ? `+${diferencia}`
-          : diferencia}
-      </div>
-    </div>
-  );
-}
-
-function ComparisonMetric({
-  title,
-  actual,
-  anterior,
-  suffix,
-}) {
-  if (actual === null || anterior === null) {
-    return (
-      <div style={styles.comparisonMetric}>
-        <span>{title}</span>
-        <strong>-</strong>
-        <small>
-          Sin semana anterior
-        </small>
-      </div>
-    );
-  }
-
-  const diferencia = actual - anterior;
-
-  return (
-    <div style={styles.comparisonMetric}>
-      <span>{title}</span>
-
-      <strong>
-        {actual}
-        {suffix}
-      </strong>
-
-      <small
-        style={{
-          color:
-            diferencia >= 0
-              ? "#087f5b"
-              : "#b54708",
-        }}
-      >
-        {diferencia > 0
-          ? `+${diferencia}`
-          : diferencia}
-        {" "}vs. semana anterior
-      </small>
-    </div>
-  );
-}
-
-function ProgressBar({ value }) {
-  const porcentaje = Math.max(
-    0,
-    Math.min(100, Number(value) || 0)
-  );
-
-  return (
-    <div style={styles.progressTrack}>
-      <div
-        style={{
-          ...styles.progressFill,
-          width: `${porcentaje}%`,
-        }}
-      />
-    </div>
-  );
-}
-
-function StatusBadge({ estado, light }) {
-  return (
-    <span
-      style={{
-        ...styles.statusBadge,
-        ...(light
-          ? styles.statusBadgeLight
-          : {}),
-      }}
-    >
-      {estado}
-    </span>
-  );
-}
-
 function Field({
   label,
   name,
   value,
   onChange,
   placeholder,
-  type = "input",
+  required,
+  select,
   options = [],
-  required = false,
 }) {
   return (
     <div>
@@ -2516,16 +1404,7 @@ function Field({
         {label}
       </label>
 
-      {type === "textarea" ? (
-        <textarea
-          name={name}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          style={styles.textarea}
-          required={required}
-        />
-      ) : type === "select" ? (
+      {select ? (
         <select
           name={name}
           value={value}
@@ -2560,111 +1439,339 @@ function Field({
   );
 }
 
-function ArrayList({ items, empty }) {
-  let lista = [];
-
-  if (Array.isArray(items)) {
-    lista = items;
-  } else if (typeof items === "string") {
-    try {
-      const convertido = JSON.parse(items);
-
-      if (Array.isArray(convertido)) {
-        lista = convertido;
-      } else {
-        lista = items
-          .split("\n")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }
-    } catch {
-      lista = items
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-  }
-
-  if (lista.length === 0) {
-    return (
-      <p style={styles.muted}>
-        {empty}
-      </p>
-    );
-  }
-
+function AdminTextarea({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+}) {
   return (
-    <ul style={styles.list}>
-      {lista.map((item, index) => (
-        <li
-          key={index}
-          style={styles.listItem}
-        >
-          <span style={styles.listDot} />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <label style={styles.label}>
+        {label}
+      </label>
+
+      <textarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={styles.textarea}
+      />
+    </div>
   );
 }
 
-function convertirLista(valor) {
-  return String(valor || "")
+function SectionHeading({ title }) {
+  return (
+    <div style={styles.sectionTitleBlock}>
+      <h2 style={styles.sectionTitle}>
+        {title}
+      </h2>
+
+      <div style={styles.sectionLine} />
+    </div>
+  );
+}
+
+function AdvisorTabs() {
+  return (
+    <div style={styles.tabs}>
+      <div style={styles.tabActive}>
+        CALIDAD
+      </div>
+
+      <div style={styles.tab}>
+        PRODUCTIVIDAD
+      </div>
+
+      <div style={styles.tab}>
+        TIPIFICACIONES
+      </div>
+
+      <div style={styles.tab}>
+        AUDITORÍAS
+      </div>
+
+      <div style={styles.tab}>
+        ACTIVIDADES
+      </div>
+
+      <div style={styles.tab}>
+        HISTÓRICO
+      </div>
+    </div>
+  );
+}
+
+function Metric({ title, value, extra }) {
+  return (
+    <div style={styles.metric}>
+      <div style={styles.metricTitle}>
+        {title}
+      </div>
+
+      <div style={styles.metricValue}>
+        {value}
+      </div>
+
+      {extra && (
+        <div style={styles.metricExtra}>
+          {extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoBlock({ title, value, type }) {
+  return (
+    <div
+      style={
+        type === "warning"
+          ? styles.warningBlock
+          : styles.infoBlock
+      }
+    >
+      <div style={styles.blockTitle}>
+        {title}
+      </div>
+
+      <div style={styles.blockText}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ListBlock({ title, items, empty }) {
+  const lista = normalizarLista(items);
+
+  return (
+    <div style={styles.listBlock}>
+      <div style={styles.blockTitle}>
+        {title}
+      </div>
+
+      {lista.length === 0 ? (
+        <p style={styles.muted}>
+          {empty}
+        </p>
+      ) : (
+        <ul style={styles.list}>
+          {lista.map((item, index) => (
+            <li
+              key={`${item}-${index}`}
+              style={styles.listItem}
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ComparisonBlock({
+  reportes,
+  campo,
+  titulo,
+}) {
+  if (!reportes || reportes.length < 2) {
+    return (
+      <div style={styles.comparisonCard}>
+        <div style={styles.blockTitle}>
+          {titulo}
+        </div>
+
+        <p style={styles.muted}>
+          Todavía no hay una semana anterior para comparar.
+        </p>
+      </div>
+    );
+  }
+
+  const actual = Number(
+    String(reportes[0]?.[campo] || "").replace(",", ".")
+  );
+
+  const anterior = Number(
+    String(reportes[1]?.[campo] || "").replace(",", ".")
+  );
+
+  if (Number.isNaN(actual) || Number.isNaN(anterior)) {
+    return (
+      <div style={styles.comparisonCard}>
+        <div style={styles.blockTitle}>
+          {titulo}
+        </div>
+
+        <p style={styles.muted}>
+          No hay datos suficientes para realizar el
+          comparativo.
+        </p>
+      </div>
+    );
+  }
+
+  const variacion = actual - anterior;
+
+  return (
+    <div style={styles.comparisonCard}>
+      <div style={styles.blockTitle}>
+        {titulo}
+      </div>
+
+      <div style={styles.comparisonGrid}>
+        <div>
+          <span style={styles.comparisonLabel}>
+            SEMANA ANTERIOR
+          </span>
+
+          <strong style={styles.comparisonValue}>
+            {reportes[1]?.[campo] || "-"}
+          </strong>
+        </div>
+
+        <div>
+          <span style={styles.comparisonLabel}>
+            SEMANA ACTUAL
+          </span>
+
+          <strong style={styles.comparisonValue}>
+            {reportes[0]?.[campo] || "-"}
+          </strong>
+        </div>
+
+        <div>
+          <span style={styles.comparisonLabel}>
+            VARIACIÓN
+          </span>
+
+          <strong
+            style={{
+              ...styles.comparisonValue,
+              color:
+                variacion > 0
+                  ? "#d97706"
+                  : variacion < 0
+                  ? "#087f6c"
+                  : "#475467",
+            }}
+          >
+            {variacion > 0 ? "+" : ""}
+            {variacion.toFixed(2)}
+          </strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function normalizarLista(items) {
+  if (Array.isArray(items)) {
+    return items;
+  }
+
+  if (typeof items !== "string" || !items.trim()) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(items);
+
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Continúa con separación por líneas.
+  }
+
+  return items
     .split("\n")
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-function obtenerNumero(valor) {
-  if (
-    valor === null ||
-    valor === undefined ||
-    valor === ""
-  ) {
-    return null;
-  }
-
-  const numero = Number(
-    String(valor)
-      .replace("%", "")
-      .replace(",", ".")
-      .trim()
+function calcularProgreso(nota, objetivo) {
+  const n = Number(String(nota || "").replace(",", "."));
+  const o = Number(
+    String(objetivo || "").replace(",", ".")
   );
 
-  return Number.isFinite(numero)
-    ? numero
-    : null;
-}
-
-function calcularProgreso(nota, objetivo) {
-  const n = obtenerNumero(nota);
-  const o = obtenerNumero(objetivo);
-
-  if (n === null || o === null || o === 0) {
-    return null;
+  if (!n || !o) {
+    return 0;
   }
 
   return Math.round((n / o) * 100);
 }
 
-function obtenerNombre(nombreCompleto) {
-  if (!nombreCompleto) return "";
+function calcularFalta(nota, objetivo) {
+  const n = Number(String(nota || "").replace(",", "."));
+  const o = Number(
+    String(objetivo || "").replace(",", ".")
+  );
 
-  const partes = nombreCompleto.split(",");
-
-  if (partes.length > 1) {
-    return partes[1].trim();
+  if (!n || !o) {
+    return "-";
   }
 
-  return nombreCompleto;
+  const falta = o - n;
+
+  if (falta <= 0) {
+    return "Objetivo alcanzado";
+  }
+
+  return `${falta} puntos`;
+}
+
+function getStatusStyle(status) {
+  const texto = String(status || "").toUpperCase();
+
+  if (
+    texto.includes("OBJETIVO") &&
+    !texto.includes("DEBAJO")
+  ) {
+    return styles.statusGood;
+  }
+
+  if (
+    texto.includes("PROCESO") ||
+    texto.includes("SEGUIMIENTO")
+  ) {
+    return styles.statusProcess;
+  }
+
+  if (
+    texto.includes("DEBAJO") ||
+    texto.includes("PENDIENTE")
+  ) {
+    return styles.statusWarning;
+  }
+
+  return styles.statusNeutral;
 }
 
 const styles = {
   page: {
     minHeight: "100vh",
     background:
-      "linear-gradient(135deg, #edf5f5 0%, #f5f8f8 50%, #eaf2f3 100%)",
-    color: "#173f46",
+      "linear-gradient(145deg, #eef7f6 0%, #f5f8f8 50%, #e9f1f2 100%)",
+    color: "#16343b",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+  },
+
+  loginPage: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(145deg, #073b42 0%, #0b5960 55%, #dfeeed 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
     fontFamily:
       "Arial, Helvetica, sans-serif",
   },
@@ -2677,71 +1784,49 @@ const styles = {
     padding: "20px",
   },
 
-  loadingCard: {
-    width: "100%",
-    maxWidth: "390px",
-    background: "#ffffff",
-    padding: "40px",
-    borderRadius: "24px",
-    textAlign: "center",
-    boxShadow:
-      "0 20px 60px rgba(15, 89, 96, 0.12)",
-    border: "1px solid #dce9eb",
-  },
-
-  loginContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-  },
-
   loginCard: {
     width: "100%",
     maxWidth: "430px",
     background: "#ffffff",
     padding: "42px",
-    borderRadius: "25px",
+    borderRadius: "24px",
     boxShadow:
-      "0 25px 70px rgba(15, 89, 96, 0.14)",
-    border: "1px solid #dce9eb",
+      "0 25px 70px rgba(5, 50, 55, 0.25)",
+    border: "1px solid rgba(255,255,255,.5)",
   },
 
   logo: {
     width: "60px",
     height: "60px",
-    borderRadius: "18px",
+    borderRadius: "17px",
     background:
-      "linear-gradient(135deg, #0f5960, #159a91)",
+      "linear-gradient(135deg, #07545c, #0b7b78)",
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontSize: "28px",
     fontWeight: "800",
-    marginBottom: "22px",
-    boxShadow:
-      "0 10px 25px rgba(15, 89, 96, 0.22)",
+    marginBottom: "20px",
   },
 
   loginEyebrow: {
-    color: "#0f5960",
+    color: "#087f7a",
     fontSize: "12px",
     fontWeight: "800",
-    letterSpacing: "1.3px",
-    marginBottom: "8px",
+    letterSpacing: "1.2px",
+    margin: "0 0 8px",
   },
 
   loginTitle: {
-    margin: 0,
     fontSize: "32px",
-    color: "#173f46",
+    margin: 0,
+    color: "#123c42",
   },
 
   container: {
     width: "100%",
-    maxWidth: "1220px",
+    maxWidth: "1180px",
     margin: "0 auto",
     padding: "30px 20px 70px",
     boxSizing: "border-box",
@@ -2752,21 +1837,23 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "20px",
-    marginBottom: "25px",
+    marginBottom: "28px",
     flexWrap: "wrap",
   },
 
-  headerTitle: {
-    margin: "9px 0 0",
-    fontSize: "31px",
-    color: "#173f46",
-    letterSpacing: "-0.5px",
-  },
-
-  headerPeriod: {
-    margin: "7px 0 0",
-    color: "#5e7479",
-    fontWeight: "600",
+  advisorHeader: {
+    background: "#ffffff",
+    borderRadius: "24px",
+    padding: "25px 28px",
+    marginBottom: "20px",
+    border: "1px solid #d8e7e6",
+    boxShadow:
+      "0 10px 30px rgba(7, 59, 66, 0.07)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "20px",
+    flexWrap: "wrap",
   },
 
   headerRight: {
@@ -2778,110 +1865,75 @@ const styles = {
 
   portalBadge: {
     display: "inline-block",
-    background: "#0f5960",
+    background: "#073b42",
     color: "#ffffff",
     padding: "8px 14px",
     borderRadius: "999px",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "1px",
+    letterSpacing: "0.7px",
+  },
+
+  pageTitle: {
+    margin: "10px 0 0",
+    fontSize: "30px",
+    color: "#123c42",
+  },
+
+  advisorTitle: {
+    margin: "12px 0 3px",
+    fontSize: "30px",
+    color: "#123c42",
+    letterSpacing: "-0.5px",
+  },
+
+  advisorWeek: {
+    margin: 0,
+    color: "#60777b",
+    fontWeight: "600",
   },
 
   card: {
     background: "#ffffff",
-    borderRadius: "20px",
-    padding: "27px",
-    marginBottom: "20px",
-    border: "1px solid #dce9eb",
+    borderRadius: "22px",
+    padding: "28px",
+    marginBottom: "22px",
+    border: "1px solid #d8e7e6",
     boxShadow:
-      "0 9px 30px rgba(15, 89, 96, 0.06)",
-    boxSizing: "border-box",
+      "0 10px 35px rgba(7, 59, 66, 0.07)",
   },
 
-  adminHero: {
+  heroCard: {
     background:
-      "linear-gradient(135deg, #0f5960 0%, #287b91 100%)",
+      "linear-gradient(135deg, #073b42 0%, #087f7a 100%)",
     color: "#ffffff",
-    borderRadius: "23px",
+    borderRadius: "24px",
     padding: "34px",
-    marginBottom: "20px",
+    marginBottom: "22px",
     boxShadow:
-      "0 15px 40px rgba(15, 89, 96, 0.18)",
-  },
-
-  welcomeCard: {
-    background:
-      "linear-gradient(135deg, #0f5960 0%, #287b91 100%)",
-    color: "#ffffff",
-    borderRadius: "25px",
-    padding: "35px",
-    marginBottom: "20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "30px",
-    boxShadow:
-      "0 17px 45px rgba(15, 89, 96, 0.20)",
-    boxSizing: "border-box",
-  },
-
-  welcomeTitle: {
-    margin: "0 0 8px",
-    fontSize: "30px",
-  },
-
-  welcomeText: {
-    margin: 0,
-    maxWidth: "600px",
-    lineHeight: 1.6,
-    opacity: 0.88,
-  },
-
-  scoreLarge: {
-    width: "116px",
-    height: "116px",
-    flexShrink: 0,
-    borderRadius: "50%",
-    background: "#ffffff",
-    color: "#0f5960",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "29px",
-    fontWeight: "900",
-    boxShadow:
-      "0 12px 30px rgba(0, 0, 0, 0.16)",
+      "0 18px 45px rgba(7, 59, 66, 0.18)",
   },
 
   heroSmall: {
     margin: "0 0 8px",
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: "800",
-    letterSpacing: "1.2px",
-    opacity: 0.82,
-  },
-
-  heroSmallDark: {
-    margin: "0 0 8px",
-    fontSize: "11px",
-    fontWeight: "800",
-    letterSpacing: "1.2px",
-    opacity: 0.75,
+    letterSpacing: "1.1px",
+    opacity: 0.8,
   },
 
   heroTitle: {
-    margin: "0 0 8px",
-    fontSize: "29px",
+    margin: "0 0 10px",
+    fontSize: "30px",
   },
 
   heroText: {
     margin: 0,
     opacity: 0.88,
-    lineHeight: 1.5,
   },
 
   muted: {
-    color: "#657b80",
+    color: "#60777b",
     lineHeight: 1.6,
   },
 
@@ -2890,7 +1942,7 @@ const styles = {
     fontWeight: "800",
     marginBottom: "8px",
     marginTop: "18px",
-    color: "#34545a",
+    color: "#31575d",
     fontSize: "13px",
   },
 
@@ -2899,9 +1951,9 @@ const styles = {
     boxSizing: "border-box",
     padding: "13px 14px",
     borderRadius: "11px",
-    border: "1px solid #cddde0",
+    border: "1px solid #cbdedd",
     background: "#ffffff",
-    color: "#173f46",
+    color: "#16343b",
     fontSize: "15px",
     outline: "none",
   },
@@ -2912,9 +1964,9 @@ const styles = {
     boxSizing: "border-box",
     padding: "13px 14px",
     borderRadius: "11px",
-    border: "1px solid #cddde0",
+    border: "1px solid #cbdedd",
     background: "#ffffff",
-    color: "#173f46",
+    color: "#16343b",
     fontSize: "15px",
     resize: "vertical",
     fontFamily:
@@ -2925,34 +1977,31 @@ const styles = {
   primaryButton: {
     width: "100%",
     border: "none",
-    borderRadius: "11px",
-    padding: "14px 18px",
+    borderRadius: "12px",
+    padding: "15px 18px",
     background:
-      "linear-gradient(135deg, #0f5960, #159a91)",
+      "linear-gradient(135deg, #07545c, #087f7a)",
     color: "#ffffff",
-    fontSize: "13px",
-    fontWeight: "900",
+    fontSize: "14px",
+    fontWeight: "800",
     cursor: "pointer",
     marginTop: "22px",
-    letterSpacing: "0.3px",
-    boxShadow:
-      "0 8px 20px rgba(15, 89, 96, 0.18)",
   },
 
   secondaryButton: {
-    border: "1px solid #c9dadd",
+    border: "1px solid #cbdedd",
     borderRadius: "11px",
     padding: "11px 17px",
     background: "#ffffff",
-    color: "#31545a",
+    color: "#31575d",
     fontWeight: "800",
     cursor: "pointer",
   },
 
   error: {
-    background: "#fff4f1",
-    color: "#b54708",
-    border: "1px solid #f3d1c2",
+    background: "#fff3f1",
+    color: "#b42318",
+    border: "1px solid #f5c2c0",
     padding: "12px",
     borderRadius: "10px",
     margin: "18px 0",
@@ -2960,12 +2009,28 @@ const styles = {
   },
 
   success: {
-    background: "#edf9f5",
-    color: "#087f5b",
-    border: "1px solid #b9e5d5",
+    background: "#eaf8f3",
+    color: "#087f68",
+    border: "1px solid #a9e5d3",
     padding: "13px",
     borderRadius: "10px",
     fontWeight: "800",
+    marginTop: "15px",
+  },
+
+  adminSection: {
+    background: "#f4f9f8",
+    border: "1px solid #d7e8e5",
+    borderRadius: "18px",
+    padding: "22px",
+    marginTop: "26px",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: "4px 18px",
   },
 
   tabs: {
@@ -2973,821 +2038,439 @@ const styles = {
     gap: "8px",
     overflowX: "auto",
     padding: "7px",
-    background: "#ffffff",
-    border: "1px solid #dce9eb",
-    borderRadius: "17px",
-    marginBottom: "22px",
-    boxShadow:
-      "0 8px 25px rgba(15, 89, 96, 0.05)",
+    background: "#dfeceb",
+    borderRadius: "16px",
+    marginBottom: "20px",
   },
 
   tab: {
-    flex: "0 0 auto",
-    border: "none",
-    background: "transparent",
-    color: "#587176",
-    padding: "11px 14px",
+    padding: "12px 16px",
     borderRadius: "11px",
-    cursor: "pointer",
-    fontSize: "12px",
+    color: "#45666b",
     fontWeight: "800",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
+    fontSize: "12px",
     whiteSpace: "nowrap",
   },
 
   tabActive: {
-    background: "#0f5960",
-    color: "#ffffff",
+    padding: "12px 16px",
+    borderRadius: "11px",
+    background: "#ffffff",
+    color: "#07545c",
+    fontWeight: "800",
+    fontSize: "12px",
+    whiteSpace: "nowrap",
     boxShadow:
-      "0 6px 15px rgba(15, 89, 96, 0.18)",
+      "0 4px 12px rgba(7, 59, 66, 0.08)",
   },
 
-  tabIcon: {
-    fontSize: "11px",
+  tabContent: {
+    background: "#ffffff",
+    borderRadius: "24px",
+    padding: "30px",
+    marginBottom: "22px",
+    border: "1px solid #d8e7e6",
+    boxShadow:
+      "0 10px 35px rgba(7, 59, 66, 0.06)",
+  },
+
+  sectionNumber: {
+    color: "#0b8983",
+    fontSize: "12px",
     fontWeight: "900",
+    letterSpacing: "1.5px",
+    marginBottom: "4px",
   },
 
-  overviewGrid: {
+  sectionTitleBlock: {
+    marginBottom: "22px",
+  },
+
+  sectionTitle: {
+    margin: 0,
+    fontSize: "25px",
+    color: "#123c42",
+    letterSpacing: "-0.3px",
+  },
+
+  sectionLine: {
+    height: "3px",
+    width: "52px",
+    background: "#0b8983",
+    borderRadius: "10px",
+    marginTop: "9px",
+  },
+
+  qualityTopGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
-    marginBottom: "20px",
+      "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: "14px",
+    marginBottom: "16px",
   },
 
-  overviewCard: {
-    textAlign: "left",
-    border: "1px solid #dce9eb",
-    borderRadius: "18px",
-    background: "#ffffff",
-    padding: "21px",
-    cursor: "pointer",
-    boxShadow:
-      "0 8px 25px rgba(15, 89, 96, 0.05)",
-    color: "#173f46",
-    minHeight: "155px",
+  bigScoreCard: {
+    background:
+      "linear-gradient(135deg, #073b42, #087f7a)",
+    color: "#ffffff",
+    borderRadius: "17px",
+    padding: "18px",
+    minHeight: "115px",
   },
 
-  overviewTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-  },
-
-  overviewNumber: {
+  metricLabel: {
+    display: "block",
     fontSize: "11px",
     fontWeight: "900",
-    color: "#7a9297",
+    letterSpacing: "1px",
+    color: "#6d8588",
+    marginBottom: "8px",
   },
 
-  overviewArrow: {
-    color: "#0f5960",
+  bigScoreCard: {
+    background:
+      "linear-gradient(135deg, #073b42, #087f7a)",
+    color: "#ffffff",
+    borderRadius: "17px",
+    padding: "18px",
+    minHeight: "115px",
+  },
+
+  bigScoreCard: {
+    background:
+      "linear-gradient(135deg, #073b42, #087f7a)",
+    color: "#ffffff",
+    borderRadius: "17px",
+    padding: "18px",
+    minHeight: "115px",
+  },
+
+  bigScore: {
+    fontSize: "42px",
     fontWeight: "900",
-    fontSize: "18px",
+    display: "inline-block",
   },
 
-  overviewTitle: {
-    fontSize: "12px",
+  scoreSub: {
+    fontSize: "16px",
+    fontWeight: "700",
+    opacity: 0.8,
+    marginLeft: "4px",
+  },
+
+  metric: {
+    background: "#f4f9f8",
+    border: "1px solid #d8e7e6",
+    borderRadius: "17px",
+    padding: "18px",
+    minHeight: "78px",
+  },
+
+  metricTitle: {
+    color: "#6d8588",
+    fontSize: "11px",
     fontWeight: "900",
     letterSpacing: "0.8px",
-    color: "#5d767b",
+    marginBottom: "9px",
   },
 
-  overviewValue: {
-    marginTop: "9px",
-    fontSize: "26px",
+  metricValue: {
+    fontSize: "23px",
     fontWeight: "900",
-    color: "#173f46",
+    color: "#123c42",
   },
 
-  overviewSubtitle: {
-    marginTop: "4px",
+  metricExtra: {
+    marginTop: "7px",
     fontSize: "12px",
-    color: "#72878b",
+    color: "#60777b",
   },
 
-  summaryCard: {
+  progressCard: {
+    background: "#f4f9f8",
+    border: "1px solid #d8e7e6",
+    borderRadius: "17px",
+    padding: "18px",
+    marginBottom: "14px",
+  },
+
+  progressHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "15px",
+    marginBottom: "10px",
+    fontSize: "13px",
+    color: "#45666b",
+    fontWeight: "700",
+  },
+
+  progressTrack: {
+    width: "100%",
+    height: "10px",
+    background: "#d5e3e1",
+    borderRadius: "999px",
+    overflow: "hidden",
+  },
+
+  progressBar: {
+    height: "100%",
+    background:
+      "linear-gradient(90deg, #07545c, #0b9b8d)",
+    borderRadius: "999px",
+    transition: "width .3s ease",
+  },
+
+  remainingCard: {
+    background: "#eaf8f3",
+    border: "1px solid #b9e4d7",
+    borderRadius: "17px",
+    padding: "18px",
+    marginBottom: "18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+  },
+
+  warningBlock: {
+    background: "#fff8e8",
+    border: "1px solid #efd99d",
+    borderRadius: "17px",
+    padding: "20px",
+    marginBottom: "16px",
+  },
+
+  infoBlock: {
+    background: "#f4f9f8",
+    border: "1px solid #d8e7e6",
+    borderRadius: "17px",
+    padding: "20px",
+    marginBottom: "16px",
+  },
+
+  blockTitle: {
+    color: "#537176",
+    fontSize: "11px",
+    fontWeight: "900",
+    letterSpacing: "1px",
+    marginBottom: "9px",
+  },
+
+  blockText: {
+    color: "#16343b",
+    fontSize: "15px",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+  },
+
+  comparisonCard: {
+    background: "#f4f9f8",
+    border: "1px solid #d8e7e6",
+    borderRadius: "17px",
+    padding: "20px",
+    marginBottom: "16px",
+  },
+
+  comparisonGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "15px",
+  },
+
+  comparisonLabel: {
+    display: "block",
+    fontSize: "10px",
+    fontWeight: "900",
+    color: "#71878a",
+    marginBottom: "6px",
+  },
+
+  comparisonValue: {
+    fontSize: "21px",
+    color: "#123c42",
+  },
+
+  listBlock: {
     background: "#ffffff",
-    borderRadius: "20px",
-    padding: "28px",
-    marginBottom: "20px",
-    border: "1px solid #dce9eb",
-    boxShadow:
-      "0 9px 30px rgba(15, 89, 96, 0.06)",
+    border: "1px solid #d8e7e6",
+    borderRadius: "17px",
+    padding: "20px",
+    marginBottom: "16px",
   },
 
-  summaryHeader: {
+  list: {
+    margin: 0,
+    paddingLeft: "20px",
+  },
+
+  listItem: {
+    marginBottom: "9px",
+    lineHeight: 1.5,
+    color: "#28484e",
+  },
+
+  sectionHeader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: "15px",
+    marginBottom: "20px",
     flexWrap: "wrap",
-    marginBottom: "26px",
   },
 
-  eyebrow: {
-    margin: "0 0 6px",
-    color: "#6d858a",
+  sectionEyebrow: {
+    margin: "0 0 5px",
+    color: "#0b8983",
     fontSize: "10px",
     fontWeight: "900",
     letterSpacing: "1.2px",
   },
 
-  statusPill: {
-    background: "#e7f4f2",
-    color: "#0f5960",
-    border: "1px solid #c6e4e0",
+  statusGood: {
+    background: "#e7f7ef",
+    color: "#087f5b",
+    border: "1px solid #b5e4cf",
     padding: "8px 13px",
     borderRadius: "999px",
     fontSize: "11px",
     fontWeight: "900",
   },
 
-  progressArea: {
-    marginBottom: "25px",
-  },
-
-  progressLabels: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "15px",
-    fontSize: "13px",
-    color: "#5e7479",
-    fontWeight: "700",
-    marginBottom: "10px",
-  },
-
-  progressTrack: {
-    width: "100%",
-    height: "12px",
-    background: "#e2ecee",
+  statusProcess: {
+    background: "#e7f4f5",
+    color: "#07545c",
+    border: "1px solid #b7dfe1",
+    padding: "8px 13px",
     borderRadius: "999px",
-    overflow: "hidden",
+    fontSize: "11px",
+    fontWeight: "900",
   },
 
-  progressFill: {
-    height: "100%",
+  statusWarning: {
+    background: "#fff3e1",
+    color: "#a15c00",
+    border: "1px solid #f0d09c",
+    padding: "8px 13px",
     borderRadius: "999px",
-    background:
-      "linear-gradient(90deg, #0f5960, #159a91)",
-    transition: "width 0.3s ease",
-  },
-
-  progressFooter: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "8px",
     fontSize: "11px",
-    color: "#7a8f94",
-  },
-
-  quickGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(150px, 1fr))",
-    gap: "12px",
-  },
-
-  miniMetric: {
-    background: "#f5f9f9",
-    border: "1px solid #e1ecee",
-    borderRadius: "13px",
-    padding: "15px",
-  },
-
-  miniMetric: {
-    background: "#f5f9f9",
-    border: "1px solid #e1ecee",
-    borderRadius: "13px",
-    padding: "15px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  noticeCard: {
-    display: "flex",
-    gap: "14px",
-    alignItems: "flex-start",
-    background: "#fffdf6",
-    border: "1px solid #eedda9",
-    borderRadius: "16px",
-    padding: "18px",
-    marginBottom: "20px",
-  },
-
-  noticeIcon: {
-    width: "30px",
-    height: "30px",
-    borderRadius: "50%",
-    background: "#f1d98b",
-    color: "#735400",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     fontWeight: "900",
   },
 
-  noticeText: {
-    margin: "5px 0 0",
-    color: "#776b48",
-  },
-
-  sectionHeading: {
-    display: "flex",
-    alignItems: "center",
-    gap: "15px",
-    marginBottom: "20px",
-  },
-
-  sectionNumber: {
-    width: "45px",
-    height: "45px",
-    borderRadius: "13px",
-    background: "#0f5960",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "900",
-    fontSize: "12px",
-    boxShadow:
-      "0 7px 18px rgba(15, 89, 96, 0.16)",
-  },
-
-  sectionHeadingTitle: {
-    margin: 0,
-    fontSize: "25px",
-    color: "#173f46",
-    letterSpacing: "-0.3px",
-  },
-
-  sectionHeadingDescription: {
-    margin: "4px 0 0",
-    color: "#6d858a",
-    fontSize: "13px",
-  },
-
-  qualityHero: {
-    background:
-      "linear-gradient(135deg, #173f46 0%, #0f5960 100%)",
-    color: "#ffffff",
-    borderRadius: "22px",
-    padding: "30px",
-    marginBottom: "20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "30px",
-  },
-
-  eyebrowLight: {
-    margin: "0 0 7px",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "1.1px",
-    opacity: 0.75,
-  },
-
-  qualityScore: {
-    fontSize: "48px",
-    fontWeight: "900",
-    lineHeight: 1,
-  },
-
-  qualityScoreSpan: {
-    fontSize: "17px",
-    fontWeight: "700",
-    opacity: 0.75,
-  },
-
-  qualityState: {
-    marginTop: "15px",
-  },
-
-  qualityObjective: {
-    minWidth: "190px",
-    background: "rgba(255,255,255,0.10)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    borderRadius: "16px",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  qualityObjective: {
-    minWidth: "190px",
-    background: "rgba(255,255,255,0.10)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    borderRadius: "16px",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  qualityObjectiveSpan: {
-    fontSize: "11px",
-  },
-
-  twoColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(290px, 1fr))",
-    gap: "20px",
-  },
-
-  threeColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "15px",
-    marginBottom: "20px",
-  },
-
-  fourColumns: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(170px, 1fr))",
-    gap: "15px",
-    marginBottom: "20px",
-  },
-
-  metricCard: {
-    background: "#ffffff",
-    border: "1px solid #dce9eb",
-    borderRadius: "17px",
-    padding: "19px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-    boxShadow:
-      "0 7px 22px rgba(15, 89, 96, 0.04)",
-  },
-
-  metricCardSpan: {
-    color: "#6d858a",
-    fontSize: "12px",
-    fontWeight: "800",
-  },
-
-  metricCardStrong: {
-    color: "#173f46",
-    fontSize: "25px",
-    fontWeight: "900",
-  },
-
-  metricCardSmall: {
-    color: "#7b8f94",
-    fontSize: "11px",
-  },
-
-  sectionTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: "9px",
-    marginBottom: "20px",
-  },
-
-  sectionTitleSpan: {
-    width: "7px",
-    height: "27px",
-    background: "#159a91",
-    borderRadius: "5px",
-  },
-
-  sectionTitleH2: {
-    margin: 0,
-    fontSize: "18px",
-    color: "#173f46",
-  },
-
-  infoText: {
-    color: "#38585e",
-    lineHeight: 1.65,
-    whiteSpace: "pre-wrap",
-  },
-
-  warning: {
-    background: "#fff9eb",
-    border: "1px solid #efdca8",
-    borderRadius: "13px",
-    padding: "18px",
-  },
-
-  comparisonBox: {
-    display: "grid",
-    gridTemplateColumns:
-      "1fr auto 1fr auto",
-    alignItems: "center",
-    gap: "18px",
-    background: "#f5f9f9",
-    border: "1px solid #e1ecee",
-    borderRadius: "15px",
-    padding: "20px",
-  },
-
-  comparisonBoxDiv: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-
-  comparisonArrow: {
-    color: "#0f5960",
-    fontSize: "23px",
-    fontWeight: "900",
-  },
-
-  comparisonResult: {
-    fontSize: "22px",
-    fontWeight: "900",
-  },
-
-  noComparison: {
-    padding: "20px",
-    background: "#f6f9f9",
-    borderRadius: "13px",
-    color: "#71858a",
-  },
-
-  list: {
-    margin: 0,
-    padding: 0,
-    listStyle: "none",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-
-  listItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "10px",
-    lineHeight: 1.5,
-    color: "#38585e",
-  },
-
-  listDot: {
-    width: "7px",
-    height: "7px",
-    marginTop: "7px",
-    borderRadius: "50%",
-    background: "#159a91",
-    flexShrink: 0,
-  },
-
-  auditReference: {
-    background: "#f5f9f9",
-    border: "1px solid #e1ecee",
-    borderRadius: "13px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-
-  audioBox: {
-    background: "#f5f9f9",
-    borderRadius: "13px",
-    padding: "17px",
-    marginTop: "16px",
-  },
-
-  productivityHero: {
-    background:
-      "linear-gradient(135deg, #287b91 0%, #159a91 100%)",
-    color: "#ffffff",
-    borderRadius: "22px",
-    padding: "30px",
-    marginBottom: "20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-around",
-    gap: "30px",
-  },
-
-  productivityMain: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "6px",
-  },
-
-  productivityDivider: {
-    width: "1px",
-    height: "80px",
-    background: "rgba(255,255,255,0.28)",
-  },
-
-  tipHero: {
-    background:
-      "linear-gradient(135deg, #0f5960, #159a91)",
-    color: "#ffffff",
-    borderRadius: "22px",
-    padding: "28px",
-    marginBottom: "20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  tipHeroTitle: {
-    margin: 0,
-    fontSize: "29px",
-  },
-
-  indicatorCircle: {
-    width: "76px",
-    height: "76px",
-    borderRadius: "50%",
-    background: "#ffffff",
-    color: "#0f5960",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "900",
-    fontSize: "14px",
-  },
-
-  auditHero: {
-    background:
-      "linear-gradient(135deg, #173f46, #287b91)",
-    color: "#ffffff",
-    borderRadius: "22px",
-    padding: "30px",
-    marginBottom: "20px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "25px",
-  },
-
-  auditNumber: {
-    display: "block",
-    fontSize: "48px",
-    lineHeight: 1,
-  },
-
-  auditLabel: {
-    display: "block",
-    marginTop: "7px",
-    opacity: 0.75,
-    fontSize: "12px",
-  },
-
-  auditStatus: {
-    background: "rgba(255,255,255,0.10)",
-    border: "1px solid rgba(255,255,255,0.17)",
-    padding: "18px",
-    borderRadius: "14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  historyIntro: {
-    marginBottom: "20px",
-  },
-
-  historyList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "9px",
-  },
-
-  historyRow: {
-    width: "100%",
-    border: "1px solid #dce9eb",
-    background: "#f8fbfb",
-    borderRadius: "14px",
-    padding: "15px",
-    display: "grid",
-    gridTemplateColumns:
-      "2fr 1fr 1.5fr 0.7fr 30px",
-    alignItems: "center",
-    gap: "15px",
-    textAlign: "left",
-    cursor: "pointer",
-    color: "#173f46",
-  },
-
-  historyRowActive: {
-    border: "2px solid #159a91",
-    background: "#eef8f7",
-  },
-
-  historyWeek: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    fontWeight: "800",
-  },
-
-  historyScore: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-
-  historyState: {
-    display: "inline-block",
-    background: "#e7f4f2",
-    color: "#0f5960",
+  statusNeutral: {
+    background: "#edf2f3",
+    color: "#52686c",
+    border: "1px solid #d3dfe0",
+    padding: "8px 13px",
     borderRadius: "999px",
-    padding: "6px 9px",
-    fontSize: "10px",
-    fontWeight: "800",
-  },
-
-  variation: {
+    fontSize: "11px",
     fontWeight: "900",
-    fontSize: "16px",
-  },
-
-  arrow: {
-    color: "#0f5960",
-    fontWeight: "900",
-    fontSize: "18px",
-  },
-
-  closeButton: {
-    border: "1px solid #cddde0",
-    background: "#ffffff",
-    color: "#49676c",
-    borderRadius: "10px",
-    padding: "9px 14px",
-    fontWeight: "800",
-    cursor: "pointer",
-  },
-
-  activitiesEmpty: {
-    background: "#ffffff",
-    border: "1px solid #dce9eb",
-    borderRadius: "22px",
-    padding: "70px 30px",
-    textAlign: "center",
-    boxShadow:
-      "0 9px 30px rgba(15, 89, 96, 0.05)",
-  },
-
-  activitiesIcon: {
-    width: "64px",
-    height: "64px",
-    margin: "0 auto 18px",
-    borderRadius: "20px",
-    background: "#e7f4f2",
-    color: "#0f5960",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "28px",
-    fontWeight: "300",
-  },
-
-  feedbackCard: {
-    background: "#ffffff",
-    borderRadius: "22px",
-    padding: "32px",
-    border: "1px solid #dce9eb",
-    boxShadow:
-      "0 10px 35px rgba(15, 89, 96, 0.06)",
-  },
-
-  feedbackTop: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "17px",
-    marginBottom: "25px",
-  },
-
-  feedbackIcon: {
-    width: "50px",
-    height: "50px",
-    borderRadius: "15px",
-    background: "#e7f4f2",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "22px",
-  },
-
-  feedbackTextarea: {
-    width: "100%",
-    minHeight: "180px",
-    boxSizing: "border-box",
-    padding: "16px",
-    borderRadius: "14px",
-    border: "1px solid #cddde0",
-    fontFamily:
-      "Arial, Helvetica, sans-serif",
-    fontSize: "15px",
-    color: "#173f46",
-    resize: "vertical",
-    outline: "none",
-  },
-
-  feedbackSuccess: {
-    background: "#edf9f5",
-    border: "1px solid #b9e5d5",
-    borderRadius: "15px",
-    padding: "22px",
-    color: "#087f5b",
   },
 
   emptyState: {
-    background: "#ffffff",
-    border: "1px solid #dce9eb",
-    borderRadius: "22px",
-    padding: "65px 30px",
     textAlign: "center",
-    boxShadow:
-      "0 10px 35px rgba(15, 89, 96, 0.06)",
+    padding: "45px 20px",
   },
 
   emptyIcon: {
-    width: "62px",
-    height: "62px",
-    margin: "0 auto 18px",
-    borderRadius: "18px",
-    background: "#e7f4f2",
-    color: "#0f5960",
+    width: "58px",
+    height: "58px",
+    borderRadius: "50%",
+    background: "#e6f4f1",
+    color: "#087f7a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    margin: "0 auto 15px",
     fontSize: "25px",
     fontWeight: "900",
   },
 
-  adminSection: {
-    background: "#f5f9f9",
-    border: "1px solid #dce9eb",
-    borderRadius: "17px",
-    padding: "22px",
-    marginTop: "24px",
+  emptyActivity: {
+    border: "2px dashed #c9dddb",
+    borderRadius: "18px",
+    padding: "50px 20px",
+    textAlign: "center",
+    background: "#f8fbfa",
   },
 
-  adminSectionTitle: {
-    margin: 0,
-    color: "#0f5960",
-    fontSize: "19px",
+  activityIcon: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "50%",
+    background: "#dff1ee",
+    color: "#087f7a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 15px",
+    fontSize: "27px",
+    fontWeight: "700",
   },
 
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "5px 18px",
+  feedbackSection: {
+    background:
+      "linear-gradient(145deg, #073b42 0%, #087f7a 100%)",
+    color: "#ffffff",
+    borderRadius: "24px",
+    padding: "30px",
+    marginTop: "22px",
+    marginBottom: "30px",
+    boxShadow:
+      "0 15px 40px rgba(7, 59, 66, 0.17)",
+  },
+
+  feedbackQuestion: {
+    color: "rgba(255,255,255,.85)",
+    lineHeight: 1.6,
+    marginBottom: "18px",
+  },
+
+  feedbackInput: {
+    width: "100%",
+    minHeight: "125px",
+    boxSizing: "border-box",
+    padding: "15px",
+    borderRadius: "13px",
+    border: "1px solid rgba(255,255,255,.25)",
+    background: "#ffffff",
+    color: "#16343b",
+    fontSize: "15px",
+    resize: "vertical",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+  },
+
+  feedbackButton: {
+    marginTop: "13px",
+    border: "none",
+    borderRadius: "11px",
+    padding: "13px 20px",
+    background: "#ffffff",
+    color: "#07545c",
+    fontWeight: "900",
+    cursor: "pointer",
   },
 
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "650px",
+    minWidth: "600px",
   },
 
   th: {
     textAlign: "left",
     padding: "13px",
-    background: "#edf5f5",
-    color: "#34545a",
-    borderBottom: "1px solid #dce9eb",
+    background: "#eaf3f2",
+    borderBottom: "1px solid #d4e3e1",
     fontSize: "12px",
+    color: "#31575d",
   },
 
   td: {
     padding: "13px",
-    borderBottom: "1px solid #e6eff0",
-    fontSize: "13px",
-  },
-
-  sectionTop: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "15px",
-    flexWrap: "wrap",
-    marginBottom: "20px",
-  },
-
-  statusBadge: {
-    background: "#fff8e7",
-    color: "#8a6100",
-    border: "1px solid #ecd99e",
-    padding: "8px 13px",
-    borderRadius: "999px",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "0.3px",
-  },
-
-  statusBadgeLight: {
-    background: "rgba(255,255,255,0.14)",
-    color: "#ffffff",
-    border: "1px solid rgba(255,255,255,0.25)",
+    borderBottom: "1px solid #e7eeee",
+    fontSize: "14px",
+    color: "#28484e",
   },
 };
