@@ -1,1619 +1,2397 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;
-
-const ADMIN_EMAIL = "admin@portalcalidad.com";
-
-const TABS = [
-  "CALIDAD",
-  "PRODUCTIVIDAD",
-  "TIPIFICACIONES",
-  "AUDITORÍAS",
-  "ACTIVIDADES",
-  "HISTÓRICO",
-  "FEEDBACK",
+const ASESORES = [
+  ["Acosta, Pamela", "8134"],
+  ["Aguilera, Trinidad", "8196"],
+  ["Bahamonde, Camila", "8135"],
+  ["Bustamante, Ailin", "8188"],
+  ["Bustos, Jesica", "8141"],
+  ["Bustos, Nicolas", "8214"],
+  ["Cabrera, Antonella", "8187"],
+  ["Contreras, Gilary", "8046"],
+  ["Cordoba, Tania", "8202"],
+  ["Diaz, Milagros", "8212"],
+  ["Gomez, Carla", "8126"],
+  ["Luna, Oriana", "8097"],
+  ["Malqui, Xiomara", "8092"],
+  ["Mercado, Chiara", "8209"],
+  ["Ojeda, Luana", "8200"],
+  ["Olmedo, Thomas", "8192"],
+  ["Peralta, Belen", "8207"],
+  ["Reartes, Maia", "8201"],
+  ["Rojek, Luna", "8213"],
+  ["Simonetta, Valentina", "8191"],
+  ["Tello, Marianela", "8042"],
+  ["Vasquez, Agustin", "8136"],
+  ["Viniegra, Agustín", "8199"],
 ];
 
-function normalize(value) {
-  return String(value || "").trim().toLowerCase();
-}
+const ADMIN_MAIL = "admin@portalcalidad.com";
 
-function asArray(value) {
-  if (Array.isArray(value)) return value;
+const ITEMS_CALIDAD = [
+  "Información de otras compañías",
+  "Presentación HS",
+  "Validación de datos",
+  "Cláusula de aceptación",
+  "Información",
+  "Preexistencia",
+  "Negociación",
+  "Precio",
+  "Suscripción",
+];
 
-  if (!value) return [];
+const ACCIONES_CALIDAD = [
+  "Escucha personalizada",
+  "Feedback individual",
+  "Espacio de coaching",
+  "Mesa de trabajo",
+  "Simulación de llamada",
+  "Transcripción de venta mediante Word con desvíos marcados",
+  "Seguimiento diario",
+];
 
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
+const ITEMS_PRODUCTIVIDAD = [
+  "Cierre con seguridad comercial",
+  "Ofrecimiento",
+  "Rebate comercial",
+  "Rebate asertivo",
+  "Generación de interés",
+  "Escucha activa",
+  "Venta consultiva",
+  "Venta conversacional",
+  "Cambio de apertura",
+];
 
-    return value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+const ACCIONES_PRODUCTIVIDAD = [
+  "Simulación de llamada",
+  "Acompañamiento en línea",
+  "Devolución personalizada",
+  "Seguimiento diario",
+  "Espacio de coaching",
+  "Escucha personalizada",
+  "Mesa de trabajo",
+];
+
+const TIPIFICACIONES = [
+  "No conforme con sumas aseguradas",
+  "No interesado - Producto",
+  "No interesado - No informa motivo",
+  "Problemas económicos",
+  "No interesado - Precio",
+  "No interesado - Beneficios",
+  "No interesado - Cobertura",
+  "Cliente solicita información",
+  "Cliente ya posee cobertura",
+  "Otro motivo",
+];
+
+const OM = [
+  "Generación de interés",
+  "Cambio de apertura",
+  "Escucha activa",
+  "Venta consultiva",
+  "Venta conversacional",
+  "Rebate comercial",
+  "Rebate asertivo",
+  "Manejo de objeciones",
+  "Cierre",
+  "Presentación del producto",
+];
+
+const FORTALEZAS = [
+  "Adaptabilidad",
+  "Buena detección de necesidad",
+  "Claridad en explicación",
+  "Buen manejo de silencios",
+  "Correcta contención",
+  "Seguridad comercial",
+  "Buena comunicación",
+  "Correcto manejo de objeciones",
+];
+
+function getStoredReports() {
+  try {
+    return JSON.parse(localStorage.getItem("portal_reportes") || "[]");
+  } catch {
+    return [];
   }
-
-  return [];
 }
 
-function porcentaje(valor, objetivo) {
-  const v = Number(valor);
-  const o = Number(objetivo);
-
-  if (!o || Number.isNaN(v)) return 0;
-
-  return Math.min(100, Math.max(0, Math.round((v / o) * 100)));
+function saveStoredReports(reports) {
+  localStorage.setItem("portal_reportes", JSON.stringify(reports));
 }
 
-function estadoClase(estado) {
-  const texto = normalize(estado);
+function MultiSelect({ options, value, onChange }) {
+  const toggle = (item) => {
+    if (value.includes(item)) {
+      onChange(value.filter((x) => x !== item));
+    } else {
+      onChange([...value, item]);
+    }
+  };
 
-  if (texto.includes("alcanzado")) return "success";
-  if (texto.includes("debajo")) return "danger";
-
-  return "warning";
-}
-
-function Pill({ children, type }) {
-  return <span className={`pill ${type || ""}`}>{children}</span>;
-}
-
-function SectionTitle({ number, title, subtitle }) {
   return (
-    <div className="sectionTitle">
-      <div className="sectionNumber">{number}</div>
-
-      <div>
-        <h2>{title}</h2>
-        {subtitle && <p>{subtitle}</p>}
+    <div className="multiBox">
+      <div className="multiCount">
+        {value.length} seleccionada{value.length === 1 ? "" : "s"}
       </div>
-    </div>
-  );
-}
 
-function Metric({ label, value, small }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong className={small ? "smallMetric" : ""}>{value ?? "-"}</strong>
-    </div>
-  );
-}
-
-function ListBlock({ title, items }) {
-  const list = asArray(items);
-
-  return (
-    <div className="listBlock">
-      <h4>{title}</h4>
-
-      {list.length ? (
-        <div className="tagList">
-          {list.map((item, index) => (
-            <span className="tag" key={`${item}-${index}`}>
-              {item}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="emptyText">No hay información cargada.</div>
-      )}
-    </div>
-  );
-}
-
-function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    setError("");
-
-    if (!email.trim() || !password) {
-      setError("Ingresá tu email y contraseña.");
-      return;
-    }
-
-    if (!supabase) {
-      setError("No está configurada la conexión con Supabase.");
-      return;
-    }
-
-    setLoading(true);
-
-    const { data, error: loginError } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-    if (loginError || !data?.user) {
-      setError("El email o la contraseña no son correctos.");
-      setLoading(false);
-      return;
-    }
-
-    await onLogin(data.user);
-    setLoading(false);
-  }
-
-  return (
-    <main className="loginPage">
-      <div className="loginDecor decorOne" />
-      <div className="loginDecor decorTwo" />
-
-      <div className="loginCard">
-        <div className="brandMark">PC</div>
-
-        <div className="loginBrand">PORTAL DE CALIDAD</div>
-
-        <h1>Ingresá a tu portal</h1>
-
-        <p>
-          Consultá tu evolución, objetivos y acciones de calidad.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Ingresá tu email"
-              autoComplete="email"
-            />
-          </label>
-
-          <label>
-            Contraseña
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Ingresá tu contraseña"
-              autoComplete="current-password"
-            />
-          </label>
-
-          {error && <div className="loginError">{error}</div>}
-
-          <button className="primaryButton loginButton" disabled={loading}>
-            {loading ? "INGRESANDO..." : "INGRESAR"}
-          </button>
-        </form>
-      </div>
-    </main>
-  );
-}
-
-function Portal({ reporte, user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("CALIDAD");
-
-  const nombre = useMemo(() => {
-    if (!reporte?.asesor) {
-      return user?.email?.split("@")[0] || "Asesor";
-    }
-
-    return reporte.asesor;
-  }, [reporte, user]);
-
-  if (!reporte) {
-    return (
-      <main className="portalPage">
-        <header className="topHeader">
-          <div>
-            <div className="brandSmall">PORTAL DE CALIDAD</div>
-            <h1>Hola, {nombre}</h1>
-            <p>Tu reporte de calidad</p>
-          </div>
-
-          <button className="logoutButton" onClick={onLogout}>
-            Cerrar sesión
-          </button>
-        </header>
-
-        <div className="noReport">
-          <div className="noReportIcon">01</div>
-          <h2>Todavía no hay un reporte cargado.</h2>
-          <p>
-            Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  const calidadProgress = porcentaje(
-    Number(reporte.nota),
-    Number(reporte.objetivo_calidad || reporte.objetivo || 70)
-  );
-
-  const objetivoCalidad =
-    reporte.objetivo_calidad || reporte.objetivo || 70;
-
-  const cuantoFalta = Math.max(
-    0,
-    Number(objetivoCalidad) - Number(reporte.nota || 0)
-  );
-
-  return (
-    <main className="portalPage">
-      <header className="topHeader">
-        <div>
-          <div className="brandSmall">PORTAL DE CALIDAD</div>
-
-          <h1>Hola, {nombre}</h1>
-
-          <div className="headerInfo">
-            <span>{reporte.semana || "Semana"}</span>
-
-            <Pill type={estadoClase(reporte.estado_objetivo)}>
-              {reporte.estado_objetivo || "EN SEGUIMIENTO"}
-            </Pill>
-          </div>
-        </div>
-
-        <button className="logoutButton" onClick={onLogout}>
-          Cerrar sesión
-        </button>
-      </header>
-
-      <nav className="tabs">
-        {TABS.map((tab) => (
+      <div className="multiOptions">
+        {options.map((item) => (
           <button
-            key={tab}
-            className={activeTab === tab ? "tab active" : "tab"}
-            onClick={() => setActiveTab(tab)}
+            type="button"
+            key={item}
+            className={`multiOption ${value.includes(item) ? "selected" : ""}`}
+            onClick={() => toggle(item)}
           >
-            {tab}
+            <span>{value.includes(item) ? "✓" : ""}</span>
+            {item}
           </button>
         ))}
-      </nav>
-
-      <div className="content">
-        {activeTab === "CALIDAD" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="01"
-              title="CALIDAD"
-              subtitle="Resultado y evolución de tu calidad."
-            />
-
-            <div className="heroGrid">
-              <div className="scoreCard">
-                <span>NOTA</span>
-
-                <div className="score">
-                  {reporte.nota ?? "-"}
-                  <small>/ 100</small>
-                </div>
-
-                <div className="objectiveLine">
-                  <span>OBJETIVO</span>
-                  <strong>{objetivoCalidad}</strong>
-                </div>
-
-                <Pill type={estadoClase(reporte.estado_objetivo)}>
-                  {reporte.estado_objetivo || "EN SEGUIMIENTO"}
-                </Pill>
-              </div>
-
-              <div className="progressCard">
-                <div className="progressHeader">
-                  <span>PROGRESO HACIA EL OBJETIVO</span>
-                  <strong>{calidadProgress}%</strong>
-                </div>
-
-                <div className="progressTrack">
-                  <div
-                    className="progressValue"
-                    style={{ width: `${calidadProgress}%` }}
-                  />
-                </div>
-
-                <div className="progressBottom">
-                  <span>Producto</span>
-                  <strong>{reporte.producto || "-"}</strong>
-                </div>
-
-                <div className="progressBottom">
-                  <span>Cuánto falta para alcanzar el objetivo</span>
-                  <strong>{cuantoFalta} puntos</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="infoGrid">
-              <div className="infoCard highlight">
-                <span>DESVÍO PRINCIPAL</span>
-                <strong>{reporte.desvio || "Sin información"}</strong>
-              </div>
-
-              <div className="infoCard">
-                <span>COMPARATIVO SEMANAL</span>
-                <strong>
-                  {reporte.evolucion ||
-                    "Todavía no hay una semana anterior para comparar."}
-                </strong>
-              </div>
-            </div>
-
-            <div className="twoColumns">
-              <ListBlock
-                title="ITEMS TRABAJADOS"
-                items={reporte.items_calidad}
-              />
-
-              <ListBlock
-                title="ACCIONES REALIZADAS"
-                items={reporte.acciones_calidad}
-              />
-            </div>
-
-            <div className="auditInsideQuality">
-              <div className="cardHeader">
-                <div>
-                  <span className="eyebrow">AUDITORÍA</span>
-                  <h3>
-                    {reporte.auditoria || "Sin información de auditoría"}
-                  </h3>
-                </div>
-
-                {reporte.estado_auditoria && (
-                  <Pill>{reporte.estado_auditoria}</Pill>
-                )}
-              </div>
-
-              {reporte.audio_url && (
-                <div className="audioBox">
-                  <span>AUDIO DE AUDITORÍA</span>
-                  <audio controls src={reporte.audio_url} />
-                </div>
-              )}
-
-              <div className="observation">
-                <span>OBSERVACIONES</span>
-                <p>
-                  {reporte.observaciones ||
-                    "No hay observaciones cargadas."}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "PRODUCTIVIDAD" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="02"
-              title="PRODUCTIVIDAD"
-              subtitle="Seguimiento de tus indicadores de productividad."
-            />
-
-            <div className="metricGrid">
-              <Metric label="SPH" value={reporte.sph} />
-              <Metric
-                label="OBJETIVO SPH"
-                value={reporte.objetivo_sph}
-              />
-              <Metric label="VENTAS" value={reporte.ventas} />
-              <Metric
-                label="OBJETIVO VENTAS"
-                value={reporte.objetivo_ventas}
-              />
-              <Metric
-                label="OBJETIVO DE CAMPAÑA"
-                value={reporte.objetivo_campania}
-              />
-            </div>
-
-            <div className="statusRow">
-              <div>
-                <span>ESTADO SPH</span>
-                <Pill type={estadoClase(reporte.estado_sph)}>
-                  {reporte.estado_sph || "En proceso"}
-                </Pill>
-              </div>
-
-              <div>
-                <span>ESTADO VENTAS</span>
-                <Pill type={estadoClase(reporte.estado_ventas)}>
-                  {reporte.estado_ventas || "En proceso"}
-                </Pill>
-              </div>
-
-              <div>
-                <span>ESTADO CAMPAÑA</span>
-                <Pill type={estadoClase(reporte.estado_campania)}>
-                  {reporte.estado_campania || "En proceso"}
-                </Pill>
-              </div>
-            </div>
-
-            <div className="singleCard">
-              <span className="eyebrow">COMPARATIVO SEMANAL</span>
-              <p>
-                {reporte.evolucion ||
-                  "Todavía no hay una semana anterior para comparar."}
-              </p>
-            </div>
-
-            <div className="twoColumns">
-              <ListBlock
-                title="ITEMS TRABAJADOS"
-                items={reporte.items_productividad}
-              />
-
-              <ListBlock
-                title="ACCIONES REALIZADAS"
-                items={reporte.acciones_productividad}
-              />
-            </div>
-
-            <div className="observationCard">
-              <span>OBSERVACIONES</span>
-              <p>
-                {reporte.observaciones_productividad ||
-                  "No hay observaciones cargadas."}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "TIPIFICACIONES" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="03"
-              title="TIPIFICACIONES"
-              subtitle="Seguimiento de las tipificaciones realizadas."
-            />
-
-            <div className="tipTop">
-              <Pill type={estadoClase(reporte.estado_tipificaciones)}>
-                {reporte.estado_tipificaciones || "En proceso"}
-              </Pill>
-
-              <Metric
-                label="DESVÍO"
-                value={
-                  reporte.tipificacion_desvio ??
-                  reporte.desvio_tipificacion ??
-                  "-"
-                }
-              />
-
-              <Metric
-                label="OBJETIVO"
-                value={
-                  reporte.tipificacion_objetivo ??
-                  reporte.objetivo_tipificacion ??
-                  "-"
-                }
-              />
-
-              <Metric
-                label="RESULTADO"
-                value={
-                  reporte.tipificacion_resultado ??
-                  reporte.resultado_tipificacion ??
-                  "-"
-                }
-              />
-            </div>
-
-            <ListBlock
-              title="TIPIFICACIONES"
-              items={reporte.tipificaciones}
-            />
-
-            <div className="singleCard">
-              <span className="eyebrow">COMPROMISO</span>
-              <strong>
-                {reporte.tipificacion_compromiso ||
-                  reporte.compromiso_tipificacion ||
-                  "-"}
-              </strong>
-            </div>
-
-            <div className="observationCard">
-              <span>OBSERVACIONES</span>
-              <p>
-                {reporte.tipificacion_observaciones ||
-                  reporte.observaciones_tipificacion ||
-                  "Sin observaciones cargadas."}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "AUDITORÍAS" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="04"
-              title="AUDITORÍAS DE NO VENTAS"
-              subtitle="Seguimiento de las llamadas no convertidas."
-            />
-
-            <div className="metricGrid">
-              <Metric
-                label="CANTIDAD"
-                value={reporte.cantidad_no_ventas}
-              />
-
-              <Metric
-                label="COACHING"
-                value={reporte.coaching_no_ventas}
-              />
-
-              <Metric
-                label="REGISTRO EN SISTEMA"
-                value={reporte.registro_sistema}
-              />
-
-              <Metric
-                label="COMPROMISO"
-                value={reporte.compromiso_no_ventas}
-              />
-            </div>
-
-            <div className="twoColumns">
-              <ListBlock
-                title="PRINCIPALES O.M."
-                items={
-                  reporte.om_detectadas ||
-                  reporte.principales_om
-                }
-              />
-
-              <ListBlock
-                title="FORTALEZAS"
-                items={reporte.fortalezas}
-              />
-            </div>
-
-            <div className="observationCard">
-              <span>OBSERVACIONES</span>
-              <p>
-                {reporte.observaciones_no_ventas ||
-                  "No hay observaciones cargadas."}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "ACTIVIDADES" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="05"
-              title="ACTIVIDADES"
-              subtitle="Espacio destinado a registrar y consultar actividades."
-            />
-
-            <div className="comingSoon">
-              <div className="plusCircle">+</div>
-              <h3>Próximamente</h3>
-              <p>
-                Esta sección quedará disponible para registrar y consultar
-                actividades.
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "HISTÓRICO" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="06"
-              title="HISTÓRICO"
-              subtitle="Evolución de tus reportes."
-            />
-
-            <div className="comingSoon">
-              <div className="historyIcon">↗</div>
-              <h3>Histórico</h3>
-              <p>
-                Acá podrás consultar la evolución de tus reportes
-                semanales.
-              </p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === "FEEDBACK" && (
-          <section className="tabContent">
-            <SectionTitle
-              number="07"
-              title="FEEDBACK DEL ASESOR"
-              subtitle="Tu espacio para comunicarte con Calidad."
-            />
-
-            <div className="feedbackCard">
-              <h3>¿Querés dejar algún comentario?</h3>
-
-              <p>
-                Dejá una consulta, comentario o algo que quieras trabajar
-                con Calidad.
-              </p>
-
-              <textarea
-                placeholder="Escribí tu comentario..."
-                rows={7}
-              />
-
-              <button className="primaryButton">
-                ENVIAR FEEDBACK
-              </button>
-            </div>
-          </section>
-        )}
       </div>
-    </main>
+    </div>
   );
+}
+
+function Field({ label, children }) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Section({ number, title, children }) {
+  return (
+    <section className="adminSection">
+      <div className="sectionNumber">{number}</div>
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Badge({ children, type = "default" }) {
+  return <span className={`badge ${type}`}>{children}</span>;
 }
 
 export default function Page() {
-  const [session, setSession] = useState(null);
-  const [reporte, setReporte] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [screen, setScreen] = useState("login");
+  const [email, setEmail] = useState("");
+  const [selectedAdvisor, setSelectedAdvisor] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [reports, setReports] = useState([]);
+  const [activeTab, setActiveTab] = useState("calidad");
+  const [feedback, setFeedback] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
-  async function cargarReporte(user) {
-    if (!supabase || !user) return null;
+  const [form, setForm] = useState({
+    asesor: "",
+    usuario: "",
+    semana: "",
+    nota: "",
+    objetivo: "70",
+    estado_objetivo: "DEBAJO DEL OBJETIVO",
+    producto: "AP",
+    desvio: "",
+    recomendacion: "",
+    objetivo_trabajo: "",
+    items_calidad: [],
+    acciones_calidad: [],
+    auditoria: "",
+    estado_auditoria: "Sin información",
+    observaciones_auditoria: "",
+    audio_url: "",
+    audio_name: "",
+    audio_data: "",
 
-    const email = normalize(user.email);
+    sph: "",
+    objetivo_sph: "",
+    ventas: "",
+    objetivo_ventas: "",
+    objetivo_campania: "",
+    estado_sph: "En proceso",
+    estado_ventas: "En proceso",
+    estado_campania: "En proceso",
+    items_productividad: [],
+    acciones_productividad: [],
+    observaciones_productividad: "",
 
-    if (email === normalize(ADMIN_EMAIL)) {
-      return null;
-    }
+    objetivo_tipificaciones: "",
+    tipificaciones: [],
+    estado_tipificaciones: "En proceso",
+    tipificacion_desvio: "",
+    tipificacion_objetivo: "",
+    tipificacion_resultado: "",
+    tipificacion_compromiso: "",
+    tipificacion_observaciones: "",
 
-    const { data, error } = await supabase
-      .from("reportes")
-      .select("*")
-      .eq("usuario", email)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error cargando reporte:", error);
-      return null;
-    }
-
-    return data;
-  }
+    cantidad_no_ventas: "",
+    om_detectadas: [],
+    coaching_no_ventas: "",
+    registro_sistema: "CORRECTA",
+    compromiso_no_ventas: "",
+    fortalezas: [],
+    observaciones_no_ventas: "",
+    observaciones_generales: "",
+  });
 
   useEffect(() => {
-    let mounted = true;
-
-    async function init() {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-
-      if (!mounted) return;
-
-      setSession(currentSession);
-
-      if (currentSession?.user) {
-        const data = await cargarReporte(currentSession.user);
-
-        if (mounted) {
-          setReporte(data);
-        }
-      }
-
-      if (mounted) {
-        setLoading(false);
-      }
-    }
-
-    init();
-
-    const {
-      data: { subscription },
-    } = supabase
-      ? supabase.auth.onAuthStateChange(async (_event, newSession) => {
-          if (!mounted) return;
-
-          setSession(newSession);
-
-          if (newSession?.user) {
-            const data = await cargarReporte(newSession.user);
-
-            if (mounted) {
-              setReporte(data);
-            }
-          } else {
-            setReporte(null);
-          }
-        })
-      : { data: { subscription: null } };
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
+    const current = getStoredReports();
+    setReports(current);
   }, []);
 
-  async function handleLogin() {
-    if (!supabase) return;
+  const selectedReport = useMemo(() => {
+    if (!selectedAdvisor) return null;
 
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession();
+    const found = reports
+      .slice()
+      .reverse()
+      .find(
+        (r) =>
+          r.asesor === selectedAdvisor ||
+          r.usuario === ASESORES.find((a) => a[0] === selectedAdvisor)?.[1]
+      );
 
-    setSession(currentSession);
+    return found || null;
+  }, [reports, selectedAdvisor]);
 
-    if (currentSession?.user) {
-      const data = await cargarReporte(currentSession.user);
-      setReporte(data);
+  const isAdmin = email.trim().toLowerCase() === ADMIN_MAIL;
+
+  const update = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setLoginError("");
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (cleanEmail === ADMIN_MAIL) {
+      setScreen("admin");
+      return;
     }
-  }
 
-  async function handleLogout() {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-
-    setSession(null);
-    setReporte(null);
-  }
-
-  if (loading) {
-    return (
-      <main className="loadingPage">
-        <div className="loader" />
-        <p>Cargando Portal de Calidad...</p>
-      </main>
+    const advisor = ASESORES.find(([, id]) =>
+      cleanEmail.includes(id.toLowerCase())
     );
-  }
 
-  if (!session) {
+    if (!advisor) {
+      setLoginError(
+        "No encontramos ese mail. Ingresá el mail institucional asociado a tu portal."
+      );
+      return;
+    }
+
+    setSelectedAdvisor(advisor[0]);
+    setActiveTab("calidad");
+    setScreen("advisor");
+  };
+
+  const logout = () => {
+    setScreen("login");
+    setEmail("");
+    setSelectedAdvisor("");
+    setFeedback("");
+    setFeedbackSent(false);
+  };
+
+  const startNewReport = () => {
+    setForm({
+      asesor: "",
+      usuario: "",
+      semana: "",
+      nota: "",
+      objetivo: "70",
+      estado_objetivo: "DEBAJO DEL OBJETIVO",
+      producto: "AP",
+      desvio: "",
+      recomendacion: "",
+      objetivo_trabajo: "",
+      items_calidad: [],
+      acciones_calidad: [],
+      auditoria: "",
+      estado_auditoria: "Sin información",
+      observaciones_auditoria: "",
+      audio_url: "",
+      audio_name: "",
+      audio_data: "",
+
+      sph: "",
+      objetivo_sph: "",
+      ventas: "",
+      objetivo_ventas: "",
+      objetivo_campania: "",
+      estado_sph: "En proceso",
+      estado_ventas: "En proceso",
+      estado_campania: "En proceso",
+      items_productividad: [],
+      acciones_productividad: [],
+      observaciones_productividad: "",
+
+      objetivo_tipificaciones: "",
+      tipificaciones: [],
+      estado_tipificaciones: "En proceso",
+      tipificacion_desvio: "",
+      tipificacion_objetivo: "",
+      tipificacion_resultado: "",
+      tipificacion_compromiso: "",
+      tipificacion_observaciones: "",
+
+      cantidad_no_ventas: "",
+      om_detectadas: [],
+      coaching_no_ventas: "",
+      registro_sistema: "CORRECTA",
+      compromiso_no_ventas: "",
+      fortalezas: [],
+      observaciones_no_ventas: "",
+      observaciones_generales: "",
+    });
+  };
+
+  const handleAdvisorChange = (value) => {
+    const found = ASESORES.find(([name]) => name === value);
+
+    setForm((prev) => ({
+      ...prev,
+      asesor: value,
+      usuario: found ? found[1] : "",
+    }));
+  };
+
+  const handleAudio = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setForm((prev) => ({
+        ...prev,
+        audio_name: file.name,
+        audio_data: reader.result,
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const saveReport = (e) => {
+    e.preventDefault();
+
+    if (!form.asesor || !form.semana || !form.nota) {
+      alert("Completá Asesor, Semana / período y Nota de calidad.");
+      return;
+    }
+
+    const report = {
+      id: Date.now(),
+      ...form,
+      fecha: new Date().toISOString(),
+    };
+
+    const current = getStoredReports();
+    const next = [...current, report];
+
+    saveStoredReports(next);
+    setReports(next);
+
+    alert("✓ REPORTE GUARDADO CORRECTAMENTE");
+
+    setActiveTab("historico");
+  };
+
+  const sendFeedback = () => {
+    if (!feedback.trim()) return;
+
+    setFeedbackSent(true);
+    setFeedback("");
+  };
+
+  const progress = form.nota && form.objetivo
+    ? Math.min(100, Math.round((Number(form.nota) / Number(form.objetivo)) * 100))
+    : 0;
+
+  if (screen === "login") {
     return (
       <>
-        <Login onLogin={handleLogin} />
-        <Styles />
+        <style>{styles}</style>
+
+        <main className="loginPage">
+          <div className="loginCard">
+            <div className="brandMark">PC</div>
+
+            <div className="eyebrow">PORTAL DE CALIDAD</div>
+
+            <h1>Ingresá a tu portal</h1>
+
+            <p className="loginText">
+              Consultá tu evolución, objetivos y acciones de calidad.
+            </p>
+
+            <form onSubmit={handleLogin}>
+              <Field label="Mail">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Ingresá tu mail"
+                  required
+                />
+              </Field>
+
+              {loginError && <div className="errorBox">{loginError}</div>}
+
+              <button className="primaryButton" type="submit">
+                INGRESAR
+              </button>
+            </form>
+
+            <div className="loginHint">
+              Acceso para asesores y administración
+            </div>
+          </div>
+        </main>
       </>
     );
   }
 
+  if (screen === "admin") {
+    return (
+      <>
+        <style>{styles}</style>
+
+        <main className="appPage">
+          <header className="topHeader">
+            <div>
+              <div className="eyebrow light">PORTAL DE CALIDAD</div>
+              <h1>Panel de Calidad</h1>
+              <p>Carga y gestión de reportes</p>
+            </div>
+
+            <button className="logoutButton" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </header>
+
+          <div className="adminWrap">
+            <div className="adminTitle">
+              <span>ADMINISTRACIÓN</span>
+              <h2>Cargar nuevo reporte</h2>
+              <p>
+                Completá la información y el reporte quedará disponible para
+                el asesor.
+              </p>
+            </div>
+
+            <form onSubmit={saveReport}>
+              <Section number="01" title="Datos generales">
+                <div className="formGrid">
+                  <Field label="Asesor">
+                    <select
+                      value={form.asesor}
+                      onChange={(e) => handleAdvisorChange(e.target.value)}
+                      required
+                    >
+                      <option value="">Seleccioná un asesor</option>
+                      {ASESORES.map(([name, id]) => (
+                        <option key={id} value={name}>
+                          {name} — {id}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Semana / período">
+                    <input
+                      value={form.semana}
+                      onChange={(e) => update("semana", e.target.value)}
+                      placeholder="Ej.: Semana 3 - Agosto"
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Nota de calidad">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={form.nota}
+                      onChange={(e) => update("nota", e.target.value)}
+                      placeholder="50"
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Objetivo de calidad">
+                    <input
+                      type="number"
+                      value={form.objetivo}
+                      onChange={(e) => update("objetivo", e.target.value)}
+                    />
+                  </Field>
+
+                  <Field label="Estado del objetivo">
+                    <select
+                      value={form.estado_objetivo}
+                      onChange={(e) =>
+                        update("estado_objetivo", e.target.value)
+                      }
+                    >
+                      <option>ALCANZADO</option>
+                      <option>EN PROCESO</option>
+                      <option>DEBAJO DEL OBJETIVO</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Producto">
+                    <select
+                      value={form.producto}
+                      onChange={(e) => update("producto", e.target.value)}
+                    >
+                      <option>AP</option>
+                      <option>BM</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Desvío principal">
+                    <input
+                      value={form.desvio}
+                      onChange={(e) => update("desvio", e.target.value)}
+                      placeholder="Ej.: Validación de datos"
+                    />
+                  </Field>
+
+                  <Field label="Recomendación">
+                    <input
+                      value={form.recomendacion}
+                      onChange={(e) =>
+                        update("recomendacion", e.target.value)
+                      }
+                      placeholder="Recomendación"
+                    />
+                  </Field>
+
+                  <Field label="Objetivo de trabajo">
+                    <input
+                      value={form.objetivo_trabajo}
+                      onChange={(e) =>
+                        update("objetivo_trabajo", e.target.value)
+                      }
+                      placeholder="Objetivo"
+                    />
+                  </Field>
+                </div>
+
+                <h3>Items trabajados</h3>
+                <p className="helper">Seleccioná todos los que correspondan.</p>
+
+                <MultiSelect
+                  options={ITEMS_CALIDAD}
+                  value={form.items_calidad}
+                  onChange={(v) => update("items_calidad", v)}
+                />
+
+                <h3>Acciones realizadas</h3>
+                <p className="helper">Seleccioná todas las acciones realizadas.</p>
+
+                <MultiSelect
+                  options={ACCIONES_CALIDAD}
+                  value={form.acciones_calidad}
+                  onChange={(v) => update("acciones_calidad", v)}
+                />
+
+                <div className="audioInside">
+                  <div>
+                    <h3>Audio de auditoría</h3>
+                    <p className="helper">
+                      El audio se cargará dentro de Calidad.
+                    </p>
+                  </div>
+
+                  <label className="audioButton">
+                    <span>♪</span>
+                    Seleccionar audio
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleAudio}
+                      hidden
+                    />
+                  </label>
+
+                  {form.audio_name && (
+                    <div className="fileSelected">
+                      ✓ {form.audio_name}
+                    </div>
+                  )}
+                </div>
+
+                <div className="formGrid">
+                  <Field label="Observaciones de calidad">
+                    <textarea
+                      value={form.observaciones_generales}
+                      onChange={(e) =>
+                        update("observaciones_generales", e.target.value)
+                      }
+                      rows="4"
+                    />
+                  </Field>
+                </div>
+              </Section>
+
+              <Section number="02" title="Auditoría">
+                <p className="helper">
+                  La auditoría se mostrará dentro de Calidad.
+                </p>
+
+                <div className="formGrid">
+                  <Field label="Referencia de auditoría">
+                    <input
+                      value={form.auditoria}
+                      onChange={(e) => update("auditoria", e.target.value)}
+                      placeholder="Referencia o identificación"
+                    />
+                  </Field>
+
+                  <Field label="Estado de auditoría">
+                    <select
+                      value={form.estado_auditoria}
+                      onChange={(e) =>
+                        update("estado_auditoria", e.target.value)
+                      }
+                    >
+                      <option>Correcta</option>
+                      <option>Con desvíos</option>
+                      <option>Requiere coaching</option>
+                      <option>Requiere seguimiento</option>
+                      <option>Sin información</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <Field label="Observaciones de auditoría">
+                  <textarea
+                    value={form.observaciones_auditoria}
+                    onChange={(e) =>
+                      update("observaciones_auditoria", e.target.value)
+                    }
+                    rows="4"
+                  />
+                </Field>
+              </Section>
+
+              <Section number="03" title="Productividad">
+                <p className="helper">
+                  Información que verá el asesor en su tarjeta de Productividad.
+                </p>
+
+                <div className="formGrid four">
+                  <Field label="SPH">
+                    <input
+                      value={form.sph}
+                      onChange={(e) => update("sph", e.target.value)}
+                      placeholder="0.15"
+                    />
+                  </Field>
+
+                  <Field label="Objetivo SPH">
+                    <input
+                      value={form.objetivo_sph}
+                      onChange={(e) =>
+                        update("objetivo_sph", e.target.value)
+                      }
+                      placeholder="0.50"
+                    />
+                  </Field>
+
+                  <Field label="Ventas">
+                    <input
+                      value={form.ventas}
+                      onChange={(e) => update("ventas", e.target.value)}
+                      placeholder="12"
+                    />
+                  </Field>
+
+                  <Field label="Objetivo ventas">
+                    <input
+                      value={form.objetivo_ventas}
+                      onChange={(e) =>
+                        update("objetivo_ventas", e.target.value)
+                      }
+                      placeholder="40"
+                    />
+                  </Field>
+
+                  <Field label="Objetivo de campaña">
+                    <input
+                      value={form.objetivo_campania}
+                      onChange={(e) =>
+                        update("objetivo_campania", e.target.value)
+                      }
+                      placeholder="50"
+                    />
+                  </Field>
+
+                  <Field label="Estado SPH">
+                    <select
+                      value={form.estado_sph}
+                      onChange={(e) => update("estado_sph", e.target.value)}
+                    >
+                      <option>ALCANZADO</option>
+                      <option>En proceso</option>
+                      <option>DEBAJO DEL OBJETIVO</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Estado ventas">
+                    <select
+                      value={form.estado_ventas}
+                      onChange={(e) =>
+                        update("estado_ventas", e.target.value)
+                      }
+                    >
+                      <option>ALCANZADO</option>
+                      <option>En proceso</option>
+                      <option>DEBAJO DEL OBJETIVO</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Estado campaña">
+                    <select
+                      value={form.estado_campania}
+                      onChange={(e) =>
+                        update("estado_campania", e.target.value)
+                      }
+                    >
+                      <option>ALCANZADO</option>
+                      <option>En proceso</option>
+                      <option>DEBAJO DEL OBJETIVO</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <h3>Items trabajados</h3>
+                <p className="helper">Seleccioná todos los items de productividad.</p>
+
+                <MultiSelect
+                  options={ITEMS_PRODUCTIVIDAD}
+                  value={form.items_productividad}
+                  onChange={(v) => update("items_productividad", v)}
+                />
+
+                <h3>Acciones realizadas</h3>
+                <p className="helper">Seleccioná todas las acciones.</p>
+
+                <MultiSelect
+                  options={ACCIONES_PRODUCTIVIDAD}
+                  value={form.acciones_productividad}
+                  onChange={(v) => update("acciones_productividad", v)}
+                />
+
+                <Field label="Observaciones de productividad">
+                  <textarea
+                    value={form.observaciones_productividad}
+                    onChange={(e) =>
+                      update("observaciones_productividad", e.target.value)
+                    }
+                    rows="4"
+                  />
+                </Field>
+              </Section>
+
+              <Section number="04" title="Tipificaciones">
+                <p className="helper">
+                  Seleccioná todas las tipificaciones correspondientes.
+                </p>
+
+                <h3>Tipificaciones realizadas</h3>
+
+                <MultiSelect
+                  options={TIPIFICACIONES}
+                  value={form.tipificaciones}
+                  onChange={(v) => update("tipificaciones", v)}
+                />
+
+                <div className="formGrid">
+                  <Field label="Objetivo tipificaciones">
+                    <input
+                      value={form.objetivo_tipificaciones}
+                      onChange={(e) =>
+                        update("objetivo_tipificaciones", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Estado tipificaciones">
+                    <select
+                      value={form.estado_tipificaciones}
+                      onChange={(e) =>
+                        update("estado_tipificaciones", e.target.value)
+                      }
+                    >
+                      <option>ALCANZADO</option>
+                      <option>En proceso</option>
+                      <option>DEBAJO DEL OBJETIVO</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Desvío">
+                    <input
+                      value={form.tipificacion_desvio}
+                      onChange={(e) =>
+                        update("tipificacion_desvio", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Objetivo">
+                    <input
+                      value={form.tipificacion_objetivo}
+                      onChange={(e) =>
+                        update("tipificacion_objetivo", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Resultado">
+                    <input
+                      value={form.tipificacion_resultado}
+                      onChange={(e) =>
+                        update("tipificacion_resultado", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Compromiso">
+                    <input
+                      value={form.tipificacion_compromiso}
+                      onChange={(e) =>
+                        update("tipificacion_compromiso", e.target.value)
+                      }
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Observaciones">
+                  <textarea
+                    value={form.tipificacion_observaciones}
+                    onChange={(e) =>
+                      update("tipificacion_observaciones", e.target.value)
+                    }
+                    rows="4"
+                  />
+                </Field>
+              </Section>
+
+              <Section number="05" title="Auditorías de no ventas">
+                <p className="helper">
+                  Información adicional de las llamadas no convertidas.
+                </p>
+
+                <div className="formGrid">
+                  <Field label="Cantidad">
+                    <input
+                      value={form.cantidad_no_ventas}
+                      onChange={(e) =>
+                        update("cantidad_no_ventas", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Coaching">
+                    <input
+                      value={form.coaching_no_ventas}
+                      onChange={(e) =>
+                        update("coaching_no_ventas", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Registro en sistema">
+                    <select
+                      value={form.registro_sistema}
+                      onChange={(e) =>
+                        update("registro_sistema", e.target.value)
+                      }
+                    >
+                      <option>CORRECTA</option>
+                      <option>INCORRECTA</option>
+                      <option>PENDIENTE</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Compromiso">
+                    <input
+                      value={form.compromiso_no_ventas}
+                      onChange={(e) =>
+                        update("compromiso_no_ventas", e.target.value)
+                      }
+                    />
+                  </Field>
+                </div>
+
+                <h3>Principales O.M.</h3>
+                <MultiSelect
+                  options={OM}
+                  value={form.om_detectadas}
+                  onChange={(v) => update("om_detectadas", v)}
+                />
+
+                <h3>Fortalezas</h3>
+                <MultiSelect
+                  options={FORTALEZAS}
+                  value={form.fortalezas}
+                  onChange={(v) => update("fortalezas", v)}
+                />
+
+                <Field label="Observaciones">
+                  <textarea
+                    value={form.observaciones_no_ventas}
+                    onChange={(e) =>
+                      update("observaciones_no_ventas", e.target.value)
+                    }
+                    rows="4"
+                  />
+                </Field>
+              </Section>
+
+              <div className="saveArea">
+                <button className="saveButton" type="submit">
+                  GUARDAR REPORTE
+                </button>
+              </div>
+            </form>
+
+            <section className="historyAdmin">
+              <div className="historyHeader">
+                <div>
+                  <span className="eyebrow">HISTÓRICO</span>
+                  <h2>Reportes cargados</h2>
+                </div>
+
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  onClick={() => window.print()}
+                >
+                  Imprimir
+                </button>
+              </div>
+
+              {reports.length === 0 ? (
+                <div className="emptyBox">Todavía no hay reportes cargados.</div>
+              ) : (
+                <div className="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Asesor</th>
+                        <th>Semana</th>
+                        <th>Nota</th>
+                        <th>Producto</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {reports
+                        .slice()
+                        .reverse()
+                        .map((report) => (
+                          <tr key={report.id}>
+                            <td>{report.asesor}</td>
+                            <td>{report.semana}</td>
+                            <td>{report.nota}</td>
+                            <td>{report.producto}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  const report = selectedReport;
+
+  const advisorName = selectedAdvisor
+    ? selectedAdvisor.split(",")[1]?.trim() || selectedAdvisor
+    : "Asesor";
+
+  const qualityProgress = report?.nota && report?.objetivo
+    ? Math.min(
+        100,
+        Math.round((Number(report.nota) / Number(report.objetivo)) * 100)
+      )
+    : 0;
+
+  const qualityGap =
+    report?.nota && report?.objetivo
+      ? Math.max(0, Number(report.objetivo) - Number(report.nota))
+      : 0;
+
+  const advisorTabs = [
+    ["calidad", "CALIDAD"],
+    ["productividad", "PRODUCTIVIDAD"],
+    ["tipificaciones", "TIPIFICACIONES"],
+    ["auditorias", "AUDITORÍAS"],
+    ["actividades", "ACTIVIDADES"],
+    ["historico", "HISTÓRICO"],
+    ["feedback", "FEEDBACK"],
+  ];
+
   return (
     <>
-      <Portal
-        reporte={reporte}
-        user={session.user}
-        onLogout={handleLogout}
-      />
-      <Styles />
+      <style>{styles}</style>
+
+      <main className="appPage advisorPage">
+        <header className="advisorHeader">
+          <div>
+            <div className="eyebrow">PORTAL DE CALIDAD</div>
+            <h1>Hola, {advisorName}</h1>
+            <p>{report?.semana || "Semana 3 - Agosto"}</p>
+          </div>
+
+          <div className="headerRight">
+            <Badge
+              type={
+                report?.estado_objetivo === "ALCANZADO"
+                  ? "success"
+                  : report?.estado_objetivo === "DEBAJO DEL OBJETIVO"
+                  ? "danger"
+                  : "warning"
+              }
+            >
+              {report?.estado_objetivo || "EN SEGUIMIENTO"}
+            </Badge>
+
+            <button className="logoutButton dark" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+
+        <nav className="advisorNav">
+          {advisorTabs.map(([key, label]) => (
+            <button
+              key={key}
+              className={activeTab === key ? "active" : ""}
+              onClick={() => setActiveTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {!report ? (
+          <div className="advisorEmpty">
+            <div className="emptyNumber">01</div>
+            <h2>Todavía no hay un reporte cargado.</h2>
+            <p>
+              Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
+            </p>
+          </div>
+        ) : (
+          <div className="advisorContent">
+            {activeTab === "calidad" && (
+              <section className="advisorCard">
+                <div className="cardTop">
+                  <div>
+                    <span className="cardNumber">01</span>
+                    <h2>CALIDAD</h2>
+                  </div>
+                  <Badge
+                    type={
+                      report.estado_objetivo === "ALCANZADO"
+                        ? "success"
+                        : report.estado_objetivo === "DEBAJO DEL OBJETIVO"
+                        ? "danger"
+                        : "warning"
+                    }
+                  >
+                    {report.estado_objetivo}
+                  </Badge>
+                </div>
+
+                <div className="qualityHero">
+                  <div className="scoreCircle">
+                    <strong>{report.nota}</strong>
+                    <span>/ 100</span>
+                  </div>
+
+                  <div className="heroStats">
+                    <div>
+                      <span>OBJETIVO</span>
+                      <strong>{report.objetivo}</strong>
+                    </div>
+
+                    <div>
+                      <span>PRODUCTO</span>
+                      <strong>{report.producto}</strong>
+                    </div>
+
+                    <div>
+                      <span>CUÁNTO FALTA</span>
+                      <strong>{qualityGap} puntos</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="progressBlock">
+                  <div className="progressLabel">
+                    <span>Progreso hacia el objetivo</span>
+                    <strong>{qualityProgress}%</strong>
+                  </div>
+                  <div className="progress">
+                    <div style={{ width: `${qualityProgress}%` }} />
+                  </div>
+                </div>
+
+                <div className="infoGrid">
+                  <div className="infoBox highlight">
+                    <span>DESVÍO PRINCIPAL</span>
+                    <strong>{report.desvio || "-"}</strong>
+                  </div>
+
+                  <div className="infoBox">
+                    <span>COMPARATIVO SEMANAL</span>
+                    <strong>
+                      {report.evolucion ||
+                        "Todavía no hay una semana anterior para comparar."}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="twoColumns">
+                  <div className="contentBlock">
+                    <h3>ITEMS TRABAJADOS</h3>
+                    <div className="tagList">
+                      {(report.items_calidad || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="contentBlock">
+                    <h3>ACCIONES REALIZADAS</h3>
+                    <div className="tagList">
+                      {(report.acciones_calidad || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auditInside">
+                  <h3>AUDITORÍA</h3>
+
+                  <div className="auditGrid">
+                    <div>
+                      <span>REFERENCIA</span>
+                      <strong>{report.auditoria || "Sin información"}</strong>
+                    </div>
+
+                    <div>
+                      <span>ESTADO</span>
+                      <strong>{report.estado_auditoria || "-"}</strong>
+                    </div>
+                  </div>
+
+                  {report.audio_data && (
+                    <div className="audioPlayer">
+                      <span>AUDIO DE AUDITORÍA</span>
+                      <audio controls src={report.audio_data} />
+                    </div>
+                  )}
+
+                  <div className="observation">
+                    <span>OBSERVACIONES</span>
+                    <p>
+                      {report.observaciones_auditoria ||
+                        report.observaciones_generales ||
+                        "No hay observaciones cargadas."}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "productividad" && (
+              <section className="advisorCard">
+                <div className="cardTop">
+                  <div>
+                    <span className="cardNumber">02</span>
+                    <h2>PRODUCTIVIDAD</h2>
+                  </div>
+                  <Badge type="warning">
+                    {report.estado_campania || "En proceso"}
+                  </Badge>
+                </div>
+
+                <div className="metricGrid">
+                  <div>
+                    <span>SPH</span>
+                    <strong>{report.sph || "-"}</strong>
+                    <small>Objetivo SPH: {report.objetivo_sph || "-"}</small>
+                  </div>
+
+                  <div>
+                    <span>VENTAS</span>
+                    <strong>{report.ventas || "-"}</strong>
+                    <small>
+                      Objetivo ventas: {report.objetivo_ventas || "-"}
+                    </small>
+                  </div>
+
+                  <div>
+                    <span>OBJETIVO DE CAMPAÑA</span>
+                    <strong>{report.objetivo_campania || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>ESTADO</span>
+                    <strong>{report.estado_campania || "En proceso"}</strong>
+                  </div>
+                </div>
+
+                <div className="twoColumns">
+                  <div className="contentBlock">
+                    <h3>ITEMS TRABAJADOS</h3>
+                    <div className="tagList">
+                      {(report.items_productividad || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="contentBlock">
+                    <h3>ACCIONES REALIZADAS</h3>
+                    <div className="tagList">
+                      {(report.acciones_productividad || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="observation">
+                  <span>OBSERVACIONES</span>
+                  <p>
+                    {report.observaciones_productividad ||
+                      "No hay observaciones cargadas."}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "tipificaciones" && (
+              <section className="advisorCard">
+                <div className="cardTop">
+                  <div>
+                    <span className="cardNumber">03</span>
+                    <h2>TIPIFICACIONES</h2>
+                  </div>
+                  <Badge type="warning">
+                    {report.estado_tipificaciones || "En proceso"}
+                  </Badge>
+                </div>
+
+                <div className="metricGrid">
+                  <div>
+                    <span>DESVÍO</span>
+                    <strong>{report.tipificacion_desvio || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>OBJETIVO</span>
+                    <strong>{report.tipificacion_objetivo || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>RESULTADO</span>
+                    <strong>{report.tipificacion_resultado || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>COMPROMISO</span>
+                    <strong>{report.tipificacion_compromiso || "-"}</strong>
+                  </div>
+                </div>
+
+                <div className="contentBlock">
+                  <h3>TIPIFICACIONES</h3>
+                  <div className="tagList">
+                    {(report.tipificaciones || []).map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="observation">
+                  <span>OBSERVACIONES</span>
+                  <p>
+                    {report.tipificacion_observaciones ||
+                      "Sin observaciones cargadas."}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "auditorias" && (
+              <section className="advisorCard">
+                <div className="cardTop">
+                  <div>
+                    <span className="cardNumber">04</span>
+                    <h2>AUDITORÍAS DE NO VENTAS</h2>
+                  </div>
+                </div>
+
+                <div className="metricGrid">
+                  <div>
+                    <span>CANTIDAD</span>
+                    <strong>{report.cantidad_no_ventas || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>COACHING</span>
+                    <strong>{report.coaching_no_ventas || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>REGISTRO EN SISTEMA</span>
+                    <strong>{report.registro_sistema || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <span>COMPROMISO</span>
+                    <strong>{report.compromiso_no_ventas || "-"}</strong>
+                  </div>
+                </div>
+
+                <div className="twoColumns">
+                  <div className="contentBlock">
+                    <h3>PRINCIPALES O.M.</h3>
+                    <div className="tagList">
+                      {(report.om_detectadas || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="contentBlock">
+                    <h3>FORTALEZAS</h3>
+                    <div className="tagList">
+                      {(report.fortalezas || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="observation">
+                  <span>OBSERVACIONES</span>
+                  <p>
+                    {report.observaciones_no_ventas ||
+                      "No hay observaciones cargadas."}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "actividades" && (
+              <section className="advisorCard emptyFeature">
+                <span className="cardNumber">05</span>
+                <h2>ACTIVIDADES</h2>
+                <div className="comingSoon">
+                  <strong>Próximamente</strong>
+                  <p>
+                    Esta sección quedará disponible para registrar y consultar
+                    actividades.
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {activeTab === "historico" && (
+              <section className="advisorCard">
+                <div className="cardTop">
+                  <div>
+                    <span className="cardNumber">06</span>
+                    <h2>HISTÓRICO</h2>
+                  </div>
+
+                  <button
+                    className="secondaryButton"
+                    onClick={() => window.print()}
+                  >
+                    Imprimir
+                  </button>
+                </div>
+
+                <div className="historyCards">
+                  {reports
+                    .filter((r) => r.asesor === selectedAdvisor)
+                    .slice()
+                    .reverse()
+                    .map((r) => (
+                      <div className="historyCard" key={r.id}>
+                        <div>
+                          <span>{r.semana}</span>
+                          <strong>{r.nota} / 100</strong>
+                        </div>
+                        <div>
+                          <small>Producto</small>
+                          <b>{r.producto}</b>
+                        </div>
+                        <Badge
+                          type={
+                            r.estado_objetivo === "ALCANZADO"
+                              ? "success"
+                              : r.estado_objetivo === "DEBAJO DEL OBJETIVO"
+                              ? "danger"
+                              : "warning"
+                          }
+                        >
+                          {r.estado_objetivo}
+                        </Badge>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            )}
+
+            {activeTab === "feedback" && (
+              <section className="advisorCard feedbackCard">
+                <span className="cardNumber">07</span>
+                <h2>FEEDBACK DEL ASESOR</h2>
+
+                <p>
+                  ¿Querés dejar algún comentario sobre tu reporte, una consulta
+                  o algo que quieras trabajar con Calidad?
+                </p>
+
+                <textarea
+                  value={feedback}
+                  onChange={(e) => {
+                    setFeedback(e.target.value);
+                    setFeedbackSent(false);
+                  }}
+                  placeholder="Escribí tu comentario..."
+                  rows="7"
+                />
+
+                <button className="primaryButton" onClick={sendFeedback}>
+                  ENVIAR FEEDBACK
+                </button>
+
+                {feedbackSent && (
+                  <div className="successBox">
+                    ✓ Feedback enviado correctamente.
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        )}
+      </main>
     </>
   );
 }
 
-function Styles() {
-  return (
-    <style jsx global>{`
-      :root {
-        --petroleo: #0d4f5c;
-        --petroleo-dark: #083b45;
-        --petroleo-light: #e8f3f4;
-        --aqua: #2a7f89;
-        --cream: #f5f7f6;
-        --white: #ffffff;
-        --text: #17343a;
-        --muted: #6f8589;
-        --border: #dce8e9;
-        --success: #26765c;
-        --success-bg: #e6f4ee;
-        --warning: #a86f17;
-        --warning-bg: #fff4df;
-        --danger: #a94747;
-        --danger-bg: #fceaea;
-        --shadow: 0 18px 50px rgba(13, 79, 92, 0.09);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family:
-          Inter,
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-        background: var(--cream);
-        color: var(--text);
-      }
-
-      button,
-      input,
-      textarea {
-        font: inherit;
-      }
-
-      button {
-        cursor: pointer;
-      }
-
-      .loginPage {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px;
-        background:
-          radial-gradient(
-            circle at 15% 20%,
-            rgba(42, 127, 137, 0.12),
-            transparent 30%
-          ),
-          linear-gradient(135deg, #f4f8f8, #eaf2f2);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .loginDecor {
-        position: absolute;
-        border-radius: 50%;
-        pointer-events: none;
-      }
-
-      .decorOne {
-        width: 360px;
-        height: 360px;
-        right: -130px;
-        top: -100px;
-        background: rgba(13, 79, 92, 0.08);
-      }
-
-      .decorTwo {
-        width: 250px;
-        height: 250px;
-        left: -100px;
-        bottom: -80px;
-        background: rgba(42, 127, 137, 0.08);
-      }
-
-      .loginCard {
-        width: min(450px, 100%);
-        background: var(--white);
-        border-radius: 28px;
-        padding: 42px;
-        box-shadow: var(--shadow);
-        border: 1px solid rgba(13, 79, 92, 0.08);
-        position: relative;
-        z-index: 2;
-      }
-
-      .brandMark {
-        width: 52px;
-        height: 52px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--petroleo);
-        color: white;
-        font-size: 17px;
-        font-weight: 900;
-        letter-spacing: -0.5px;
-        margin-bottom: 20px;
-      }
-
-      .loginBrand,
-      .brandSmall {
-        color: var(--petroleo);
-        font-weight: 900;
-        letter-spacing: 1.5px;
-        font-size: 12px;
-      }
-
-      .loginCard h1 {
-        margin: 12px 0 8px;
-        font-size: 34px;
-        line-height: 1.1;
-        color: var(--petroleo-dark);
-      }
-
-      .loginCard > p {
-        margin: 0 0 30px;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 18px;
-        color: var(--petroleo-dark);
-        font-weight: 800;
-        font-size: 13px;
-      }
-
-      input,
-      textarea {
-        width: 100%;
-        margin-top: 8px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 14px 15px;
-        outline: none;
-        background: #fbfdfd;
-        color: var(--text);
-        transition: 0.2s ease;
-      }
-
-      input:focus,
-      textarea:focus {
-        border-color: var(--aqua);
-        box-shadow: 0 0 0 4px rgba(42, 127, 137, 0.1);
-      }
-
-      .loginError {
-        background: var(--danger-bg);
-        color: var(--danger);
-        border: 1px solid rgba(169, 71, 71, 0.15);
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin: 5px 0 15px;
-        font-size: 13px;
-        font-weight: 700;
-      }
-
-      .primaryButton {
-        border: 0;
-        background: var(--petroleo);
-        color: white;
-        border-radius: 12px;
-        padding: 14px 20px;
-        font-weight: 900;
-        letter-spacing: 0.5px;
-        transition: 0.2s ease;
-      }
-
-      .primaryButton:hover {
-        background: var(--petroleo-dark);
-        transform: translateY(-1px);
-      }
-
-      .primaryButton:disabled {
-        opacity: 0.6;
-        cursor: wait;
-      }
-
-      .loginButton {
-        width: 100%;
-        margin-top: 5px;
-      }
-
-      .portalPage {
-        min-height: 100vh;
-        background: var(--cream);
-      }
-
-      .topHeader {
-        background: white;
-        padding: 35px max(25px, calc((100vw - 1180px) / 2));
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 25px;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .topHeader h1 {
-        margin: 8px 0 5px;
-        font-size: clamp(28px, 4vw, 42px);
-        color: var(--petroleo-dark);
-        letter-spacing: -1.2px;
-      }
-
-      .topHeader p {
-        margin: 0;
-        color: var(--muted);
-      }
-
-      .headerInfo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 12px;
-        color: var(--muted);
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .logoutButton {
-        background: white;
-        border: 1px solid var(--border);
-        color: var(--petroleo);
-        border-radius: 10px;
-        padding: 11px 15px;
-        font-weight: 800;
-      }
-
-      .tabs {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-        padding: 8px 15px;
-        overflow-x: auto;
-      }
-
-      .tab {
-        border: 0;
-        background: transparent;
-        color: var(--muted);
-        padding: 13px 15px;
-        border-radius: 9px;
-        font-weight: 900;
-        font-size: 11px;
-        letter-spacing: 0.4px;
-        white-space: nowrap;
-      }
-
-      .tab:hover {
-        color: var(--petroleo);
-        background: var(--petroleo-light);
-      }
-
-      .tab.active {
-        color: white;
-        background: var(--petroleo);
-      }
-
-      .content {
-        width: min(1180px, calc(100% - 36px));
-        margin: 0 auto;
-        padding: 35px 0 70px;
-      }
-
-      .tabContent {
-        animation: appear 0.2s ease;
-      }
-
-      @keyframes appear {
-        from {
-          opacity: 0;
-          transform: translateY(5px);
-        }
-
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .sectionTitle {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 28px;
-      }
-
-      .sectionNumber {
-        width: 44px;
-        height: 44px;
-        border-radius: 13px;
-        background: var(--petroleo);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 900;
-      }
-
-      .sectionTitle h2 {
-        margin: 0;
-        color: var(--petroleo-dark);
-        font-size: 26px;
-      }
-
-      .sectionTitle p {
-        margin: 4px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .heroGrid {
-        display: grid;
-        grid-template-columns: 0.8fr 1.2fr;
-        gap: 18px;
-      }
-
-      .scoreCard,
-      .progressCard,
-      .infoCard,
-      .listBlock,
-      .auditInsideQuality,
-      .singleCard,
-      .observationCard,
-      .feedbackCard,
-      .comingSoon {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: 0 8px 30px rgba(13, 79, 92, 0.045);
-      }
-
-      .scoreCard {
-        padding: 28px;
-      }
-
-      .scoreCard > span,
-      .infoCard > span,
-      .metric > span,
-      .progressHeader span,
-      .progressBottom span,
-      .observation span,
-      .observationCard > span,
-      .listBlock h4,
-      .eyebrow {
-        font-size: 10px;
-        letter-spacing: 1px;
-        font-weight: 900;
-        color: var(--muted);
-      }
-
-      .score {
-        font-size: 62px;
-        line-height: 1;
-        font-weight: 950;
-        color: var(--petroleo);
-        margin: 12px 0 20px;
-      }
-
-      .score small {
-        font-size: 17px;
-        color: var(--muted);
-        font-weight: 800;
-      }
-
-      .objectiveLine {
-        display: flex;
-        justify-content: space-between;
-        border-top: 1px solid var(--border);
-        padding-top: 15px;
-        margin-bottom: 18px;
-      }
-
-      .objectiveLine span {
-        font-size: 11px;
-        color: var(--muted);
-        font-weight: 900;
-      }
-
-      .objectiveLine strong {
-        color: var(--petroleo-dark);
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        padding: 7px 11px;
-        background: var(--warning-bg);
-        color: var(--warning);
-        font-size: 10px;
-        font-weight: 900;
-      }
-
-      .pill.success {
-        background: var(--success-bg);
-        color: var(--success);
-      }
-
-      .pill.danger {
-        background: var(--danger-bg);
-        color: var(--danger);
-      }
-
-      .progressCard {
-        padding: 28px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .progressHeader {
-        display: flex;
-        justify-content: space-between;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .progressHeader strong {
-        font-size: 22px;
-        color: var(--petroleo);
-      }
-
-      .progressTrack {
-        height: 12px;
-        background: #e6eeee;
-        border-radius: 999px;
-        overflow: hidden;
-        margin: 17px 0 25px;
-      }
-
-      .progressValue {
-        height: 100%;
-        background: var(--aqua);
-        border-radius: inherit;
-      }
-
-      .progressBottom {
-        display: flex;
-        justify-content: space-between;
-        gap: 20px;
-        padding: 10px 0;
-        border-top: 1px solid var(--border);
-      }
-
-      .progressBottom strong {
-        color: var(--petroleo-dark);
-      }
-
-      .infoGrid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
-        margin-top: 18px;
-      }
-
-      .infoCard {
-        padding: 22px;
-      }
-
-      .infoCard strong {
-        display: block;
-        margin-top: 9px;
-        font-size: 16px;
-        color: var(--petroleo-dark);
-        line-height: 1.45;
-      }
-
-      .infoCard.highlight {
-        border-left: 5px solid var(--aqua);
-      }
-
-      .twoColumns {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
-        margin-top: 18px;
-      }
-
-      .listBlock {
-        padding: 22px;
-      }
-
-      .listBlock h4 {
-        margin: 0 0 15px;
-      }
-
-      .tagList {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .tag {
-        background: var(--petroleo-light);
-        color: var(--petroleo-dark);
-        padding: 9px 11px;
-        border-radius: 9px;
-        font-size: 12px;
-        font-weight: 750;
-      }
-
-      .emptyText {
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .auditInsideQuality {
-        margin-top: 18px;
-        padding: 24px;
-      }
-
-      .cardHeader {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-        align-items: center;
-      }
-
-      .cardHeader h3 {
-        margin: 6px 0 0;
-        color: var(--petroleo-dark);
-      }
-
-      .audioBox {
-        margin-top: 20px;
-        padding: 16px;
-        background: var(--petroleo-light);
-        border-radius: 12px;
-      }
-
-      .audioBox span {
-        display: block;
-        margin-bottom: 10px;
-        font-size: 10px;
-        font-weight: 900;
-        color: var(--petroleo);
-      }
-
-      audio {
-        width: 100%;
-      }
-
-      .observation {
-        margin-top: 20px;
-        border-top: 1px solid var(--border);
-        padding-top: 18px;
-      }
-
-      .observation p,
-      .observationCard p,
-      .singleCard p {
-        margin: 8px 0 0;
-        color: var(--text);
-        line-height: 1.6;
-      }
-
-      .metricGrid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 14px;
-      }
-
-      .metric {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 15px;
-        padding: 20px;
-      }
-
-      .metric strong {
-        display: block;
-        margin-top: 10px;
-        font-size: 28px;
-        color: var(--petroleo);
-      }
-
-      .smallMetric {
-        font-size: 18px !important;
-      }
-
-      .statusRow {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        margin-top: 18px;
-      }
-
-      .statusRow > div {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 15px;
-        padding: 18px;
-      }
-
-      .statusRow span {
-        display: block;
-        margin-bottom: 10px;
-        font-size: 10px;
-        font-weight: 900;
-        color: var(--muted);
-      }
-
-      .singleCard,
-      .observationCard {
-        padding: 22px;
-        margin-top: 18px;
-      }
-
-      .singleCard strong {
-        display: block;
-        margin-top: 8px;
-        color: var(--petroleo-dark);
-      }
-
-      .tipTop {
-        display: grid;
-        grid-template-columns: 1fr repeat(3, 1fr);
-        gap: 14px;
-        align-items: stretch;
-      }
-
-      .tipTop > .pill {
-        min-height: 90px;
-        border-radius: 15px;
-      }
-
-      .comingSoon {
-        padding: 70px 30px;
-        text-align: center;
-      }
-
-      .plusCircle,
-      .historyIcon {
-        width: 60px;
-        height: 60px;
-        border-radius: 18px;
-        margin: 0 auto 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--petroleo-light);
-        color: var(--petroleo);
-        font-size: 28px;
-        font-weight: 900;
-      }
-
-      .comingSoon h3 {
-        margin: 0 0 8px;
-        color: var(--petroleo-dark);
-      }
-
-      .comingSoon p {
-        margin: 0;
-        color: var(--muted);
-      }
-
-      .feedbackCard {
-        padding: 30px;
-        max-width: 850px;
-      }
-
-      .feedbackCard h3 {
-        margin: 0 0 8px;
-        color: var(--petroleo-dark);
-        font-size: 23px;
-      }
-
-      .feedbackCard p {
-        color: var(--muted);
-        margin-bottom: 20px;
-      }
-
-      .feedbackCard .primaryButton {
-        margin-top: 15px;
-      }
-
-      .noReport {
-        width: min(800px, calc(100% - 36px));
-        margin: 55px auto;
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 55px;
-        text-align: center;
-        box-shadow: var(--shadow);
-      }
-
-      .noReportIcon {
-        width: 52px;
-        height: 52px;
-        margin: 0 auto 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        background: var(--petroleo-light);
-        color: var(--petroleo);
-        font-weight: 900;
-      }
-
-      .noReport h2 {
-        color: var(--petroleo-dark);
-        margin: 0 0 10px;
-      }
-
-      .noReport p {
-        color: var(--muted);
-        margin: 0;
-      }
-
-      .loadingPage {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        color: var(--muted);
-      }
-
-      .loader {
-        width: 38px;
-        height: 38px;
-        border: 4px solid #dce8e9;
-        border-top-color: var(--petroleo);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      @media (max-width: 900px) {
-        .heroGrid,
-        .infoGrid,
-        .twoColumns {
-          grid-template-columns: 1fr;
-        }
-
-        .metricGrid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        .tipTop {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-
-      @media (max-width: 650px) {
-        .loginCard {
-          padding: 30px 22px;
-        }
-
-        .topHeader {
-          padding: 25px 18px;
-        }
-
-        .topHeader {
-          flex-direction: column;
-        }
-
-        .content {
-          width: min(100% - 24px, 1180px);
-          padding-top: 25px;
-        }
-
-        .metricGrid,
-        .statusRow,
-        .tipTop {
-          grid-template-columns: 1fr;
-        }
-
-        .score {
-          font-size: 52px;
-        }
-      }
-    `}</style>
-  );
+const styles = `
+:root {
+  --petroleo: #075b63;
+  --petroleo-dark: #063f46;
+  --petroleo-light: #e8f4f4;
+  --turquesa: #1b8b91;
+  --arena: #f5f7f6;
+  --blanco: #ffffff;
+  --texto: #163337;
+  --muted: #718589;
+  --linea: #dce8e8;
+  --verde: #24785e;
+  --verde-bg: #e8f5ef;
+  --amarillo: #9a7215;
+  --amarillo-bg: #fff7dc;
+  --rojo: #a84444;
+  --rojo-bg: #faeaea;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--texto);
+  background: var(--arena);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.loginPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(27,139,145,.14), transparent 32%),
+    linear-gradient(135deg, #f4f8f7, #e8f2f2);
+}
+
+.loginCard {
+  width: min(460px, 100%);
+  background: white;
+  border: 1px solid var(--linea);
+  border-radius: 24px;
+  padding: 42px;
+  box-shadow: 0 25px 70px rgba(6,63,70,.12);
+}
+
+.brandMark {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--petroleo);
+  color: white;
+  font-size: 19px;
+  font-weight: 900;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  color: var(--petroleo);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.7px;
+}
+
+.eyebrow.light {
+  color: #b9dddd;
+}
+
+.loginCard h1 {
+  font-size: 35px;
+  margin: 10px 0;
+  letter-spacing: -.8px;
+}
+
+.loginText {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .7px;
+  margin-bottom: 8px;
+  color: #47656a;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #cadada;
+  border-radius: 10px;
+  background: #fff;
+  padding: 13px 14px;
+  color: var(--texto);
+  outline: none;
+  transition: .2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--turquesa);
+  box-shadow: 0 0 0 3px rgba(27,139,145,.10);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.primaryButton,
+.saveButton {
+  width: 100%;
+  border: 0;
+  border-radius: 11px;
+  padding: 15px 20px;
+  background: var(--petroleo);
+  color: white;
+  font-weight: 900;
+  letter-spacing: .5px;
+  transition: .2s;
+}
+
+.primaryButton:hover,
+.saveButton:hover {
+  background: var(--petroleo-dark);
+  transform: translateY(-1px);
+}
+
+.loginHint {
+  margin-top: 22px;
+  text-align: center;
+  color: #8a9a9d;
+  font-size: 12px;
+}
+
+.errorBox {
+  background: var(--rojo-bg);
+  color: var(--rojo);
+  border: 1px solid #eccaca;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 15px;
+  font-size: 13px;
+}
+
+.successBox {
+  background: var(--verde-bg);
+  color: var(--verde);
+  padding: 13px;
+  border-radius: 10px;
+  margin-top: 15px;
+  font-weight: 700;
+}
+
+.appPage {
+  min-height: 100vh;
+}
+
+.topHeader {
+  background: var(--petroleo-dark);
+  color: white;
+  padding: 38px max(28px, calc((100vw - 1180px) / 2));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+}
+
+.topHeader h1 {
+  margin: 6px 0;
+  font-size: 35px;
+}
+
+.topHeader p {
+  margin: 0;
+  color: #b9d1d2;
+}
+
+.logoutButton {
+  border: 1px solid rgba(255,255,255,.3);
+  background: transparent;
+  color: white;
+  border-radius: 9px;
+  padding: 11px 17px;
+  font-weight: 800;
+}
+
+.logoutButton.dark {
+  color: var(--petroleo-dark);
+  border-color: var(--linea);
+  background: white;
+}
+
+.adminWrap {
+  width: min(1120px, calc(100% - 40px));
+  margin: 35px auto 80px;
+}
+
+.adminTitle {
+  margin-bottom: 25px;
+}
+
+.adminTitle span {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  color: var(--petroleo);
+}
+
+.adminTitle h2 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+
+.adminTitle p {
+  color: var(--muted);
+}
+
+.adminSection {
+  background: white;
+  border: 1px solid var(--linea);
+  border-radius: 18px;
+  padding: 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 7px 25px rgba(7,91,99,.05);
+}
+
+.sectionNumber,
+.cardNumber {
+  color: var(--turquesa);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.adminSection h2 {
+  margin: 5px 0 25px;
+  font-size: 24px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.formGrid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.adminSection h3 {
+  margin: 27px 0 7px;
+  font-size: 15px;
+}
+
+.helper {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.multiBox {
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 13px;
+  background: #fbfdfd;
+}
+
+.multiCount {
+  color: var(--petroleo);
+  font-weight: 900;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.multiOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.multiOption {
+  border: 1px solid #cfe0e0;
+  background: white;
+  color: #496267;
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.multiOption.selected {
+  background: var(--petroleo-light);
+  border-color: #83bfc1;
+  color: var(--petroleo-dark);
+  font-weight: 800;
+}
+
+.multiOption span {
+  margin-right: 5px;
+  font-weight: 900;
+}
+
+.audioInside {
+  border-top: 1px solid var(--linea);
+  margin-top: 25px;
+  padding-top: 22px;
+}
+
+.audioButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 10px;
+  background: var(--petroleo);
+  color: white;
+  padding: 12px 17px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.audioButton span {
+  font-size: 20px;
+}
+
+.fileSelected {
+  display: inline-block;
+  margin-left: 12px;
+  color: var(--verde);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.saveArea {
+  margin: 30px 0;
+}
+
+.historyAdmin {
+  background: white;
+  border: 1px solid var(--linea);
+  border-radius: 18px;
+  padding: 30px;
+}
+
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.historyHeader h2 {
+  margin: 6px 0 20px;
+}
+
+.secondaryButton {
+  background: white;
+  border: 1px solid #b9cccc;
+  color: var(--petroleo-dark);
+  border-radius: 9px;
+  padding: 10px 15px;
+  font-weight: 800;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 13px;
+  text-align: left;
+  border-bottom: 1px solid var(--linea);
+  font-size: 13px;
+}
+
+th {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .7px;
+}
+
+.emptyBox {
+  border: 1px dashed #bdd0d0;
+  border-radius: 12px;
+  padding: 30px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.advisorHeader {
+  background: white;
+  border-bottom: 1px solid var(--linea);
+  padding: 32px max(28px, calc((100vw - 1120px) / 2));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+}
+
+.advisorHeader h1 {
+  margin: 6px 0;
+  font-size: 34px;
+  letter-spacing: -.7px;
+}
+
+.advisorHeader p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 11px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .5px;
+}
+
+.badge.success {
+  color: var(--verde);
+  background: var(--verde-bg);
+}
+
+.badge.warning {
+  color: var(--amarillo);
+  background: var(--amarillo-bg);
+}
+
+.badge.danger {
+  color: var(--rojo);
+  background: var(--rojo-bg);
+}
+
+.badge.default {
+  color: var(--petroleo);
+  background: var(--petroleo-light);
+}
+
+.advisorNav {
+  width: min(1120px, calc(100% - 40px));
+  margin: 22px auto;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--linea);
+}
+
+.advisorNav button {
+  border: 0;
+  background: transparent;
+  padding: 13px 14px;
+  color: #708488;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .5px;
+  border-bottom: 3px solid transparent;
+}
+
+.advisorNav button.active {
+  color: var(--petroleo);
+  border-bottom-color: var(--turquesa);
+}
+
+.advisorContent {
+  width: min(1120px, calc(100% - 40px));
+  margin: 25px auto 70px;
+}
+
+.advisorCard {
+  background: white;
+  border: 1px solid var(--linea);
+  border-radius: 20px;
+  padding: 34px;
+  box-shadow: 0 8px 30px rgba(7,91,99,.05);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  border-bottom: 1px solid var(--linea);
+  padding-bottom: 22px;
+  margin-bottom: 28px;
+}
+
+.cardTop h2,
+.advisorCard > h2 {
+  margin: 6px 0 0;
+  font-size: 25px;
+  letter-spacing: -.3px;
+}
+
+.qualityHero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 5px 0 30px;
+}
+
+.scoreCircle {
+  width: 150px;
+  height: 150px;
+  flex: 0 0 150px;
+  border-radius: 50%;
+  background: var(--petroleo-light);
+  border: 9px solid #b5d9da;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.scoreCircle strong {
+  font-size: 44px;
+  color: var(--petroleo-dark);
+}
+
+.scoreCircle span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.heroStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.heroStats div,
+.metricGrid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heroStats span,
+.metricGrid span,
+.infoBox span,
+.observation span,
+.auditGrid span,
+.audioPlayer > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.heroStats strong {
+  font-size: 25px;
+}
+
+.progressBlock {
+  margin-bottom: 28px;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.progressLabel strong {
+  color: var(--petroleo);
+}
+
+.progress {
+  height: 9px;
+  background: #e3eeee;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progress div {
+  height: 100%;
+  background: var(--turquesa);
+  border-radius: inherit;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.infoBox {
+  background: #f8fbfb;
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.infoBox.highlight {
+  background: var(--petroleo-light);
+  border-color: #c4e0e0;
+}
+
+.infoBox strong {
+  font-size: 17px;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 25px;
+}
+
+.contentBlock {
+  border-top: 1px solid var(--linea);
+  padding-top: 22px;
+}
+
+.contentBlock h3,
+.auditInside h3 {
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin: 0 0 13px;
+  color: var(--petroleo);
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagList span {
+  background: #f0f6f6;
+  border: 1px solid #d7e7e7;
+  color: #496367;
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: 12px;
+}
+
+.auditInside {
+  margin-top: 30px;
+  padding: 25px;
+  border-radius: 14px;
+  background: #f7faf9;
+  border: 1px solid var(--linea);
+}
+
+.auditGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.auditGrid div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.audioPlayer {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audioPlayer audio {
+  width: 100%;
+}
+
+.observation {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid var(--linea);
+}
+
+.observation p {
+  margin: 9px 0 0;
+  line-height: 1.65;
+  color: #455f64;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.metricGrid > div {
+  background: #f7faf9;
+  border: 1px solid var(--linea);
+  padding: 18px;
+  border-radius: 12px;
+}
+
+.metricGrid strong {
+  font-size: 24px;
+  color: var(--petroleo-dark);
+}
+
+.metricGrid small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.emptyFeature {
+  text-align: left;
+}
+
+.comingSoon {
+  margin-top: 30px;
+  border: 1px dashed #b9cdcd;
+  border-radius: 14px;
+  padding: 35px;
+  background: #f8fbfb;
+}
+
+.comingSoon strong {
+  display: block;
+  color: var(--petroleo);
+  margin-bottom: 8px;
+}
+
+.comingSoon p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.historyCards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historyCard {
+  border: 1px solid var(--linea);
+  border-radius: 13px;
+  padding: 17px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 20px;
+}
+
+.historyCard span,
+.historyCard small {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+}
+
+.historyCard strong {
+  display: block;
+  font-size: 22px;
+  margin-top: 5px;
+}
+
+.historyCard b {
+  display: block;
+  margin-top: 5px;
+}
+
+.feedbackCard {
+  max-width: 850px;
+}
+
+.feedbackCard > p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 18px 0 22px;
+}
+
+.advisorEmpty {
+  width: min(1120px, calc(100% - 40px));
+  margin: 60px auto;
+  background: white;
+  border: 1px solid var(--linea);
+  border-radius: 20px;
+  padding: 50px;
+}
+
+.advisorEmpty h2 {
+  margin: 8px 0;
+}
+
+.advisorEmpty p {
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .topHeader,
+  .advisorHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .formGrid,
+  .formGrid.four,
+  .infoGrid,
+  .twoColumns,
+  .metricGrid,
+  .auditGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .qualityHero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .heroStats {
+    gap: 20px;
+  }
+
+  .historyCard {
+    grid-template-columns: 1fr;
+  }
+
+  .advisorNav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .advisorNav button {
+    white-space: nowrap;
+  }
+}
+
+@media print {
+  .advisorNav,
+  .logoutButton,
+  .secondaryButton {
+    display: none !important;
+  }
+
+  .advisorHeader {
+    border-bottom: 0;
+  }
+
+  .advisorCard {
+    box-shadow: none;
+  }
+}
+`;
