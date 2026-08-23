@@ -323,10 +323,7 @@ export default function Page() {
   const updateForm = (key, value) => {
     setForm((prev) => ({
       ...prev,
-      [key]:
-        typeof value === "function"
-          ? value(prev[key])
-          : value,
+      [key]: typeof value === "function" ? value(prev[key]) : value,
     }));
   };
 
@@ -341,6 +338,16 @@ export default function Page() {
     );
   }
 
+  /*
+   * CARGA DEL REPORTE
+   *
+   * Primero busca por número de usuario.
+   * Si no encuentra nada, busca por nombre.
+   *
+   * Esto permite recuperar reportes que ya estaban
+   * guardados aunque hayan quedado asociados de una
+   * de las dos maneras.
+   */
   async function loadAdvisorReport(foundAdvisor) {
     setLoadingReport(true);
     setReport(null);
@@ -353,24 +360,51 @@ export default function Page() {
         return;
       }
 
-      const { data, error } = await supabase
+      let data = null;
+
+      // PRIMERA BÚSQUEDA: por número de usuario
+      const byUsuario = await supabase
         .from("reportes")
         .select("*")
         .eq("usuario", foundAdvisor[1])
         .order("id", { ascending: false })
         .limit(1);
 
-      if (error) {
-        console.error("Error cargando reporte:", error);
-        setReport(null);
-        return;
+      if (byUsuario.error) {
+        console.error(
+          "Error cargando reporte por usuario:",
+          byUsuario.error
+        );
+      } else {
+        data = byUsuario.data;
+      }
+
+      // SEGUNDA BÚSQUEDA: por nombre del asesor
+      if (!data || data.length === 0) {
+        const byAsesor = await supabase
+          .from("reportes")
+          .select("*")
+          .eq("asesor", foundAdvisor[0])
+          .order("id", { ascending: false })
+          .limit(1);
+
+        if (byAsesor.error) {
+          console.error(
+            "Error cargando reporte por asesor:",
+            byAsesor.error
+          );
+        } else {
+          data = byAsesor.data;
+        }
       }
 
       if (data && data.length > 0) {
         setReport(data[0]);
+      } else {
+        setReport(null);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error cargando reporte:", error);
       setReport(null);
     } finally {
       setLoadingReport(false);
@@ -432,6 +466,7 @@ export default function Page() {
     setAdminPassword("");
     setAdminError("");
     setActiveTab("calidad");
+    setFeedback("");
   }
 
   async function saveReport() {
@@ -554,8 +589,7 @@ export default function Page() {
         objetivo_tipificacion: form.tipificacionObjetivo,
         resultado_tipificacion: form.tipificacionResultado,
         compromiso_tipificacion: form.tipificacionCompromiso,
-        observaciones_tipificacion:
-          form.tipificacionObservaciones,
+        observaciones_tipificacion: form.tipificacionObservaciones,
 
         principales_om: form.omDetectadas,
       };
@@ -1637,12 +1671,8 @@ export default function Page() {
                 <strong>
                   {currentReport.objetivo
                     ? Math.round(
-                        (Number(
-                          currentReport.nota || 0
-                        ) /
-                          Number(
-                            currentReport.objetivo
-                          )) *
+                        (Number(currentReport.nota || 0) /
+                          Number(currentReport.objetivo)) *
                           100
                       )
                     : 0}
@@ -1657,12 +1687,8 @@ export default function Page() {
                       currentReport.objetivo
                         ? Math.min(
                             100,
-                            (Number(
-                              currentReport.nota || 0
-                            ) /
-                              Number(
-                                currentReport.objetivo
-                              )) *
+                            (Number(currentReport.nota || 0) /
+                              Number(currentReport.objetivo)) *
                               100
                           )
                         : 0
@@ -1681,12 +1707,8 @@ export default function Page() {
                 <strong>
                   {Math.max(
                     0,
-                    Number(
-                      currentReport.objetivo || 0
-                    ) -
-                      Number(
-                        currentReport.nota || 0
-                      )
+                    Number(currentReport.objetivo || 0) -
+                      Number(currentReport.nota || 0)
                   )}{" "}
                   puntos
                 </strong>
@@ -1954,8 +1976,7 @@ export default function Page() {
                 <small>CANTIDAD</small>
 
                 <strong>
-                  {currentReport.cantidad_no_ventas ??
-                    "-"}
+                  {currentReport.cantidad_no_ventas ?? "-"}
                 </strong>
               </div>
 
