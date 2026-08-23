@@ -1,15 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase =
-  SUPABASE_URL && SUPABASE_ANON_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
 
 const ASESORES = [
   ["Acosta, Pamela", "8134", "acosta.pamela@portalcalidad.com"],
@@ -37,7 +28,22 @@ const ASESORES = [
   ["Viniegra, Agustín", "8199", "viniegra.agustin@portalcalidad.com"],
 ];
 
-const ADMIN_MAIL = "admin@portalcalidad.com";
+const ADMIN_EMAIL = "estecalidadbhseguros@proximo.cc";
+
+const COLORS = {
+  navy: "#123B4A",
+  petrol: "#155E68",
+  teal: "#1B7F83",
+  aqua: "#35A7A0",
+  cream: "#F5F8F7",
+  white: "#FFFFFF",
+  text: "#17313A",
+  muted: "#6D8087",
+  border: "#DCE7E8",
+  green: "#25866A",
+  yellow: "#D59A28",
+  red: "#C95C5C",
+};
 
 const ITEMS_CALIDAD = [
   "Información de otras compañías",
@@ -98,7 +104,7 @@ const TIPIFICACIONES = [
 
 const OM = [
   "Generación de interés",
-  "Cambio de apertura",
+  "Cambio apertura",
   "Escucha activa",
   "Venta consultiva",
   "Venta conversacional",
@@ -115,38 +121,60 @@ const FORTALEZAS = [
   "Claridad en explicación",
   "Buen manejo de silencios",
   "Correcta contención",
-  "Buena escucha",
   "Seguridad comercial",
   "Buena comunicación",
   "Correcto manejo de objeciones",
 ];
 
-function parseArray(value) {
-  if (!value) return [];
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
+function parseArray(value) {
   if (Array.isArray(value)) return value;
 
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
+  if (!value) return [];
 
-    return value
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return String(value)
       .split(",")
       .map((x) => x.trim())
       .filter(Boolean);
   }
-
-  return [];
 }
 
-function ToggleGroup({ title, options, values, setValues }) {
-  const toggle = (item) => {
-    setValues((prev) =>
-      prev.includes(item)
-        ? prev.filter((x) => x !== item)
-        : [...prev, item]
+function getInitials(name) {
+  if (!name) return "PC";
+
+  const parts = name
+    .replace(",", "")
+    .split(" ")
+    .filter(Boolean);
+
+  return parts
+    .slice(0, 2)
+    .map((x) => x[0])
+    .join("")
+    .toUpperCase();
+}
+
+function statusClass(status) {
+  const s = String(status || "").toUpperCase();
+
+  if (s.includes("ALCANZ")) return "statusGreen";
+  if (s.includes("DEBAJO")) return "statusRed";
+  return "statusYellow";
+}
+
+function MultiSelect({ title, options, selected, setSelected }) {
+  const toggle = (option) => {
+    setSelected((prev) =>
+      prev.includes(option)
+        ? prev.filter((x) => x !== option)
+        : [...prev, option]
     );
   };
 
@@ -154,1223 +182,1562 @@ function ToggleGroup({ title, options, values, setValues }) {
     <div className="fieldGroup">
       <label>{title}</label>
       <div className="multiGrid">
-        {options.map((item) => (
+        {options.map((option) => (
           <button
             type="button"
-            key={item}
+            key={option}
             className={`multiOption ${
-              values.includes(item) ? "selected" : ""
+              selected.includes(option) ? "selected" : ""
             }`}
-            onClick={() => toggle(item)}
+            onClick={() => toggle(option)}
           >
-            <span>{values.includes(item) ? "✓" : ""}</span>
-            {item}
+            <span>{selected.includes(option) ? "✓" : ""}</span>
+            {option}
           </button>
         ))}
       </div>
 
-      {values.length > 0 && (
-        <div className="selectedCount">
-          {values.length} seleccionada{values.length !== 1 ? "s" : ""}
-        </div>
-      )}
+      <div className="selectedCount">
+        {selected.length} seleccionada{selected.length === 1 ? "" : "s"}
+      </div>
     </div>
   );
 }
 
-function Login({ onLogin }) {
-  const [mail, setMail] = useState("");
-  const [error, setError] = useState("");
-
-  const ingresar = (e) => {
-    e.preventDefault();
-    setError("");
-
-    const normalized = mail.trim().toLowerCase();
-
-    if (normalized === ADMIN_MAIL) {
-      onLogin({ admin: true });
-      return;
-    }
-
-    const asesor = ASESORES.find(
-      (item) => item[2].toLowerCase() === normalized
-    );
-
-    if (!asesor) {
-      setError(
-        "No encontramos ese mail. Ingresá el mail institucional asociado a tu portal."
-      );
-      return;
-    }
-
-    onLogin({
-      admin: false,
-      nombre: asesor[0],
-      usuario: asesor[1],
-      email: asesor[2],
-    });
-  };
-
+function SelectField({ label, value, setValue, options }) {
   return (
-    <main className="loginPage">
-      <div className="loginCard">
-        <div className="brandMark">PC</div>
-
-        <div className="brand">PORTAL DE CALIDAD</div>
-
-        <h1>Ingresá a tu portal</h1>
-
-        <p>
-          Consultá tu evolución, objetivos y acciones de calidad.
-        </p>
-
-        <form onSubmit={ingresar}>
-          <label>Mail institucional</label>
-
-          <input
-            type="email"
-            placeholder="nombre.apellido@portalcalidad.com"
-            value={mail}
-            onChange={(e) => setMail(e.target.value)}
-            autoComplete="email"
-          />
-
-          {error && <div className="errorBox">{error}</div>}
-
-          <button className="primaryButton" type="submit">
-            INGRESAR
-          </button>
-        </form>
-      </div>
-    </main>
-  );
-}
-
-function MultiText({ value }) {
-  return (
-    <div className="tagList">
-      {parseArray(value).map((item) => (
-        <span className="tag" key={item}>
-          {item}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function Header({ nombre, admin, logout }) {
-  return (
-    <header className="topHeader">
-      <div>
-        <div className="brand">PORTAL DE CALIDAD</div>
-
-        {admin ? (
-          <h1>Panel de Calidad</h1>
-        ) : (
-          <>
-            <h1>Hola, {nombre?.split(",")[1]?.trim() || nombre}</h1>
-            <div className="weekLabel">Semana 3 - Agosto</div>
-          </>
-        )}
-      </div>
-
-      <div className="headerRight">
-        {!admin && <span className="statusPill">EN SEGUIMIENTO</span>}
-
-        <button onClick={logout} className="logout">
-          Cerrar sesión
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function AdvisorPortal({ user, report, logout }) {
-  const [active, setActive] = useState("calidad");
-
-  const menu = [
-    ["calidad", "CALIDAD"],
-    ["productividad", "PRODUCTIVIDAD"],
-    ["tipificaciones", "TIPIFICACIONES"],
-    ["auditorias", "AUDITORÍAS"],
-    ["actividades", "ACTIVIDADES"],
-    ["historico", "HISTÓRICO"],
-    ["feedback", "FEEDBACK"],
-  ];
-
-  if (!report) {
-    return (
-      <div className="app">
-        <Header nombre={user.nombre} logout={logout} />
-
-        <nav className="tabs">
-          {menu.map(([id, label]) => (
-            <button
-              key={id}
-              className={active === id ? "active" : ""}
-              onClick={() => setActive(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        <section className="emptyCard">
-          <div className="emptyIcon">01</div>
-          <h2>Todavía no hay un reporte cargado.</h2>
-          <p>
-            Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
-          </p>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app">
-      <Header nombre={user.nombre} logout={logout} />
-
-      <nav className="tabs">
-        {menu.map(([id, label]) => (
-          <button
-            key={id}
-            className={active === id ? "active" : ""}
-            onClick={() => setActive(id)}
-          >
-            {label}
-          </button>
+    <div className="fieldGroup">
+      <label>{label}</label>
+      <select value={value} onChange={(e) => setValue(e.target.value)}>
+        <option value="">Seleccionar</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
-      </nav>
-
-      {active === "calidad" && (
-        <section className="reportSection">
-          <div className="sectionNumber">01</div>
-          <h2>CALIDAD</h2>
-
-          <div className="heroScore">
-            <div>
-              <span>NOTA</span>
-              <strong>{report.nota || "-"}</strong>
-              <small>/ 100</small>
-            </div>
-
-            <div>
-              <span>OBJETIVO</span>
-              <strong>{report.objetivo || "-"}</strong>
-            </div>
-
-            <div>
-              <span>ESTADO</span>
-              <strong>{report.estado_objetivo || "-"}</strong>
-            </div>
-
-            <div>
-              <span>PRODUCTO</span>
-              <strong>{report.producto || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="progressCard">
-            <span>Progreso hacia el objetivo</span>
-            <strong>
-              {report.nota && report.objetivo
-                ? `${Math.min(
-                    100,
-                    Math.round(
-                      (Number(report.nota) / Number(report.objetivo)) * 100
-                    )
-                  )}%`
-                : "-"}
-            </strong>
-          </div>
-
-          <div className="infoGrid">
-            <div>
-              <label>DESVÍO PRINCIPAL</label>
-              <strong>{report.desvio || "-"}</strong>
-            </div>
-
-            <div>
-              <label>RECOMENDACIÓN</label>
-              <strong>{report.recomendacion || "-"}</strong>
-            </div>
-
-            <div>
-              <label>OBJETIVO DE TRABAJO</label>
-              <strong>{report.gestion || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="contentBlock">
-            <h3>COMPARATIVO SEMANAL</h3>
-            <p>
-              {report.evolucion ||
-                "Todavía no hay una semana anterior para comparar."}
-            </p>
-          </div>
-
-          <div className="contentBlock">
-            <h3>ITEMS TRABAJADOS</h3>
-            <MultiText value={report.items_calidad} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>ACCIONES REALIZADAS</h3>
-            <MultiText value={report.acciones_calidad} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>AUDITORÍA</h3>
-
-            <div className="auditBox">
-              <div>
-                <span>ESTADO</span>
-                <strong>{report.auditoria || "Sin información"}</strong>
-              </div>
-
-              {report.observaciones && (
-                <div>
-                  <span>OBSERVACIONES</span>
-                  <p>{report.observaciones}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {active === "productividad" && (
-        <section className="reportSection">
-          <div className="sectionNumber">02</div>
-          <h2>PRODUCTIVIDAD</h2>
-
-          <div className="heroScore productivity">
-            <div>
-              <span>SPH</span>
-              <strong>{report.sph || "-"}</strong>
-            </div>
-
-            <div>
-              <span>OBJETIVO SPH</span>
-              <strong>{report.objetivo_sph || "-"}</strong>
-            </div>
-
-            <div>
-              <span>VENTAS</span>
-              <strong>{report.ventas || "-"}</strong>
-            </div>
-
-            <div>
-              <span>OBJETIVO VENTAS</span>
-              <strong>{report.objetivo_ventas || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="infoGrid">
-            <div>
-              <label>OBJETIVO DE CAMPAÑA</label>
-              <strong>{report.objetivo_campania || "-"}</strong>
-            </div>
-
-            <div>
-              <label>ESTADO</label>
-              <strong>{report.estado_campania || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="contentBlock">
-            <h3>ITEMS TRABAJADOS</h3>
-            <MultiText value={report.items_productividad} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>ACCIONES REALIZADAS</h3>
-            <MultiText value={report.acciones_productividad} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>OBSERVACIONES</h3>
-            <p>{report.observaciones || "No hay observaciones cargadas."}</p>
-          </div>
-        </section>
-      )}
-
-      {active === "tipificaciones" && (
-        <section className="reportSection">
-          <div className="sectionNumber">03</div>
-          <h2>TIPIFICACIONES</h2>
-
-          <div className="heroScore">
-            <div>
-              <span>ESTADO</span>
-              <strong>{report.estado_tipificaciones || "-"}</strong>
-            </div>
-
-            <div>
-              <span>DESVÍO</span>
-              <strong>{report.tipificacion_desvio || "-"}</strong>
-            </div>
-
-            <div>
-              <span>OBJETIVO</span>
-              <strong>{report.tipificacion_objetivo || "-"}</strong>
-            </div>
-
-            <div>
-              <span>RESULTADO</span>
-              <strong>{report.tipificacion_resultado || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="contentBlock">
-            <h3>TIPIFICACIONES REALIZADAS</h3>
-            <MultiText value={report.tipificaciones} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>COMPROMISO</h3>
-            <p>{report.tipificacion_compromiso || "-"}</p>
-          </div>
-
-          <div className="contentBlock">
-            <h3>OBSERVACIONES</h3>
-            <p>
-              {report.tipificacion_observaciones ||
-                "Sin observaciones cargadas."}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {active === "auditorias" && (
-        <section className="reportSection">
-          <div className="sectionNumber">04</div>
-          <h2>AUDITORÍAS DE NO VENTAS</h2>
-
-          <div className="heroScore">
-            <div>
-              <span>CANTIDAD</span>
-              <strong>{report.cantidad_no_ventas || "-"}</strong>
-            </div>
-
-            <div>
-              <span>COACHING</span>
-              <strong>{report.coaching_no_ventas || "-"}</strong>
-            </div>
-
-            <div>
-              <span>REGISTRO EN SISTEMA</span>
-              <strong>{report.registro_sistema || "-"}</strong>
-            </div>
-
-            <div>
-              <span>COMPROMISO</span>
-              <strong>{report.compromiso_no_ventas || "-"}</strong>
-            </div>
-          </div>
-
-          <div className="contentBlock">
-            <h3>PRINCIPALES O.M.</h3>
-            <MultiText value={report.om_detectadas} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>FORTALEZAS</h3>
-            <MultiText value={report.fortalezas} />
-          </div>
-
-          <div className="contentBlock">
-            <h3>OBSERVACIONES</h3>
-            <p>
-              {report.observaciones_no_ventas ||
-                "No hay observaciones cargadas."}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {active === "actividades" && (
-        <section className="reportSection">
-          <div className="sectionNumber">05</div>
-          <h2>ACTIVIDADES</h2>
-
-          <div className="emptyCard inside">
-            <div className="plus">+</div>
-            <h3>Próximamente</h3>
-            <p>
-              Esta sección quedará disponible para registrar y consultar
-              actividades.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {active === "historico" && (
-        <section className="reportSection">
-          <div className="sectionNumber">06</div>
-          <h2>HISTÓRICO</h2>
-
-          <div className="emptyCard inside">
-            <h3>Histórico de evolución</h3>
-            <p>
-              Acá aparecerán los reportes anteriores del asesor.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {active === "feedback" && (
-        <section className="reportSection">
-          <div className="sectionNumber">07</div>
-          <h2>FEEDBACK DEL ASESOR</h2>
-
-          <div className="feedbackCard">
-            <h3>
-              ¿Querés dejar algún comentario sobre tu reporte, una consulta o
-              algo que quieras trabajar con Calidad?
-            </h3>
-
-            <textarea placeholder="Escribí tu comentario..." />
-
-            <button className="primaryButton">ENVIAR FEEDBACK</button>
-          </div>
-        </section>
-      )}
+      </select>
     </div>
   );
 }
 
-function AdminPanel({ logout }) {
-  const emptyForm = {
-    asesor: "",
-    usuario: "",
-    semana: "Semana 3 - Agosto",
-    nota: "",
-    objetivo: "",
-    estado_objetivo: "",
-    producto: "AP",
-    desvio: "",
-    recomendacion: "",
-    gestion: "",
-    evolucion: "",
-    observaciones: "",
-    items_calidad: [],
-    acciones_calidad: [],
-    auditoria: "",
-    observaciones_auditoria: "",
-    sph: "",
-    objetivo_sph: "",
-    ventas: "",
-    objetivo_ventas: "",
-    objetivo_campania: "",
-    estado_sph: "",
-    estado_ventas: "",
-    estado_campania: "",
-    items_productividad: [],
-    acciones_productividad: [],
-    observaciones_productividad: "",
-    objetivo_tipificaciones: "",
-    tipificaciones: [],
-    estado_tipificaciones: "",
-    tipificacion_desvio: "",
-    tipificacion_objetivo: "",
-    tipificacion_resultado: "",
-    tipificacion_compromiso: "",
-    tipificacion_observaciones: "",
-    cantidad_no_ventas: "",
-    om_detectadas: [],
-    coaching_no_ventas: "",
-    registro_sistema: "",
-    compromiso_no_ventas: "",
-    fortalezas: [],
-    observaciones_no_ventas: "",
-    audio_url: "",
-  };
-
-  const [form, setForm] = useState(emptyForm);
-  const [audio, setAudio] = useState(null);
-  const [reports, setReports] = useState([]);
-  const [message, setMessage] = useState("");
-
-  const update = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const cargarHistorial = async () => {
-    if (!supabase) return;
-
-    const { data } = await supabase
-      .from("reportes")
-      .select("*")
-      .order("id", { ascending: false });
-
-    if (data) setReports(data);
-  };
-
-  useEffect(() => {
-    cargarHistorial();
-  }, []);
-
-  const guardarReporte = async (e) => {
-    e.preventDefault();
-    setMessage("");
-
-    if (!supabase) {
-      setMessage(
-        "No está configurada la conexión con Supabase. Revisá las variables NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
-      );
-      return;
-    }
-
-    if (!form.asesor) {
-      setMessage("Seleccioná un asesor.");
-      return;
-    }
-
-    const asesor = ASESORES.find((a) => a[0] === form.asesor);
-
-    const payload = {
-      ...form,
-      usuario: asesor?.[1] || "",
-      items_calidad: JSON.stringify(form.items_calidad),
-      acciones_calidad: JSON.stringify(form.acciones_calidad),
-      items_productividad: JSON.stringify(form.items_productividad),
-      acciones_productividad: JSON.stringify(form.acciones_productividad),
-      tipificaciones: JSON.stringify(form.tipificaciones),
-      om_detectadas: JSON.stringify(form.om_detectadas),
-      fortalezas: JSON.stringify(form.fortalezas),
-      audio_url: form.audio_url || null,
-    };
-
-    delete payload.asesor;
-
-    const { error } = await supabase.from("reportes").insert({
-      asesor: form.asesor,
-      ...payload,
-    });
-
-    if (error) {
-      console.error(error);
-      setMessage(
-        `No se pudo guardar el reporte: ${error.message}`
-      );
-      return;
-    }
-
-    setMessage("✓ REPORTE GUARDADO CORRECTAMENTE");
-    setForm(emptyForm);
-    setAudio(null);
-    cargarHistorial();
-  };
-
+function TextField({ label, value, setValue, type = "text", placeholder = "" }) {
   return (
-    <div className="adminPage">
-      <Header admin logout={logout} />
+    <div className="fieldGroup">
+      <label>{label}</label>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => setValue(e.target.value)}
+      />
+    </div>
+  );
+}
 
-      <div className="adminIntro">
-        <span>ADMINISTRACIÓN</span>
-        <h2>Cargar nuevo reporte</h2>
-        <p>
-          Completá la información y el reporte quedará disponible para el
-          asesor.
-        </p>
-      </div>
-
-      <form className="adminForm" onSubmit={guardarReporte}>
-        <section className="adminSection">
-          <div className="sectionNumber">01</div>
-          <h2>Datos generales</h2>
-
-          <div className="formGrid">
-            <div className="fieldGroup">
-              <label>Asesor</label>
-              <select
-                value={form.asesor}
-                onChange={(e) => update("asesor", e.target.value)}
-              >
-                <option value="">Seleccioná un asesor</option>
-                {ASESORES.map(([nombre, id]) => (
-                  <option key={id} value={nombre}>
-                    {nombre} — {id}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="fieldGroup">
-              <label>Semana / período</label>
-              <input
-                value={form.semana}
-                onChange={(e) => update("semana", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Nota de calidad</label>
-              <input
-                type="number"
-                value={form.nota}
-                onChange={(e) => update("nota", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Objetivo de calidad</label>
-              <input
-                type="number"
-                value={form.objetivo}
-                onChange={(e) => update("objetivo", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Estado del objetivo</label>
-              <select
-                value={form.estado_objetivo}
-                onChange={(e) => update("estado_objetivo", e.target.value)}
-              >
-                <option value="">Seleccionar</option>
-                <option>ALCANZADO</option>
-                <option>EN PROCESO</option>
-                <option>DEBAJO DEL OBJETIVO</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup">
-              <label>Producto</label>
-              <select
-                value={form.producto}
-                onChange={(e) => update("producto", e.target.value)}
-              >
-                <option>AP</option>
-                <option>BM</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Desvío principal</label>
-              <input
-                value={form.desvio}
-                onChange={(e) => update("desvio", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Recomendación</label>
-              <textarea
-                value={form.recomendacion}
-                onChange={(e) => update("recomendacion", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Objetivo de trabajo</label>
-              <textarea
-                value={form.gestion}
-                onChange={(e) => update("gestion", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Evolución / comparativo semanal</label>
-              <textarea
-                value={form.evolucion}
-                onChange={(e) => update("evolucion", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <ToggleGroup
-            title="Items trabajados"
-            options={ITEMS_CALIDAD}
-            values={form.items_calidad}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                items_calidad:
-                  typeof fn === "function" ? fn(p.items_calidad) : fn,
-              }))
-            }
-          />
-
-          <ToggleGroup
-            title="Acciones realizadas"
-            options={ACCIONES_CALIDAD}
-            values={form.acciones_calidad}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                acciones_calidad:
-                  typeof fn === "function" ? fn(p.acciones_calidad) : fn,
-              }))
-            }
-          />
-        </section>
-
-        <section className="adminSection">
-          <div className="sectionNumber">02</div>
-          <h2>Auditoría</h2>
-
-          <div className="formGrid">
-            <div className="fieldGroup">
-              <label>Estado de auditoría</label>
-              <select
-                value={form.auditoria}
-                onChange={(e) => update("auditoria", e.target.value)}
-              >
-                <option value="">Seleccionar</option>
-                <option>Correcta</option>
-                <option>Con desvíos</option>
-                <option>Requiere coaching</option>
-                <option>Requiere seguimiento</option>
-                <option>Sin información</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Observaciones de auditoría</label>
-              <textarea
-                value={form.observaciones_auditoria}
-                onChange={(e) =>
-                  update("observaciones_auditoria", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="adminSection">
-          <div className="sectionNumber">03</div>
-          <h2>Productividad</h2>
-
-          <div className="formGrid">
-            <div className="fieldGroup">
-              <label>SPH</label>
-              <input
-                value={form.sph}
-                onChange={(e) => update("sph", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Objetivo SPH</label>
-              <input
-                value={form.objetivo_sph}
-                onChange={(e) => update("objetivo_sph", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Ventas</label>
-              <input
-                value={form.ventas}
-                onChange={(e) => update("ventas", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Objetivo ventas</label>
-              <input
-                value={form.objetivo_ventas}
-                onChange={(e) => update("objetivo_ventas", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Objetivo de campaña</label>
-              <input
-                value={form.objetivo_campania}
-                onChange={(e) => update("objetivo_campania", e.target.value)}
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Estado campaña</label>
-              <select
-                value={form.estado_campania}
-                onChange={(e) => update("estado_campania", e.target.value)}
-              >
-                <option value="">Seleccionar</option>
-                <option>ALCANZADO</option>
-                <option>EN PROCESO</option>
-                <option>DEBAJO DEL OBJETIVO</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Observaciones de productividad</label>
-              <textarea
-                value={form.observaciones_productividad}
-                onChange={(e) =>
-                  update("observaciones_productividad", e.target.value)
-                }
-              />
-            </div>
-          </div>
-
-          <ToggleGroup
-            title="Items trabajados"
-            options={ITEMS_PRODUCTIVIDAD}
-            values={form.items_productividad}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                items_productividad:
-                  typeof fn === "function"
-                    ? fn(p.items_productividad)
-                    : fn,
-              }))
-            }
-          />
-
-          <ToggleGroup
-            title="Acciones realizadas"
-            options={ACCIONES_PRODUCTIVIDAD}
-            values={form.acciones_productividad}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                acciones_productividad:
-                  typeof fn === "function"
-                    ? fn(p.acciones_productividad)
-                    : fn,
-              }))
-            }
-          />
-        </section>
-
-        <section className="adminSection">
-          <div className="sectionNumber">04</div>
-          <h2>Tipificaciones</h2>
-
-          <ToggleGroup
-            title="Tipificaciones realizadas"
-            options={TIPIFICACIONES}
-            values={form.tipificaciones}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                tipificaciones:
-                  typeof fn === "function" ? fn(p.tipificaciones) : fn,
-              }))
-            }
-          />
-
-          <div className="formGrid">
-            <div className="fieldGroup">
-              <label>Objetivo tipificaciones</label>
-              <input
-                value={form.objetivo_tipificaciones}
-                onChange={(e) =>
-                  update("objetivo_tipificaciones", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Estado tipificaciones</label>
-              <select
-                value={form.estado_tipificaciones}
-                onChange={(e) =>
-                  update("estado_tipificaciones", e.target.value)
-                }
-              >
-                <option value="">Seleccionar</option>
-                <option>ALCANZADO</option>
-                <option>EN PROCESO</option>
-                <option>DEBAJO DEL OBJETIVO</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup">
-              <label>Desvío</label>
-              <input
-                value={form.tipificacion_desvio}
-                onChange={(e) =>
-                  update("tipificacion_desvio", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Objetivo</label>
-              <input
-                value={form.tipificacion_objetivo}
-                onChange={(e) =>
-                  update("tipificacion_objetivo", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Resultado</label>
-              <input
-                value={form.tipificacion_resultado}
-                onChange={(e) =>
-                  update("tipificacion_resultado", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Compromiso</label>
-              <input
-                value={form.tipificacion_compromiso}
-                onChange={(e) =>
-                  update("tipificacion_compromiso", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Observaciones</label>
-              <textarea
-                value={form.tipificacion_observaciones}
-                onChange={(e) =>
-                  update("tipificacion_observaciones", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="adminSection">
-          <div className="sectionNumber">05</div>
-          <h2>Auditorías de no ventas</h2>
-
-          <div className="formGrid">
-            <div className="fieldGroup">
-              <label>Cantidad</label>
-              <input
-                value={form.cantidad_no_ventas}
-                onChange={(e) =>
-                  update("cantidad_no_ventas", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Coaching</label>
-              <input
-                value={form.coaching_no_ventas}
-                onChange={(e) =>
-                  update("coaching_no_ventas", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup">
-              <label>Registro en sistema</label>
-              <select
-                value={form.registro_sistema}
-                onChange={(e) =>
-                  update("registro_sistema", e.target.value)
-                }
-              >
-                <option value="">Seleccionar</option>
-                <option>CORRECTA</option>
-                <option>INCORRECTA</option>
-                <option>PENDIENTE</option>
-              </select>
-            </div>
-
-            <div className="fieldGroup">
-              <label>Compromiso</label>
-              <input
-                value={form.compromiso_no_ventas}
-                onChange={(e) =>
-                  update("compromiso_no_ventas", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="fieldGroup full">
-              <label>Observaciones</label>
-              <textarea
-                value={form.observaciones_no_ventas}
-                onChange={(e) =>
-                  update("observaciones_no_ventas", e.target.value)
-                }
-              />
-            </div>
-          </div>
-
-          <ToggleGroup
-            title="Principales O.M."
-            options={OM}
-            values={form.om_detectadas}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                om_detectadas:
-                  typeof fn === "function" ? fn(p.om_detectadas) : fn,
-              }))
-            }
-          />
-
-          <ToggleGroup
-            title="Fortalezas"
-            options={FORTALEZAS}
-            values={form.fortalezas}
-            setValues={(fn) =>
-              setForm((p) => ({
-                ...p,
-                fortalezas:
-                  typeof fn === "function" ? fn(p.fortalezas) : fn,
-              }))
-            }
-          />
-        </section>
-
-        <section className="adminSection">
-          <div className="sectionNumber">06</div>
-          <h2>Audio de auditoría</h2>
-
-          <div className="audioUpload">
-            <label htmlFor="audio">♪ Seleccionar audio</label>
-
-            <input
-              id="audio"
-              type="file"
-              accept="audio/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                setAudio(file || null);
-              }}
-            />
-
-            {audio && (
-              <div className="audioName">
-                ✓ {audio.name}
-              </div>
-            )}
-
-            <p>MP3, WAV, M4A u otro formato compatible.</p>
-
-            <small>
-              El audio corresponde a la auditoría y queda asociado al reporte.
-            </small>
-          </div>
-        </section>
-
-        {message && (
-          <div
-            className={
-              message.startsWith("✓")
-                ? "successBox"
-                : "errorBox adminMessage"
-            }
-          >
-            {message}
-          </div>
-        )}
-
-        <button className="saveButton" type="submit">
-          GUARDAR REPORTE
-        </button>
-      </form>
-
-      <section className="history">
-        <div className="adminIntro">
-          <span>HISTÓRICO</span>
-          <h2>Reportes cargados</h2>
-        </div>
-
-        <div className="historyTable">
-          <div className="historyHeader">
-            <span>Asesor</span>
-            <span>Semana</span>
-            <span>Nota</span>
-            <span>Producto</span>
-          </div>
-
-          {reports.map((r) => (
-            <div className="historyRow" key={r.id}>
-              <span>{r.asesor}</span>
-              <span>{r.semana}</span>
-              <strong>{r.nota}</strong>
-              <span>{r.producto}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+function TextArea({ label, value, setValue, placeholder = "" }) {
+  return (
+    <div className="fieldGroup full">
+      <label>{label}</label>
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => setValue(e.target.value)}
+      />
     </div>
   );
 }
 
 export default function Page() {
-  const [user, setUser] = useState(null);
+  const [screen, setScreen] = useState("login");
+  const [loginType, setLoginType] = useState("advisor");
+  const [email, setEmail] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const [advisor, setAdvisor] = useState(null);
   const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
 
-  const buscarReporte = async (usuario) => {
-    if (!supabase) {
-      return null;
-    }
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
 
-    const { data, error } = await supabase
-      .from("reportes")
-      .select("*")
-      .eq("usuario", usuario)
-      .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  const [activeTab, setActiveTab] = useState("calidad");
+  const [feedback, setFeedback] = useState("");
 
-    if (error) {
-      console.error(error);
-      return null;
-    }
+  const [form, setForm] = useState({
+    asesor: "",
+    usuario: "",
+    semana: "",
+    nota: "",
+    objetivo: "",
+    estadoObjetivo: "",
+    producto: "AP",
+    desvio: "",
+    recomendacion: "",
+    objetivoTrabajo: "",
+    observaciones: "",
 
-    return data;
+    itemsCalidad: [],
+    accionesCalidad: [],
+
+    auditoriaEstado: "",
+    auditoriaObservaciones: "",
+
+    sph: "",
+    objetivoSph: "",
+    ventas: "",
+    objetivoVentas: "",
+    objetivoCampania: "",
+    descripcionCampania: "",
+    estadoSph: "",
+    estadoVentas: "",
+    estadoCampania: "",
+    observacionesProductividad: "",
+    itemsProductividad: [],
+    accionesProductividad: [],
+
+    objetivoTipificaciones: "",
+    tipificaciones: [],
+    estadoTipificaciones: "",
+    tipificacionDesvio: "",
+    tipificacionObjetivo: "",
+    tipificacionResultado: "",
+    tipificacionCompromiso: "",
+    tipificacionObservaciones: "",
+
+    cantidadNoVentas: "",
+    omDetectadas: [],
+    coachingNoVentas: "",
+    registroSistema: "",
+    compromisoNoVentas: "",
+    fortalezas: [],
+    observacionesNoVentas: "",
+
+    audioFile: null,
+    observacionesGenerales: "",
+  });
+
+  const [history, setHistory] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  const updateForm = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const login = async (data) => {
-    setLoading(true);
+  const supabaseConfigured =
+    typeof window !== "undefined" &&
+    Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
-    if (data.admin) {
-      setUser(data);
-      setLoading(false);
+  async function getSupabase() {
+    if (!supabaseConfigured) return null;
+
+    const { createClient } = await import("@supabase/supabase-js");
+
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+  }
+
+  async function loadAdvisorReport(foundAdvisor) {
+    setLoadingReport(true);
+    setReport(null);
+
+    try {
+      const supabase = await getSupabase();
+
+      if (!supabase) {
+        setReport(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("reportes")
+        .select("*")
+        .eq("usuario", foundAdvisor[1])
+        .order("id", { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error(error);
+        setReport(null);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setReport(data[0]);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingReport(false);
+    }
+  }
+
+  async function loginAdvisor() {
+    setLoginError("");
+
+    const cleanEmail = normalizeEmail(email);
+
+    const found = ASESORES.find(
+      (item) => normalizeEmail(item[2]) === cleanEmail
+    );
+
+    if (!found) {
+      setLoginError(
+        "No encontramos ese mail. Ingresá el mail institucional asociado a tu portal."
+      );
       return;
     }
 
-    const found = await buscarReporte(data.usuario);
+    setAdvisor(found);
+    setScreen("advisor");
+    setActiveTab("calidad");
 
-    setUser(data);
-    setReport(found);
-    setLoading(false);
-  };
+    await loadAdvisorReport(found);
+  }
 
-  const logout = () => {
-    setUser(null);
+  function loginAdmin() {
+    setAdminError("");
+
+    if (
+      normalizeEmail(adminEmail) === normalizeEmail(ADMIN_EMAIL) &&
+      adminPassword === "admin123"
+    ) {
+      setScreen("admin");
+      setAdminEmail("");
+      setAdminPassword("");
+      return;
+    }
+
+    setAdminError("El mail o la clave de administrador no son correctos.");
+  }
+
+  function logout() {
+    setScreen("login");
+    setAdvisor(null);
     setReport(null);
-  };
+    setEmail("");
+    setLoginError("");
+    setActiveTab("calidad");
+  }
 
-  if (!user) {
+  function prepareNewReport() {
+    const selected = ASESORES.find((a) => a[0] === form.asesor);
+
+    setForm((prev) => ({
+      ...prev,
+      usuario: selected ? selected[1] : "",
+    }));
+  }
+
+  async function saveReport() {
+    setSaveMessage("");
+
+    if (!form.asesor || !form.semana || form.nota === "") {
+      setSaveMessage("Completá al menos Asesor, Semana y Nota de calidad.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const supabase = await getSupabase();
+
+      if (!supabase) {
+        setSaveMessage(
+          "Supabase no está configurado. Revisá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
+        );
+        return;
+      }
+
+      let audioUrl = "";
+
+      if (form.audioFile) {
+        const safeName = form.audioFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const filePath = `auditorias/${Date.now()}-${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("audios")
+          .upload(filePath, form.audioFile, {
+            upsert: true,
+            contentType: form.audioFile.type,
+          });
+
+        if (uploadError) {
+          console.error(uploadError);
+          setSaveMessage(
+            "El reporte no se pudo guardar porque no se pudo subir el audio. Verificá que exista el bucket 'audios' en Supabase."
+          );
+          return;
+        }
+
+        const { data: publicData } = supabase.storage
+          .from("audios")
+          .getPublicUrl(filePath);
+
+        audioUrl = publicData?.publicUrl || "";
+      }
+
+      const selectedAdvisor = ASESORES.find((a) => a[0] === form.asesor);
+
+      const payload = {
+        asesor: form.asesor,
+        usuario: selectedAdvisor?.[1] || form.usuario,
+        semana: form.semana,
+        nota: Number(form.nota),
+        evolucion: "",
+        objetivo: Number(form.objetivo || 0),
+        desvio: form.desvio,
+        recomendacion: form.recomendacion,
+        auditoria: form.auditoriaEstado,
+        producto: form.producto,
+        observaciones: form.observaciones,
+
+        sph: Number(form.sph || 0),
+        objetivo_sph: Number(form.objetivoSph || 0),
+        ventas: Number(form.ventas || 0),
+        objetivo_ventas: Number(form.objetivoVentas || 0),
+        objetivo_campania: Number(form.objetivoCampania || 0),
+        descripcion_campania: form.descripcionCampania,
+        estado_sph: form.estadoSph,
+        estado_ventas: form.estadoVentas,
+        estado_campania: form.estadoCampania,
+
+        gestion: form.accionesProductividad.join(", "),
+        objetivo_calidad: Number(form.objetivo || 0),
+        estado_objetivo: form.estadoObjetivo,
+
+        items_calidad: form.itemsCalidad,
+        acciones_calidad: form.accionesCalidad,
+
+        audio_url: audioUrl,
+
+        items_productividad: form.itemsProductividad,
+        acciones_productividad: form.accionesProductividad,
+
+        objetivo_tipificaciones: Number(form.objetivoTipificaciones || 0),
+        tipificaciones: form.tipificaciones,
+        estado_tipificaciones: form.estadoTipificaciones,
+        tipificacion_desvio: form.tipificacionDesvio,
+        tipificacion_objetivo: form.tipificacionObjetivo,
+        tipificacion_resultado: form.tipificacionResultado,
+        tipificacion_compromiso: form.tipificacionCompromiso,
+        tipificacion_observaciones: form.tipificacionObservaciones,
+
+        cantidad_no_ventas: Number(form.cantidadNoVentas || 0),
+        om_detectadas: form.omDetectadas,
+        coaching_no_ventas: form.coachingNoVentas,
+        registro_sistema: form.registroSistema,
+        compromiso_no_ventas: form.compromisoNoVentas,
+        fortalezas: form.fortalezas,
+        observaciones_no_ventas: form.observacionesNoVentas,
+
+        items_trabajados: form.itemsCalidad,
+        acciones_realizadas: form.accionesCalidad,
+
+        tipificacion: form.tipificaciones[0] || "",
+        desvio_tipificacion: form.tipificacionDesvio,
+        objetivo_tipificacion: form.tipificacionObjetivo,
+        resultado_tipificacion: form.tipificacionResultado,
+        compromiso_tipificacion: form.tipificacionCompromiso,
+        observaciones_tipificacion: form.tipificacionObservaciones,
+
+        principales_om: form.omDetectadas,
+      };
+
+      const { data, error } = await supabase
+        .from("reportes")
+        .insert([payload])
+        .select();
+
+      if (error) {
+        console.error(error);
+        setSaveMessage(
+          `No se pudo guardar el reporte: ${error.message || "error de Supabase"}`
+        );
+        return;
+      }
+
+      setHistory((prev) => [...(data || []), ...prev]);
+
+      setSaveMessage("✓ REPORTE GUARDADO CORRECTAMENTE");
+
+      setForm({
+        asesor: "",
+        usuario: "",
+        semana: "",
+        nota: "",
+        objetivo: "",
+        estadoObjetivo: "",
+        producto: "AP",
+        desvio: "",
+        recomendacion: "",
+        objetivoTrabajo: "",
+        observaciones: "",
+        itemsCalidad: [],
+        accionesCalidad: [],
+        auditoriaEstado: "",
+        auditoriaObservaciones: "",
+        sph: "",
+        objetivoSph: "",
+        ventas: "",
+        objetivoVentas: "",
+        objetivoCampania: "",
+        descripcionCampania: "",
+        estadoSph: "",
+        estadoVentas: "",
+        estadoCampania: "",
+        observacionesProductividad: "",
+        itemsProductividad: [],
+        accionesProductividad: [],
+        objetivoTipificaciones: "",
+        tipificaciones: [],
+        estadoTipificaciones: "",
+        tipificacionDesvio: "",
+        tipificacionObjetivo: "",
+        tipificacionResultado: "",
+        tipificacionCompromiso: "",
+        tipificacionObservaciones: "",
+        cantidadNoVentas: "",
+        omDetectadas: [],
+        coachingNoVentas: "",
+        registroSistema: "",
+        compromisoNoVentas: "",
+        fortalezas: [],
+        observacionesNoVentas: "",
+        audioFile: null,
+        observacionesGenerales: "",
+      });
+    } catch (error) {
+      console.error(error);
+      setSaveMessage(
+        "No se pudo guardar el reporte. Revisá la configuración de Supabase."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const supabase = await getSupabase();
+
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("reportes")
+        .select("id, asesor, semana, nota, producto")
+        .order("id", { ascending: false })
+        .limit(100);
+
+      if (!error && data) {
+        setHistory(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  useEffect(() => {
+    if (screen === "admin") {
+      loadHistory();
+    }
+  }, [screen]);
+
+  const displayName = useMemo(() => {
+    if (!advisor) return "";
+    return advisor[0].split(",")[1]?.trim() || advisor[0];
+  }, [advisor]);
+
+  if (screen === "login") {
     return (
       <>
-        <Login onLogin={login} />
+        <style>{styles}</style>
 
-        {loading && (
-          <div className="loadingOverlay">
-            Cargando portal...
+        <main className="loginPage">
+          <div className="loginCard">
+            <div className="brandMark">PC</div>
+
+            <div className="brand">PORTAL DE CALIDAD</div>
+
+            <h1>Ingresá a tu portal</h1>
+
+            <p className="loginDescription">
+              Consultá tu evolución, objetivos y acciones de calidad.
+            </p>
+
+            <div className="loginTabs">
+              <button
+                className={loginType === "advisor" ? "loginTab active" : "loginTab"}
+                onClick={() => {
+                  setLoginType("advisor");
+                  setLoginError("");
+                }}
+              >
+                Asesor
+              </button>
+
+              <button
+                className={loginType === "admin" ? "loginTab active" : "loginTab"}
+                onClick={() => {
+                  setLoginType("admin");
+                  setLoginError("");
+                }}
+              >
+                Administración
+              </button>
+            </div>
+
+            {loginType === "advisor" ? (
+              <>
+                <div className="fieldGroup">
+                  <label>Mail institucional</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setLoginError("");
+                    }}
+                    placeholder="nombre.apellido@portalcalidad.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") loginAdvisor();
+                    }}
+                  />
+                </div>
+
+                {loginError && <div className="errorBox">{loginError}</div>}
+
+                <button className="primaryButton" onClick={loginAdvisor}>
+                  INGRESAR
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="fieldGroup">
+                  <label>Mail administrador</label>
+                  <input
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="Mail de administración"
+                  />
+                </div>
+
+                <div className="fieldGroup">
+                  <label>Clave</label>
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Ingresá la clave"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") loginAdmin();
+                    }}
+                  />
+                </div>
+
+                {adminError && <div className="errorBox">{adminError}</div>}
+
+                <button className="primaryButton" onClick={loginAdmin}>
+                  INGRESAR A ADMINISTRACIÓN
+                </button>
+              </>
+            )}
           </div>
-        )}
+        </main>
+      </>
+    );
+  }
 
-        <style jsx global>{styles}</style>
+  if (screen === "admin") {
+    return (
+      <>
+        <style>{styles}</style>
+
+        <main className="app">
+          <header className="topHeader">
+            <div>
+              <div className="brand small">PORTAL DE CALIDAD</div>
+              <h1>Panel de Calidad</h1>
+              <p>Carga y gestión de reportes</p>
+            </div>
+
+            <button className="logoutButton" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </header>
+
+          <div className="adminBadge">ADMINISTRACIÓN</div>
+
+          <section className="adminIntro">
+            <h2>Cargar nuevo reporte</h2>
+            <p>
+              Completá la información y el reporte quedará disponible para el
+              asesor.
+            </p>
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">01</div>
+            <h2>Datos generales</h2>
+
+            <div className="formGrid">
+              <div className="fieldGroup">
+                <label>Asesor</label>
+                <select
+                  value={form.asesor}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const selected = ASESORES.find((a) => a[0] === value);
+
+                    setForm((prev) => ({
+                      ...prev,
+                      asesor: value,
+                      usuario: selected?.[1] || "",
+                    }));
+                  }}
+                >
+                  <option value="">Seleccioná un asesor</option>
+
+                  {ASESORES.map((a) => (
+                    <option key={a[1]} value={a[0]}>
+                      {a[0]} — {a[1]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <TextField
+                label="Semana / período"
+                value={form.semana}
+                setValue={(v) => updateForm("semana", v)}
+                placeholder="Ej.: Semana 3 - Agosto"
+              />
+
+              <TextField
+                label="Nota de calidad"
+                type="number"
+                value={form.nota}
+                setValue={(v) => updateForm("nota", v)}
+              />
+
+              <TextField
+                label="Objetivo de calidad"
+                type="number"
+                value={form.objetivo}
+                setValue={(v) => updateForm("objetivo", v)}
+              />
+
+              <SelectField
+                label="Estado del objetivo"
+                value={form.estadoObjetivo}
+                setValue={(v) => updateForm("estadoObjetivo", v)}
+                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+              />
+
+              <TextField
+                label="Producto"
+                value={form.producto}
+                setValue={(v) => updateForm("producto", v)}
+              />
+
+              <TextField
+                label="Desvío principal"
+                value={form.desvio}
+                setValue={(v) => updateForm("desvio", v)}
+              />
+
+              <TextField
+                label="Recomendación"
+                value={form.recomendacion}
+                setValue={(v) => updateForm("recomendacion", v)}
+              />
+
+              <TextField
+                label="Objetivo de trabajo"
+                value={form.objetivoTrabajo}
+                setValue={(v) => updateForm("objetivoTrabajo", v)}
+              />
+
+              <TextArea
+                label="Observaciones"
+                value={form.observaciones}
+                setValue={(v) => updateForm("observaciones", v)}
+              />
+            </div>
+
+            <MultiSelect
+              title="Items trabajados"
+              options={ITEMS_CALIDAD}
+              selected={form.itemsCalidad}
+              setSelected={(v) => updateForm("itemsCalidad", v)}
+            />
+
+            <MultiSelect
+              title="Acciones realizadas"
+              options={ACCIONES_CALIDAD}
+              selected={form.accionesCalidad}
+              setSelected={(v) => updateForm("accionesCalidad", v)}
+            />
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">02</div>
+            <h2>Auditoría</h2>
+
+            <p className="sectionHint">
+              La auditoría se mostrará dentro de Calidad.
+            </p>
+
+            <div className="formGrid">
+              <SelectField
+                label="Estado de auditoría"
+                value={form.auditoriaEstado}
+                setValue={(v) => updateForm("auditoriaEstado", v)}
+                options={[
+                  "Correcta",
+                  "Con desvíos",
+                  "Requiere coaching",
+                  "Requiere seguimiento",
+                  "Sin información",
+                ]}
+              />
+
+              <TextArea
+                label="Observaciones de auditoría"
+                value={form.auditoriaObservaciones}
+                setValue={(v) => updateForm("auditoriaObservaciones", v)}
+              />
+            </div>
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">03</div>
+            <h2>Productividad</h2>
+
+            <p className="sectionHint">
+              Información que verá el asesor en su tarjeta de Productividad.
+            </p>
+
+            <div className="formGrid">
+              <TextField
+                label="SPH"
+                type="number"
+                value={form.sph}
+                setValue={(v) => updateForm("sph", v)}
+              />
+
+              <TextField
+                label="Objetivo SPH"
+                type="number"
+                value={form.objetivoSph}
+                setValue={(v) => updateForm("objetivoSph", v)}
+              />
+
+              <TextField
+                label="Ventas"
+                type="number"
+                value={form.ventas}
+                setValue={(v) => updateForm("ventas", v)}
+              />
+
+              <TextField
+                label="Objetivo ventas"
+                type="number"
+                value={form.objetivoVentas}
+                setValue={(v) => updateForm("objetivoVentas", v)}
+              />
+
+              <TextField
+                label="Objetivo de campaña"
+                type="number"
+                value={form.objetivoCampania}
+                setValue={(v) => updateForm("objetivoCampania", v)}
+              />
+
+              <TextField
+                label="Descripción de campaña"
+                value={form.descripcionCampania}
+                setValue={(v) => updateForm("descripcionCampania", v)}
+              />
+
+              <SelectField
+                label="Estado SPH"
+                value={form.estadoSph}
+                setValue={(v) => updateForm("estadoSph", v)}
+                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+              />
+
+              <SelectField
+                label="Estado ventas"
+                value={form.estadoVentas}
+                setValue={(v) => updateForm("estadoVentas", v)}
+                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+              />
+
+              <SelectField
+                label="Estado campaña"
+                value={form.estadoCampania}
+                setValue={(v) => updateForm("estadoCampania", v)}
+                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+              />
+
+              <TextArea
+                label="Observaciones de productividad"
+                value={form.observacionesProductividad}
+                setValue={(v) =>
+                  updateForm("observacionesProductividad", v)
+                }
+              />
+            </div>
+
+            <MultiSelect
+              title="Items trabajados"
+              options={ITEMS_PRODUCTIVIDAD}
+              selected={form.itemsProductividad}
+              setSelected={(v) => updateForm("itemsProductividad", v)}
+            />
+
+            <MultiSelect
+              title="Acciones realizadas"
+              options={ACCIONES_PRODUCTIVIDAD}
+              selected={form.accionesProductividad}
+              setSelected={(v) => updateForm("accionesProductividad", v)}
+            />
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">04</div>
+            <h2>Tipificaciones</h2>
+
+            <p className="sectionHint">
+              Seleccioná todas las tipificaciones correspondientes.
+            </p>
+
+            <MultiSelect
+              title="Tipificaciones realizadas"
+              options={TIPIFICACIONES}
+              selected={form.tipificaciones}
+              setSelected={(v) => updateForm("tipificaciones", v)}
+            />
+
+            <div className="formGrid">
+              <TextField
+                label="Objetivo tipificaciones"
+                type="number"
+                value={form.objetivoTipificaciones}
+                setValue={(v) => updateForm("objetivoTipificaciones", v)}
+              />
+
+              <SelectField
+                label="Estado tipificaciones"
+                value={form.estadoTipificaciones}
+                setValue={(v) => updateForm("estadoTipificaciones", v)}
+                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+              />
+
+              <TextField
+                label="Desvío"
+                value={form.tipificacionDesvio}
+                setValue={(v) => updateForm("tipificacionDesvio", v)}
+              />
+
+              <TextField
+                label="Objetivo"
+                value={form.tipificacionObjetivo}
+                setValue={(v) => updateForm("tipificacionObjetivo", v)}
+              />
+
+              <TextField
+                label="Resultado"
+                value={form.tipificacionResultado}
+                setValue={(v) => updateForm("tipificacionResultado", v)}
+              />
+
+              <TextField
+                label="Compromiso"
+                value={form.tipificacionCompromiso}
+                setValue={(v) => updateForm("tipificacionCompromiso", v)}
+              />
+
+              <TextArea
+                label="Observaciones"
+                value={form.tipificacionObservaciones}
+                setValue={(v) =>
+                  updateForm("tipificacionObservaciones", v)
+                }
+              />
+            </div>
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">05</div>
+            <h2>Auditorías de no ventas</h2>
+
+            <p className="sectionHint">
+              Información adicional de las llamadas no convertidas.
+            </p>
+
+            <div className="formGrid">
+              <TextField
+                label="Cantidad"
+                type="number"
+                value={form.cantidadNoVentas}
+                setValue={(v) => updateForm("cantidadNoVentas", v)}
+              />
+
+              <TextField
+                label="Coaching"
+                value={form.coachingNoVentas}
+                setValue={(v) => updateForm("coachingNoVentas", v)}
+              />
+
+              <SelectField
+                label="Registro en sistema"
+                value={form.registroSistema}
+                setValue={(v) => updateForm("registroSistema", v)}
+                options={["CORRECTA", "INCORRECTA", "PENDIENTE"]}
+              />
+
+              <TextField
+                label="Compromiso"
+                value={form.compromisoNoVentas}
+                setValue={(v) => updateForm("compromisoNoVentas", v)}
+              />
+            </div>
+
+            <MultiSelect
+              title="Principales O.M."
+              options={OM}
+              selected={form.omDetectadas}
+              setSelected={(v) => updateForm("omDetectadas", v)}
+            />
+
+            <MultiSelect
+              title="Fortalezas"
+              options={FORTALEZAS}
+              selected={form.fortalezas}
+              setSelected={(v) => updateForm("fortalezas", v)}
+            />
+
+            <TextArea
+              label="Observaciones"
+              value={form.observacionesNoVentas}
+              setValue={(v) => updateForm("observacionesNoVentas", v)}
+            />
+          </section>
+
+          <section className="adminSection">
+            <div className="sectionNumber">06</div>
+            <h2>Audio de auditoría</h2>
+
+            <p className="sectionHint">
+              El audio se carga directamente y queda asociado al reporte.
+            </p>
+
+            <div className="audioUpload">
+              <input
+                id="audioInput"
+                type="file"
+                accept="audio/*"
+                onChange={(e) =>
+                  updateForm("audioFile", e.target.files?.[0] || null)
+                }
+              />
+
+              <label htmlFor="audioInput">
+                <span className="audioIcon">♪</span>
+                <strong>
+                  {form.audioFile
+                    ? form.audioFile.name
+                    : "Seleccionar audio"}
+                </strong>
+                <small>MP3, WAV, M4A u otro formato compatible</small>
+              </label>
+            </div>
+
+            <TextArea
+              label="Observaciones generales"
+              value={form.observacionesGenerales}
+              setValue={(v) => updateForm("observacionesGenerales", v)}
+            />
+          </section>
+
+          {saveMessage && (
+            <div
+              className={
+                saveMessage.startsWith("✓")
+                  ? "successBox"
+                  : "errorBox saveBox"
+              }
+            >
+              {saveMessage}
+            </div>
+          )}
+
+          <button
+            className="saveButton"
+            onClick={saveReport}
+            disabled={saving}
+          >
+            {saving ? "GUARDANDO..." : "GUARDAR REPORTE"}
+          </button>
+
+          <section className="historySection">
+            <div className="sectionHeader">
+              <div>
+                <div className="sectionNumber">07</div>
+                <h2>HISTÓRICO</h2>
+              </div>
+
+              <button className="secondaryButton" onClick={loadHistory}>
+                ACTUALIZAR
+              </button>
+            </div>
+
+            <div className="historyTable">
+              <div className="historyRow historyHead">
+                <span>Asesor</span>
+                <span>Semana</span>
+                <span>Nota</span>
+                <span>Producto</span>
+              </div>
+
+              {history.length === 0 ? (
+                <div className="emptyHistory">
+                  Todavía no hay reportes cargados.
+                </div>
+              ) : (
+                history.map((item) => (
+                  <div className="historyRow" key={item.id}>
+                    <span>{item.asesor}</span>
+                    <span>{item.semana}</span>
+                    <strong>{item.nota}</strong>
+                    <span>{item.producto}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </main>
+      </>
+    );
+  }
+
+  const currentReport = report;
+
+  if (!currentReport) {
+    return (
+      <>
+        <style>{styles}</style>
+
+        <main className="advisorApp">
+          <header className="advisorHeader">
+            <div>
+              <div className="brand small">PORTAL DE CALIDAD</div>
+              <h1>
+                Hola, {displayName}
+              </h1>
+              <p>Consultá tu evolución y tus objetivos de calidad.</p>
+            </div>
+
+            <div className="headerRight">
+              <span className="followBadge">EN SEGUIMIENTO</span>
+              <button className="logoutButton" onClick={logout}>
+                Cerrar sesión
+              </button>
+            </div>
+          </header>
+
+          <nav className="advisorNav">
+            {[
+              ["calidad", "CALIDAD"],
+              ["productividad", "PRODUCTIVIDAD"],
+              ["tipificaciones", "TIPIFICACIONES"],
+              ["auditorias", "AUDITORÍAS"],
+              ["actividades", "ACTIVIDADES"],
+              ["historico", "HISTÓRICO"],
+              ["feedback", "FEEDBACK"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                className={activeTab === id ? "active" : ""}
+                onClick={() => setActiveTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          <section className="emptyReport">
+            <div className="emptyIcon">PC</div>
+            <h2>Todavía no hay un reporte cargado.</h2>
+            <p>
+              Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
+            </p>
+          </section>
+        </main>
       </>
     );
   }
 
   return (
     <>
-      {user.admin ? (
-        <AdminPanel logout={logout} />
-      ) : (
-        <AdvisorPortal user={user} report={report} logout={logout} />
-      )}
+      <style>{styles}</style>
 
-      <style jsx global>{styles}</style>
+      <main className="advisorApp">
+        <header className="advisorHeader">
+          <div>
+            <div className="brand small">PORTAL DE CALIDAD</div>
+
+            <h1>Hola, {displayName}</h1>
+
+            <p>{currentReport.semana || "Semana actual"}</p>
+          </div>
+
+          <div className="headerRight">
+            <span
+              className={`followBadge ${statusClass(
+                currentReport.estado_objetivo
+              )}`}
+            >
+              {currentReport.estado_objetivo || "EN SEGUIMIENTO"}
+            </span>
+
+            <button className="logoutButton" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+
+        <nav className="advisorNav">
+          {[
+            ["calidad", "CALIDAD"],
+            ["productividad", "PRODUCTIVIDAD"],
+            ["tipificaciones", "TIPIFICACIONES"],
+            ["auditorias", "AUDITORÍAS"],
+            ["actividades", "ACTIVIDADES"],
+            ["historico", "HISTÓRICO"],
+            ["feedback", "FEEDBACK"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              className={activeTab === id ? "active" : ""}
+              onClick={() => setActiveTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {activeTab === "calidad" && (
+          <section className="advisorCard">
+            <div className="cardNumber">01</div>
+
+            <div className="cardTitle">
+              <span>CALIDAD</span>
+              <h2>
+                {currentReport.nota ?? "-"}
+                <small>/ 100</small>
+              </h2>
+            </div>
+
+            <div className="metricGrid">
+              <div>
+                <small>OBJETIVO</small>
+                <strong>{currentReport.objetivo ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>ESTADO</small>
+                <strong>
+                  {currentReport.estado_objetivo || "EN PROCESO"}
+                </strong>
+              </div>
+
+              <div>
+                <small>PRODUCTO</small>
+                <strong>{currentReport.producto || "AP"}</strong>
+              </div>
+
+              <div>
+                <small>DESVÍO PRINCIPAL</small>
+                <strong>{currentReport.desvio || "-"}</strong>
+              </div>
+            </div>
+
+            <div className="progressBlock">
+              <div className="progressTop">
+                <span>Progreso hacia el objetivo</span>
+                <strong>
+                  {currentReport.objetivo
+                    ? Math.round(
+                        (Number(currentReport.nota || 0) /
+                          Number(currentReport.objetivo)) *
+                          100
+                      )
+                    : 0}
+                  %
+                </strong>
+              </div>
+
+              <div className="progressBar">
+                <div
+                  style={{
+                    width: `${
+                      currentReport.objetivo
+                        ? Math.min(
+                            100,
+                            (Number(currentReport.nota || 0) /
+                              Number(currentReport.objetivo)) *
+                              100
+                          )
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="infoGrid">
+              <div className="infoBox">
+                <small>CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO</small>
+                <strong>
+                  {Math.max(
+                    0,
+                    Number(currentReport.objetivo || 0) -
+                      Number(currentReport.nota || 0)
+                  )}{" "}
+                  puntos
+                </strong>
+              </div>
+
+              <div className="infoBox">
+                <small>COMPARATIVO SEMANAL</small>
+                <strong>Todavía no hay una semana anterior para comparar.</strong>
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>DESVÍO PRINCIPAL</h3>
+              <p>{currentReport.desvio || "Sin desvíos cargados."}</p>
+            </div>
+
+            <div className="contentBlock">
+              <h3>ITEMS TRABAJADOS</h3>
+              <div className="pillList">
+                {parseArray(currentReport.items_calidad).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>ACCIONES REALIZADAS</h3>
+              <div className="pillList">
+                {parseArray(currentReport.acciones_calidad).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>AUDITORÍA</h3>
+              <p>
+                {currentReport.auditoria ||
+                  "No hay información de auditoría."}
+              </p>
+
+              {currentReport.observaciones && (
+                <div className="observation">
+                  <strong>OBSERVACIONES</strong>
+                  <p>{currentReport.observaciones}</p>
+                </div>
+              )}
+            </div>
+
+            {currentReport.audio_url && (
+              <div className="audioPlayer">
+                <h3>AUDIO DE AUDITORÍA</h3>
+                <audio controls src={currentReport.audio_url}>
+                  Tu navegador no soporta audio.
+                </audio>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === "productividad" && (
+          <section className="advisorCard">
+            <div className="cardNumber">02</div>
+            <div className="cardTitle">
+              <span>PRODUCTIVIDAD</span>
+              <h2>{currentReport.sph ?? "-"}</h2>
+            </div>
+
+            <div className="metricGrid">
+              <div>
+                <small>OBJETIVO SPH</small>
+                <strong>{currentReport.objetivo_sph ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>VENTAS</small>
+                <strong>{currentReport.ventas ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>OBJETIVO VENTAS</small>
+                <strong>{currentReport.objetivo_ventas ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>OBJETIVO DE CAMPAÑA</small>
+                <strong>{currentReport.objetivo_campania ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>ESTADO SPH</small>
+                <strong>{currentReport.estado_sph || "-"}</strong>
+              </div>
+
+              <div>
+                <small>ESTADO VENTAS</small>
+                <strong>{currentReport.estado_ventas || "-"}</strong>
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>ITEMS TRABAJADOS</h3>
+              <div className="pillList">
+                {parseArray(currentReport.items_productividad).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>ACCIONES REALIZADAS</h3>
+              <div className="pillList">
+                {parseArray(currentReport.acciones_productividad).map(
+                  (item) => (
+                    <span key={item}>{item}</span>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>OBSERVACIONES</h3>
+              <p>
+                {currentReport.observaciones_productividad ||
+                  "No hay observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "tipificaciones" && (
+          <section className="advisorCard">
+            <div className="cardNumber">03</div>
+            <div className="cardTitle">
+              <span>TIPIFICACIONES</span>
+              <h2>{currentReport.estado_tipificaciones || "En proceso"}</h2>
+            </div>
+
+            <div className="metricGrid">
+              <div>
+                <small>DESVÍO</small>
+                <strong>
+                  {currentReport.tipificacion_desvio || "-"}
+                </strong>
+              </div>
+
+              <div>
+                <small>OBJETIVO</small>
+                <strong>
+                  {currentReport.tipificacion_objetivo ||
+                    currentReport.objetivo_tipificaciones ||
+                    "-"}
+                </strong>
+              </div>
+
+              <div>
+                <small>RESULTADO</small>
+                <strong>{currentReport.tipificacion_resultado || "-"}</strong>
+              </div>
+
+              <div>
+                <small>COMPROMISO</small>
+                <strong>
+                  {currentReport.tipificacion_compromiso || "-"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>TIPIFICACIONES</h3>
+              <div className="pillList">
+                {parseArray(currentReport.tipificaciones).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>OBSERVACIONES</h3>
+              <p>
+                {currentReport.tipificacion_observaciones ||
+                  "Sin observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "auditorias" && (
+          <section className="advisorCard">
+            <div className="cardNumber">04</div>
+
+            <div className="cardTitle">
+              <span>AUDITORÍAS DE NO VENTAS</span>
+              <h2>{currentReport.cantidad_no_ventas ?? "-"}</h2>
+            </div>
+
+            <div className="metricGrid">
+              <div>
+                <small>CANTIDAD</small>
+                <strong>{currentReport.cantidad_no_ventas ?? "-"}</strong>
+              </div>
+
+              <div>
+                <small>COACHING</small>
+                <strong>{currentReport.coaching_no_ventas || "-"}</strong>
+              </div>
+
+              <div>
+                <small>REGISTRO EN SISTEMA</small>
+                <strong>{currentReport.registro_sistema || "-"}</strong>
+              </div>
+
+              <div>
+                <small>COMPROMISO</small>
+                <strong>
+                  {currentReport.compromiso_no_ventas || "-"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>PRINCIPALES O.M.</h3>
+              <div className="pillList">
+                {parseArray(currentReport.om_detectadas).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>FORTALEZAS</h3>
+              <div className="pillList">
+                {parseArray(currentReport.fortalezas).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="contentBlock">
+              <h3>OBSERVACIONES</h3>
+              <p>
+                {currentReport.observaciones_no_ventas ||
+                  "No hay observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "actividades" && (
+          <section className="advisorCard">
+            <div className="cardNumber">05</div>
+            <div className="cardTitle">
+              <span>ACTIVIDADES</span>
+              <h2>Próximamente</h2>
+            </div>
+
+            <div className="emptyReport smallEmpty">
+              <div className="emptyIcon">+</div>
+              <p>
+                Esta sección quedará disponible para registrar y consultar
+                actividades.
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "historico" && (
+          <section className="advisorCard">
+            <div className="cardNumber">06</div>
+
+            <div className="cardTitle">
+              <span>HISTÓRICO</span>
+              <h2>Evolución</h2>
+            </div>
+
+            <div className="historyTable advisorHistory">
+              <div className="historyRow historyHead">
+                <span>Semana</span>
+                <span>Nota</span>
+                <span>Producto</span>
+                <span>Estado</span>
+              </div>
+
+              <div className="historyRow">
+                <span>{currentReport.semana || "-"}</span>
+                <strong>{currentReport.nota ?? "-"}</strong>
+                <span>{currentReport.producto || "-"}</span>
+                <span>{currentReport.estado_objetivo || "-"}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "feedback" && (
+          <section className="advisorCard feedbackCard">
+            <div className="cardNumber">07</div>
+
+            <div className="cardTitle">
+              <span>FEEDBACK DEL ASESOR</span>
+              <h2>Tu opinión importa</h2>
+            </div>
+
+            <p>
+              ¿Querés dejar algún comentario sobre tu reporte, una consulta o
+              algo que quieras trabajar con Calidad?
+            </p>
+
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Escribí acá tu comentario..."
+            />
+
+            <button
+              className="primaryButton"
+              onClick={() => {
+                setFeedback("");
+                alert("Feedback enviado correctamente.");
+              }}
+            >
+              ENVIAR FEEDBACK
+            </button>
+          </section>
+        )}
+      </main>
     </>
   );
 }
@@ -1383,8 +1750,8 @@ const styles = `
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #eef5f5;
-  color: #12363b;
+  background: #F5F8F7;
+  color: #17313A;
 }
 
 button,
@@ -1405,551 +1772,701 @@ button {
   justify-content: center;
   padding: 30px;
   background:
-    radial-gradient(circle at top right, rgba(36, 130, 136, .18), transparent 35%),
-    linear-gradient(135deg, #edf7f7, #dcecec);
+    radial-gradient(circle at 10% 10%, rgba(53,167,160,.18), transparent 28%),
+    radial-gradient(circle at 90% 90%, rgba(21,94,104,.18), transparent 30%),
+    #F5F8F7;
 }
 
 .loginCard {
   width: 100%;
   max-width: 470px;
   background: white;
-  padding: 42px;
+  border: 1px solid #DCE7E8;
   border-radius: 28px;
-  box-shadow: 0 25px 70px rgba(18, 54, 59, .14);
-  border: 1px solid #d7e7e7;
+  padding: 42px;
+  box-shadow: 0 25px 70px rgba(18,59,74,.12);
 }
 
 .brandMark {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f5960;
+  background: #123B4A;
   color: white;
   font-weight: 900;
   margin-bottom: 20px;
 }
 
 .brand {
-  color: #0f5960;
-  font-weight: 900;
-  letter-spacing: 1.5px;
+  color: #155E68;
   font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+}
+
+.brand.small {
+  margin-bottom: 6px;
 }
 
 .loginCard h1 {
-  font-size: 34px;
   margin: 12px 0 8px;
-  color: #12363b;
+  font-size: 34px;
+  color: #123B4A;
 }
 
-.loginCard p {
-  color: #668084;
+.loginDescription {
+  color: #6D8087;
   line-height: 1.6;
   margin-bottom: 30px;
 }
 
-label {
-  display: block;
-  color: #426267;
-  font-weight: 800;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .7px;
-  margin-bottom: 8px;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  border: 1px solid #cddede;
-  background: #fbfefe;
+.loginTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #EEF4F4;
+  padding: 5px;
   border-radius: 12px;
-  padding: 13px 14px;
-  color: #173d42;
-  outline: none;
+  margin-bottom: 26px;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #19838a;
-  box-shadow: 0 0 0 3px rgba(25,131,138,.10);
-}
-
-textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.primaryButton,
-.saveButton {
-  width: 100%;
-  border: 0;
-  background: #0f5960;
-  color: white;
-  padding: 15px 20px;
-  border-radius: 12px;
-  font-weight: 900;
-  margin-top: 18px;
-}
-
-.primaryButton:hover,
-.saveButton:hover {
-  background: #0b464c;
-}
-
-.errorBox {
-  margin-top: 14px;
-  padding: 13px 15px;
-  border-radius: 12px;
-  background: #fff1f0;
-  color: #a23b35;
-  border: 1px solid #f0c5c1;
-  font-weight: 700;
-}
-
-.successBox {
-  margin: 20px 0;
-  padding: 15px;
-  border-radius: 12px;
-  background: #e8f7ef;
-  color: #167044;
-  border: 1px solid #b8dfca;
-  font-weight: 800;
-}
-
-.loadingOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10,40,44,.25);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 900;
-  z-index: 20;
-}
-
-.app,
-.adminPage {
-  min-height: 100vh;
-  background: #eef5f5;
-}
-
-.topHeader {
-  background: white;
-  padding: 30px 6vw 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-  border-bottom: 1px solid #d9e8e8;
-}
-
-.topHeader h1 {
-  margin: 7px 0 3px;
-  font-size: 30px;
-  color: #12363b;
-}
-
-.weekLabel {
-  color: #6a8387;
-  font-weight: 700;
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.statusPill {
-  padding: 9px 13px;
-  border-radius: 999px;
-  background: #e3f2ef;
-  color: #0f6863;
-  font-weight: 900;
-  font-size: 11px;
-}
-
-.logout {
-  background: transparent;
-  border: 0;
-  color: #687d80;
-  font-weight: 800;
-}
-
-.tabs {
-  display: flex;
-  gap: 6px;
-  padding: 14px 6vw;
-  background: white;
-  border-bottom: 1px solid #d9e8e8;
-  overflow-x: auto;
-}
-
-.tabs button {
+.loginTab {
   border: 0;
   background: transparent;
-  color: #6c8083;
-  font-weight: 900;
-  padding: 11px 15px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.tabs button.active {
-  background: #0f5960;
-  color: white;
-}
-
-.reportSection {
-  max-width: 1120px;
-  margin: 30px auto;
-  background: white;
-  border-radius: 24px;
-  padding: 35px;
-  box-shadow: 0 12px 40px rgba(18,54,59,.08);
-}
-
-.sectionNumber {
-  color: #18939a;
-  font-size: 12px;
-  font-weight: 900;
-  margin-bottom: 8px;
-}
-
-.reportSection h2,
-.adminSection h2 {
-  margin: 0 0 25px;
-  color: #12363b;
-  font-size: 25px;
-}
-
-.heroScore {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.heroScore > div {
-  padding: 20px;
-  border-radius: 16px;
-  background: #eef7f7;
-  border: 1px solid #d8eaea;
-}
-
-.heroScore span,
-.infoGrid label,
-.auditBox span {
-  display: block;
-  font-size: 10px;
-  font-weight: 900;
-  color: #789093;
-  letter-spacing: .7px;
-  margin-bottom: 8px;
-}
-
-.heroScore strong {
-  display: block;
-  font-size: 25px;
-  color: #0f5960;
-}
-
-.heroScore small {
-  color: #7c9194;
-}
-
-.progressCard {
-  background: #0f5960;
-  color: white;
-  padding: 20px;
-  border-radius: 16px;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
-}
-
-.progressCard strong {
-  font-size: 22px;
-}
-
-.infoGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 25px;
-}
-
-.infoGrid > div {
-  border: 1px solid #e0ebeb;
-  border-radius: 15px;
-  padding: 18px;
-}
-
-.infoGrid strong {
-  color: #16474d;
-}
-
-.contentBlock {
-  padding: 24px 0;
-  border-top: 1px solid #e3eeee;
-}
-
-.contentBlock h3 {
-  margin: 0 0 14px;
-  font-size: 12px;
-  color: #557276;
-  letter-spacing: 1px;
-}
-
-.contentBlock p {
-  color: #587175;
-  line-height: 1.6;
-}
-
-.tagList,
-.multiGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag {
-  background: #e7f3f2;
-  color: #14666a;
-  padding: 9px 12px;
-  border-radius: 999px;
+  padding: 12px;
+  border-radius: 9px;
+  color: #6D8087;
   font-weight: 800;
-  font-size: 12px;
 }
 
-.auditBox {
-  background: #f4f9f9;
-  border-radius: 16px;
-  padding: 18px;
-}
-
-.auditBox strong {
-  color: #0f5960;
-}
-
-.emptyCard {
-  max-width: 1120px;
-  margin: 30px auto;
+.loginTab.active {
   background: white;
-  padding: 50px;
-  text-align: center;
-  border-radius: 24px;
-  box-shadow: 0 12px 40px rgba(18,54,59,.08);
+  color: #155E68;
+  box-shadow: 0 3px 12px rgba(18,59,74,.08);
 }
 
-.emptyCard.inside {
-  margin: 0;
-  box-shadow: none;
-  background: #f5fafa;
-}
-
-.emptyIcon,
-.plus {
-  font-weight: 900;
-  color: #15929a;
-}
-
-.adminIntro {
-  max-width: 1120px;
-  margin: 30px auto 15px;
-}
-
-.adminIntro > span {
-  color: #15929a;
-  font-weight: 900;
-  font-size: 11px;
-  letter-spacing: 1px;
-}
-
-.adminIntro h2 {
-  margin: 8px 0 5px;
-  color: #12363b;
-}
-
-.adminIntro p {
-  color: #708589;
-}
-
-.adminForm,
-.history {
-  max-width: 1120px;
-  margin: 0 auto;
-}
-
-.adminSection {
-  background: white;
-  padding: 30px;
+.fieldGroup {
   margin-bottom: 18px;
-  border-radius: 22px;
-  box-shadow: 0 8px 30px rgba(18,54,59,.06);
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
 }
 
 .fieldGroup.full {
   grid-column: 1 / -1;
 }
 
-.fieldGroup {
-  margin-bottom: 5px;
-}
-
-.multiGrid {
-  margin-top: 10px;
-}
-
-.multiOption {
-  border: 1px solid #d6e5e5;
-  background: #f8fbfb;
-  color: #506b70;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-weight: 700;
-  text-align: left;
-}
-
-.multiOption span {
-  margin-right: 5px;
-}
-
-.multiOption.selected {
-  background: #dff1ef;
-  border-color: #78bbb6;
-  color: #0e625f;
-}
-
-.selectedCount {
-  margin-top: 10px;
-  color: #15929a;
+.fieldGroup label {
+  display: block;
   font-size: 12px;
+  font-weight: 900;
+  color: #41616A;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #D6E3E4;
+  border-radius: 12px;
+  padding: 13px 14px;
+  background: white;
+  color: #17313A;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #1B7F83;
+  box-shadow: 0 0 0 3px rgba(27,127,131,.10);
+}
+
+textarea {
+  min-height: 105px;
+  resize: vertical;
+}
+
+.primaryButton,
+.saveButton {
+  border: 0;
+  border-radius: 13px;
+  padding: 14px 22px;
+  background: #155E68;
+  color: white;
+  font-weight: 900;
+  letter-spacing: .4px;
+  width: 100%;
+  transition: .2s;
+}
+
+.primaryButton:hover,
+.saveButton:hover {
+  background: #123B4A;
+  transform: translateY(-1px);
+}
+
+.errorBox {
+  background: #FFF0F0;
+  border: 1px solid #F0CACA;
+  color: #A84646;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.successBox {
+  background: #EAF7F1;
+  border: 1px solid #B9E3D0;
+  color: #217052;
+  padding: 14px 16px;
+  border-radius: 13px;
+  margin: 20px 0;
   font-weight: 900;
 }
 
-.audioUpload {
-  border: 2px dashed #b8d4d4;
-  background: #f6fbfb;
-  padding: 30px;
-  text-align: center;
-  border-radius: 18px;
+.app,
+.advisorApp {
+  min-height: 100vh;
+  padding-bottom: 70px;
 }
 
-.audioUpload label {
+.topHeader,
+.advisorHeader {
+  background: white;
+  border-bottom: 1px solid #DCE7E8;
+  padding: 30px 6%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+}
+
+.topHeader h1,
+.advisorHeader h1 {
+  margin: 4px 0;
+  color: #123B4A;
+  font-size: 31px;
+}
+
+.topHeader p,
+.advisorHeader p {
+  margin: 5px 0 0;
+  color: #6D8087;
+}
+
+.logoutButton {
+  border: 1px solid #D6E3E4;
+  background: white;
+  color: #155E68;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.adminBadge {
   display: inline-block;
-  background: #0f5960;
-  color: white;
-  padding: 13px 18px;
-  border-radius: 11px;
-  cursor: pointer;
+  margin: 25px 6% 0;
+  background: #DFF2F0;
+  color: #155E68;
+  padding: 8px 13px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.adminIntro {
+  padding: 15px 6% 20px;
+}
+
+.adminIntro h2 {
+  margin: 0 0 7px;
+  color: #123B4A;
+}
+
+.adminIntro p {
+  color: #6D8087;
+}
+
+.adminSection,
+.historySection {
+  width: 88%;
+  max-width: 1200px;
+  margin: 18px auto;
+  background: white;
+  border: 1px solid #DCE7E8;
+  border-radius: 22px;
+  padding: 30px;
+  position: relative;
+}
+
+.sectionNumber,
+.cardNumber {
+  color: #35A7A0;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.adminSection h2,
+.historySection h2 {
+  margin: 0 0 8px;
+  color: #123B4A;
+}
+
+.sectionHint {
+  color: #6D8087;
+  margin-top: 5px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.multiGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.multiOption {
+  border: 1px solid #D8E6E7;
+  background: #F7FAFA;
+  color: #47636A;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.multiOption.selected {
+  background: #DDF2F0;
+  border-color: #76C5BE;
+  color: #155E68;
+}
+
+.multiOption span {
+  font-weight: 900;
+  margin-right: 5px;
+}
+
+.selectedCount {
+  color: #1B7F83;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 9px;
+}
+
+.audioUpload {
+  margin: 20px 0;
 }
 
 .audioUpload input {
   display: none;
 }
 
-.audioUpload p,
-.audioUpload small {
-  color: #73898c;
+.audioUpload label {
+  min-height: 125px;
+  border: 2px dashed #9CC7C8;
+  border-radius: 18px;
+  background: #F4FAF9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  color: #155E68;
+  cursor: pointer;
 }
 
-.audioName {
-  margin-top: 15px;
-  color: #14705f;
-  font-weight: 900;
+.audioUpload small {
+  color: #6D8087;
+}
+
+.audioIcon {
+  font-size: 28px;
 }
 
 .saveButton {
-  max-width: 1120px;
   display: block;
-  margin: 20px auto 40px;
+  width: 88%;
+  max-width: 1200px;
+  margin: 25px auto;
 }
 
-.adminMessage {
-  max-width: 1120px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.history {
-  padding-bottom: 60px;
+.saveBox {
+  width: 88%;
+  max-width: 1200px;
+  margin: 20px auto;
 }
 
 .historyTable {
-  background: white;
-  border-radius: 20px;
+  margin-top: 20px;
+  border: 1px solid #DCE7E8;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 8px 30px rgba(18,54,59,.06);
 }
 
-.historyHeader,
 .historyRow {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr;
+  grid-template-columns: 2fr 1.5fr .7fr .8fr;
   gap: 10px;
-  padding: 16px 20px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #E8EEEE;
+  align-items: center;
 }
 
-.historyHeader {
-  background: #0f5960;
-  color: white;
+.historyRow:last-child {
+  border-bottom: 0;
+}
+
+.historyHead {
+  background: #F0F6F6;
+  color: #41616A;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.emptyHistory {
+  padding: 25px;
+  color: #6D8087;
+  text-align: center;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.secondaryButton {
+  background: white;
+  color: #155E68;
+  border: 1px solid #BBD5D6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 800;
+}
+
+.advisorHeader {
+  padding: 30px 7%;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.followBadge {
+  background: #FFF1D8;
+  color: #986818;
+  padding: 9px 13px;
+  border-radius: 30px;
+  font-size: 11px;
   font-weight: 900;
 }
 
-.historyRow {
-  border-bottom: 1px solid #e5eeee;
-  color: #587175;
+.followBadge.statusGreen {
+  background: #E5F6EF;
+  color: #25735A;
 }
 
-.historyRow strong {
-  color: #0f5960;
+.followBadge.statusRed {
+  background: #FFF0F0;
+  color: #A84646;
+}
+
+.followBadge.statusYellow {
+  background: #FFF1D8;
+  color: #986818;
+}
+
+.advisorNav {
+  background: white;
+  border-bottom: 1px solid #DCE7E8;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 5%;
+}
+
+.advisorNav button {
+  border: 0;
+  background: transparent;
+  color: #6D8087;
+  padding: 18px 16px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .4px;
+  border-bottom: 3px solid transparent;
+}
+
+.advisorNav button.active {
+  color: #155E68;
+  border-bottom-color: #35A7A0;
+}
+
+.advisorCard {
+  width: 86%;
+  max-width: 1050px;
+  margin: 38px auto;
+  background: white;
+  border: 1px solid #DCE7E8;
+  border-radius: 25px;
+  padding: 35px;
+  box-shadow: 0 12px 35px rgba(18,59,74,.06);
+}
+
+.cardTitle span {
+  color: #1B7F83;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+  font-size: 13px;
+}
+
+.cardTitle h2 {
+  margin: 10px 0 25px;
+  color: #123B4A;
+  font-size: 46px;
+}
+
+.cardTitle h2 small {
+  font-size: 20px;
+  color: #8A9BA0;
+  margin-left: 5px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.metricGrid > div,
+.infoBox {
+  background: #F4F8F8;
+  border: 1px solid #E0EBEB;
+  border-radius: 15px;
+  padding: 17px;
+}
+
+.metricGrid small,
+.infoBox small {
+  display: block;
+  color: #70848A;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .5px;
+  margin-bottom: 7px;
+}
+
+.metricGrid strong,
+.infoBox strong {
+  color: #17313A;
+  font-size: 16px;
+}
+
+.progressBlock {
+  margin: 25px 0;
+}
+
+.progressTop {
+  display: flex;
+  justify-content: space-between;
+  color: #6D8087;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.progressTop strong {
+  color: #155E68;
+}
+
+.progressBar {
+  height: 9px;
+  background: #E7EEEE;
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.progressBar div {
+  height: 100%;
+  background: linear-gradient(90deg, #155E68, #35A7A0);
+  border-radius: 30px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 25px 0;
+}
+
+.contentBlock {
+  border-top: 1px solid #E4ECEC;
+  padding: 22px 0;
+}
+
+.contentBlock h3,
+.audioPlayer h3 {
+  margin: 0 0 12px;
+  color: #41616A;
+  font-size: 11px;
+  letter-spacing: .7px;
+}
+
+.contentBlock p {
+  margin: 0;
+  color: #4E656B;
+  line-height: 1.65;
+}
+
+.pillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pillList span {
+  background: #EEF7F6;
+  color: #155E68;
+  border: 1px solid #D2EAE8;
+  border-radius: 30px;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.observation {
+  margin-top: 18px;
+  background: #FFF8EA;
+  border-left: 4px solid #D59A28;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.observation strong {
+  color: #986818;
+  font-size: 11px;
+}
+
+.audioPlayer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #E4ECEC;
+}
+
+.audioPlayer audio {
+  width: 100%;
+}
+
+.emptyReport {
+  width: 86%;
+  max-width: 1050px;
+  margin: 50px auto;
+  text-align: center;
+  padding: 70px 30px;
+  background: white;
+  border: 1px solid #DCE7E8;
+  border-radius: 25px;
+}
+
+.emptyReport h2 {
+  color: #123B4A;
+}
+
+.emptyReport p {
+  color: #6D8087;
+  line-height: 1.6;
+}
+
+.emptyIcon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #DFF2F0;
+  color: #155E68;
+  border-radius: 18px;
+  font-weight: 900;
+}
+
+.smallEmpty {
+  width: 100%;
+  margin: 20px 0 0;
+  padding: 45px 20px;
+  border: 0;
+  background: #F7FAFA;
+}
+
+.feedbackCard > p {
+  color: #60777D;
+  line-height: 1.7;
+  max-width: 700px;
+}
+
+.feedbackCard textarea {
+  min-height: 180px;
+  margin: 15px 0;
+}
+
+.feedbackCard .primaryButton {
+  width: auto;
+  min-width: 190px;
 }
 
 @media (max-width: 800px) {
-  .topHeader {
+  .topHeader,
+  .advisorHeader {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .heroScore,
-  .infoGrid,
-  .formGrid {
+  .headerRight {
+    flex-wrap: wrap;
+  }
+
+  .formGrid,
+  .metricGrid,
+  .infoGrid {
     grid-template-columns: 1fr;
   }
 
-  .fieldGroup.full {
-    grid-column: auto;
-  }
-
-  .reportSection,
-  .adminSection {
-    margin-left: 15px;
-    margin-right: 15px;
+  .adminSection,
+  .historySection,
+  .advisorCard,
+  .emptyReport {
+    width: 94%;
     padding: 22px;
   }
 
-  .adminIntro {
-    margin-left: 20px;
-    margin-right: 20px;
+  .saveButton,
+  .saveBox {
+    width: 94%;
   }
 
-  .history {
-    margin-left: 15px;
-    margin-right: 15px;
+  .advisorNav {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .historyRow {
+    grid-template-columns: 1fr 1fr;
   }
 }
 `;
