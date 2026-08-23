@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 const ASESORES = [
   ["Acosta, Pamela", "8134", "acosta.pamela@portalcalidad.com"],
@@ -29,21 +30,15 @@ const ASESORES = [
 ];
 
 const ADMIN_EMAIL = "estecalidadbhseguros@proximo.cc";
+const ADMIN_PASSWORD = "admin123";
 
-const COLORS = {
-  navy: "#123B4A",
-  petrol: "#155E68",
-  teal: "#1B7F83",
-  aqua: "#35A7A0",
-  cream: "#F5F8F7",
-  white: "#FFFFFF",
-  text: "#17313A",
-  muted: "#6D8087",
-  border: "#DCE7E8",
-  green: "#25866A",
-  yellow: "#D59A28",
-  red: "#C95C5C",
-};
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase =
+  SUPABASE_URL && SUPABASE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
 
 const ITEMS_CALIDAD = [
   "Información de otras compañías",
@@ -132,7 +127,6 @@ function normalizeEmail(value) {
 
 function parseArray(value) {
   if (Array.isArray(value)) return value;
-
   if (!value) return [];
 
   try {
@@ -144,21 +138,6 @@ function parseArray(value) {
       .map((x) => x.trim())
       .filter(Boolean);
   }
-}
-
-function getInitials(name) {
-  if (!name) return "PC";
-
-  const parts = name
-    .replace(",", "")
-    .split(" ")
-    .filter(Boolean);
-
-  return parts
-    .slice(0, 2)
-    .map((x) => x[0])
-    .join("")
-    .toUpperCase();
 }
 
 function statusClass(status) {
@@ -181,6 +160,7 @@ function MultiSelect({ title, options, selected, setSelected }) {
   return (
     <div className="fieldGroup">
       <label>{title}</label>
+
       <div className="multiGrid">
         {options.map((option) => (
           <button
@@ -208,8 +188,10 @@ function SelectField({ label, value, setValue, options }) {
   return (
     <div className="fieldGroup">
       <label>{label}</label>
+
       <select value={value} onChange={(e) => setValue(e.target.value)}>
         <option value="">Seleccionar</option>
+
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
@@ -220,10 +202,17 @@ function SelectField({ label, value, setValue, options }) {
   );
 }
 
-function TextField({ label, value, setValue, type = "text", placeholder = "" }) {
+function TextField({
+  label,
+  value,
+  setValue,
+  type = "text",
+  placeholder = "",
+}) {
   return (
     <div className="fieldGroup">
       <label>{label}</label>
+
       <input
         type={type}
         value={value}
@@ -238,6 +227,7 @@ function TextArea({ label, value, setValue, placeholder = "" }) {
   return (
     <div className="fieldGroup full">
       <label>{label}</label>
+
       <textarea
         value={value}
         placeholder={placeholder}
@@ -250,8 +240,11 @@ function TextArea({ label, value, setValue, placeholder = "" }) {
 export default function Page() {
   const [screen, setScreen] = useState("login");
   const [loginType, setLoginType] = useState("advisor");
+
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const [advisor, setAdvisor] = useState(null);
   const [report, setReport] = useState(null);
@@ -325,40 +318,23 @@ export default function Page() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const supabaseConfigured =
-    typeof window !== "undefined" &&
-    Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-  async function getSupabase() {
-    if (!supabaseConfigured) return null;
-
-    const { createClient } = await import("@supabase/supabase-js");
-
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-  }
-
   async function loadAdvisorReport(foundAdvisor) {
     setLoadingReport(true);
     setReport(null);
 
+    if (!supabase) {
+      setLoginError(
+        "No está configurada la conexión con Supabase. Revisá las variables de Vercel."
+      );
+      setLoadingReport(false);
+      return;
+    }
+
     try {
-      const supabase = await getSupabase();
-
-      if (!supabase) {
-        setReport(null);
-        return;
-      }
-
       const { data, error } = await supabase
         .from("reportes")
         .select("*")
-        .eq("usuario", foundAdvisor[1])
+        .eq("usuario", foundAdvisor[2])
         .order("id", { ascending: false })
         .limit(1);
 
@@ -383,30 +359,65 @@ export default function Page() {
 
     const cleanEmail = normalizeEmail(email);
 
-    const found = ASESORES.find(
-      (item) => normalizeEmail(item[2]) === cleanEmail
-    );
+    if (!cleanEmail || !password) {
+      setLoginError("Ingresá tu mail y tu clave.");
+      return;
+    }
 
-    if (!found) {
+    if (!supabase) {
       setLoginError(
-        "No encontramos ese mail. Ingresá el mail institucional asociado a tu portal."
+        "No está configurada la conexión con Supabase. Revisá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
       );
       return;
     }
 
-    setAdvisor(found);
-    setScreen("advisor");
-    setActiveTab("calidad");
+    setLoginLoading(true);
 
-    await loadAdvisorReport(found);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        console.error(error);
+        setLoginError("El mail o la clave son incorrectos.");
+        return;
+      }
+
+      const userEmail = normalizeEmail(data?.user?.email || cleanEmail);
+
+      const found = ASESORES.find(
+        (item) => normalizeEmail(item[2]) === userEmail
+      );
+
+      if (!found) {
+        await supabase.auth.signOut();
+        setLoginError(
+          "El usuario ingresó correctamente, pero no está asociado a un asesor del portal."
+        );
+        return;
+      }
+
+      setAdvisor(found);
+      setScreen("advisor");
+      setActiveTab("calidad");
+
+      await loadAdvisorReport(found);
+    } catch (error) {
+      console.error(error);
+      setLoginError("No se pudo iniciar sesión. Intentá nuevamente.");
+    } finally {
+      setLoginLoading(false);
+    }
   }
 
-  function loginAdmin() {
+  async function loginAdmin() {
     setAdminError("");
 
     if (
       normalizeEmail(adminEmail) === normalizeEmail(ADMIN_EMAIL) &&
-      adminPassword === "admin123"
+      adminPassword === ADMIN_PASSWORD
     ) {
       setScreen("admin");
       setAdminEmail("");
@@ -417,22 +428,18 @@ export default function Page() {
     setAdminError("El mail o la clave de administrador no son correctos.");
   }
 
-  function logout() {
+  async function logout() {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+
     setScreen("login");
     setAdvisor(null);
     setReport(null);
     setEmail("");
+    setPassword("");
     setLoginError("");
     setActiveTab("calidad");
-  }
-
-  function prepareNewReport() {
-    const selected = ASESORES.find((a) => a[0] === form.asesor);
-
-    setForm((prev) => ({
-      ...prev,
-      usuario: selected ? selected[1] : "",
-    }));
   }
 
   async function saveReport() {
@@ -443,22 +450,24 @@ export default function Page() {
       return;
     }
 
+    if (!supabase) {
+      setSaveMessage(
+        "Supabase no está configurado. Revisá las variables de Vercel."
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const supabase = await getSupabase();
-
-      if (!supabase) {
-        setSaveMessage(
-          "Supabase no está configurado. Revisá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
-        );
-        return;
-      }
-
       let audioUrl = "";
 
       if (form.audioFile) {
-        const safeName = form.audioFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const safeName = form.audioFile.name.replace(
+          /[^a-zA-Z0-9._-]/g,
+          "_"
+        );
+
         const filePath = `auditorias/${Date.now()}-${safeName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -470,9 +479,11 @@ export default function Page() {
 
         if (uploadError) {
           console.error(uploadError);
+
           setSaveMessage(
-            "El reporte no se pudo guardar porque no se pudo subir el audio. Verificá que exista el bucket 'audios' en Supabase."
+            "El reporte no se pudo guardar porque no se pudo subir el audio."
           );
+
           return;
         }
 
@@ -483,11 +494,13 @@ export default function Page() {
         audioUrl = publicData?.publicUrl || "";
       }
 
-      const selectedAdvisor = ASESORES.find((a) => a[0] === form.asesor);
+      const selectedAdvisor = ASESORES.find(
+        (a) => a[0] === form.asesor
+      );
 
       const payload = {
         asesor: form.asesor,
-        usuario: selectedAdvisor?.[1] || form.usuario,
+        usuario: selectedAdvisor?.[2] || form.usuario,
         semana: form.semana,
         nota: Number(form.nota),
         evolucion: "",
@@ -520,7 +533,9 @@ export default function Page() {
         items_productividad: form.itemsProductividad,
         acciones_productividad: form.accionesProductividad,
 
-        objetivo_tipificaciones: Number(form.objetivoTipificaciones || 0),
+        objetivo_tipificaciones: Number(
+          form.objetivoTipificaciones || 0
+        ),
         tipificaciones: form.tipificaciones,
         estado_tipificaciones: form.estadoTipificaciones,
         tipificacion_desvio: form.tipificacionDesvio,
@@ -557,9 +572,13 @@ export default function Page() {
 
       if (error) {
         console.error(error);
+
         setSaveMessage(
-          `No se pudo guardar el reporte: ${error.message || "error de Supabase"}`
+          `No se pudo guardar el reporte: ${
+            error.message || "error de Supabase"
+          }`
         );
+
         return;
       }
 
@@ -615,6 +634,7 @@ export default function Page() {
       });
     } catch (error) {
       console.error(error);
+
       setSaveMessage(
         "No se pudo guardar el reporte. Revisá la configuración de Supabase."
       );
@@ -624,11 +644,9 @@ export default function Page() {
   }
 
   async function loadHistory() {
+    if (!supabase) return;
+
     try {
-      const supabase = await getSupabase();
-
-      if (!supabase) return;
-
       const { data, error } = await supabase
         .from("reportes")
         .select("id, asesor, semana, nota, producto")
@@ -673,7 +691,11 @@ export default function Page() {
 
             <div className="loginTabs">
               <button
-                className={loginType === "advisor" ? "loginTab active" : "loginTab"}
+                className={
+                  loginType === "advisor"
+                    ? "loginTab active"
+                    : "loginTab"
+                }
                 onClick={() => {
                   setLoginType("advisor");
                   setLoginError("");
@@ -683,7 +705,11 @@ export default function Page() {
               </button>
 
               <button
-                className={loginType === "admin" ? "loginTab active" : "loginTab"}
+                className={
+                  loginType === "admin"
+                    ? "loginTab active"
+                    : "loginTab"
+                }
                 onClick={() => {
                   setLoginType("admin");
                   setLoginError("");
@@ -697,6 +723,7 @@ export default function Page() {
               <>
                 <div className="fieldGroup">
                   <label>Mail institucional</label>
+
                   <input
                     type="email"
                     value={email}
@@ -705,22 +732,43 @@ export default function Page() {
                       setLoginError("");
                     }}
                     placeholder="nombre.apellido@portalcalidad.com"
+                  />
+                </div>
+
+                <div className="fieldGroup">
+                  <label>Clave</label>
+
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setLoginError("");
+                    }}
+                    placeholder="Ingresá tu clave"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") loginAdvisor();
                     }}
                   />
                 </div>
 
-                {loginError && <div className="errorBox">{loginError}</div>}
+                {loginError && (
+                  <div className="errorBox">{loginError}</div>
+                )}
 
-                <button className="primaryButton" onClick={loginAdvisor}>
-                  INGRESAR
+                <button
+                  className="primaryButton"
+                  onClick={loginAdvisor}
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? "INGRESANDO..." : "INGRESAR"}
                 </button>
               </>
             ) : (
               <>
                 <div className="fieldGroup">
                   <label>Mail administrador</label>
+
                   <input
                     type="email"
                     value={adminEmail}
@@ -731,6 +779,7 @@ export default function Page() {
 
                 <div className="fieldGroup">
                   <label>Clave</label>
+
                   <input
                     type="password"
                     value={adminPassword}
@@ -742,9 +791,14 @@ export default function Page() {
                   />
                 </div>
 
-                {adminError && <div className="errorBox">{adminError}</div>}
+                {adminError && (
+                  <div className="errorBox">{adminError}</div>
+                )}
 
-                <button className="primaryButton" onClick={loginAdmin}>
+                <button
+                  className="primaryButton"
+                  onClick={loginAdmin}
+                >
                   INGRESAR A ADMINISTRACIÓN
                 </button>
               </>
@@ -763,47 +817,64 @@ export default function Page() {
         <main className="app">
           <header className="topHeader">
             <div>
-              <div className="brand small">PORTAL DE CALIDAD</div>
+              <div className="brand small">
+                PORTAL DE CALIDAD
+              </div>
+
               <h1>Panel de Calidad</h1>
+
               <p>Carga y gestión de reportes</p>
             </div>
 
-            <button className="logoutButton" onClick={logout}>
+            <button
+              className="logoutButton"
+              onClick={logout}
+            >
               Cerrar sesión
             </button>
           </header>
 
-          <div className="adminBadge">ADMINISTRACIÓN</div>
+          <div className="adminBadge">
+            ADMINISTRACIÓN
+          </div>
 
           <section className="adminIntro">
             <h2>Cargar nuevo reporte</h2>
+
             <p>
-              Completá la información y el reporte quedará disponible para el
-              asesor.
+              Completá la información y el reporte quedará
+              disponible para el asesor.
             </p>
           </section>
 
           <section className="adminSection">
             <div className="sectionNumber">01</div>
+
             <h2>Datos generales</h2>
 
             <div className="formGrid">
               <div className="fieldGroup">
                 <label>Asesor</label>
+
                 <select
                   value={form.asesor}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const selected = ASESORES.find((a) => a[0] === value);
+
+                    const selected = ASESORES.find(
+                      (a) => a[0] === value
+                    );
 
                     setForm((prev) => ({
                       ...prev,
                       asesor: value,
-                      usuario: selected?.[1] || "",
+                      usuario: selected?.[2] || "",
                     }));
                   }}
                 >
-                  <option value="">Seleccioná un asesor</option>
+                  <option value="">
+                    Seleccioná un asesor
+                  </option>
 
                   {ASESORES.map((a) => (
                     <option key={a[1]} value={a[0]}>
@@ -816,7 +887,9 @@ export default function Page() {
               <TextField
                 label="Semana / período"
                 value={form.semana}
-                setValue={(v) => updateForm("semana", v)}
+                setValue={(v) =>
+                  updateForm("semana", v)
+                }
                 placeholder="Ej.: Semana 3 - Agosto"
               />
 
@@ -824,51 +897,71 @@ export default function Page() {
                 label="Nota de calidad"
                 type="number"
                 value={form.nota}
-                setValue={(v) => updateForm("nota", v)}
+                setValue={(v) =>
+                  updateForm("nota", v)
+                }
               />
 
               <TextField
                 label="Objetivo de calidad"
                 type="number"
                 value={form.objetivo}
-                setValue={(v) => updateForm("objetivo", v)}
+                setValue={(v) =>
+                  updateForm("objetivo", v)
+                }
               />
 
               <SelectField
                 label="Estado del objetivo"
                 value={form.estadoObjetivo}
-                setValue={(v) => updateForm("estadoObjetivo", v)}
-                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+                setValue={(v) =>
+                  updateForm("estadoObjetivo", v)
+                }
+                options={[
+                  "ALCANZADO",
+                  "EN PROCESO",
+                  "DEBAJO DEL OBJETIVO",
+                ]}
               />
 
               <TextField
                 label="Producto"
                 value={form.producto}
-                setValue={(v) => updateForm("producto", v)}
+                setValue={(v) =>
+                  updateForm("producto", v)
+                }
               />
 
               <TextField
                 label="Desvío principal"
                 value={form.desvio}
-                setValue={(v) => updateForm("desvio", v)}
+                setValue={(v) =>
+                  updateForm("desvio", v)
+                }
               />
 
               <TextField
                 label="Recomendación"
                 value={form.recomendacion}
-                setValue={(v) => updateForm("recomendacion", v)}
+                setValue={(v) =>
+                  updateForm("recomendacion", v)
+                }
               />
 
               <TextField
                 label="Objetivo de trabajo"
                 value={form.objetivoTrabajo}
-                setValue={(v) => updateForm("objetivoTrabajo", v)}
+                setValue={(v) =>
+                  updateForm("objetivoTrabajo", v)
+                }
               />
 
               <TextArea
                 label="Observaciones"
                 value={form.observaciones}
-                setValue={(v) => updateForm("observaciones", v)}
+                setValue={(v) =>
+                  updateForm("observaciones", v)
+                }
               />
             </div>
 
@@ -876,19 +969,24 @@ export default function Page() {
               title="Items trabajados"
               options={ITEMS_CALIDAD}
               selected={form.itemsCalidad}
-              setSelected={(v) => updateForm("itemsCalidad", v)}
+              setSelected={(v) =>
+                updateForm("itemsCalidad", v)
+              }
             />
 
             <MultiSelect
               title="Acciones realizadas"
               options={ACCIONES_CALIDAD}
               selected={form.accionesCalidad}
-              setSelected={(v) => updateForm("accionesCalidad", v)}
+              setSelected={(v) =>
+                updateForm("accionesCalidad", v)
+              }
             />
           </section>
 
           <section className="adminSection">
             <div className="sectionNumber">02</div>
+
             <h2>Auditoría</h2>
 
             <p className="sectionHint">
@@ -899,7 +997,9 @@ export default function Page() {
               <SelectField
                 label="Estado de auditoría"
                 value={form.auditoriaEstado}
-                setValue={(v) => updateForm("auditoriaEstado", v)}
+                setValue={(v) =>
+                  updateForm("auditoriaEstado", v)
+                }
                 options={[
                   "Correcta",
                   "Con desvíos",
@@ -912,87 +1012,125 @@ export default function Page() {
               <TextArea
                 label="Observaciones de auditoría"
                 value={form.auditoriaObservaciones}
-                setValue={(v) => updateForm("auditoriaObservaciones", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "auditoriaObservaciones",
+                    v
+                  )
+                }
               />
             </div>
           </section>
 
           <section className="adminSection">
             <div className="sectionNumber">03</div>
-            <h2>Productividad</h2>
 
-            <p className="sectionHint">
-              Información que verá el asesor en su tarjeta de Productividad.
-            </p>
+            <h2>Productividad</h2>
 
             <div className="formGrid">
               <TextField
                 label="SPH"
                 type="number"
                 value={form.sph}
-                setValue={(v) => updateForm("sph", v)}
+                setValue={(v) =>
+                  updateForm("sph", v)
+                }
               />
 
               <TextField
                 label="Objetivo SPH"
                 type="number"
                 value={form.objetivoSph}
-                setValue={(v) => updateForm("objetivoSph", v)}
+                setValue={(v) =>
+                  updateForm("objetivoSph", v)
+                }
               />
 
               <TextField
                 label="Ventas"
                 type="number"
                 value={form.ventas}
-                setValue={(v) => updateForm("ventas", v)}
+                setValue={(v) =>
+                  updateForm("ventas", v)
+                }
               />
 
               <TextField
                 label="Objetivo ventas"
                 type="number"
                 value={form.objetivoVentas}
-                setValue={(v) => updateForm("objetivoVentas", v)}
+                setValue={(v) =>
+                  updateForm("objetivoVentas", v)
+                }
               />
 
               <TextField
                 label="Objetivo de campaña"
                 type="number"
                 value={form.objetivoCampania}
-                setValue={(v) => updateForm("objetivoCampania", v)}
+                setValue={(v) =>
+                  updateForm("objetivoCampania", v)
+                }
               />
 
               <TextField
                 label="Descripción de campaña"
                 value={form.descripcionCampania}
-                setValue={(v) => updateForm("descripcionCampania", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "descripcionCampania",
+                    v
+                  )
+                }
               />
 
               <SelectField
                 label="Estado SPH"
                 value={form.estadoSph}
-                setValue={(v) => updateForm("estadoSph", v)}
-                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+                setValue={(v) =>
+                  updateForm("estadoSph", v)
+                }
+                options={[
+                  "ALCANZADO",
+                  "EN PROCESO",
+                  "DEBAJO DEL OBJETIVO",
+                ]}
               />
 
               <SelectField
                 label="Estado ventas"
                 value={form.estadoVentas}
-                setValue={(v) => updateForm("estadoVentas", v)}
-                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+                setValue={(v) =>
+                  updateForm("estadoVentas", v)
+                }
+                options={[
+                  "ALCANZADO",
+                  "EN PROCESO",
+                  "DEBAJO DEL OBJETIVO",
+                ]}
               />
 
               <SelectField
                 label="Estado campaña"
                 value={form.estadoCampania}
-                setValue={(v) => updateForm("estadoCampania", v)}
-                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+                setValue={(v) =>
+                  updateForm("estadoCampania", v)
+                }
+                options={[
+                  "ALCANZADO",
+                  "EN PROCESO",
+                  "DEBAJO DEL OBJETIVO",
+                ]}
               />
 
               <TextArea
                 label="Observaciones de productividad"
                 value={form.observacionesProductividad}
                 setValue={(v) =>
-                  updateForm("observacionesProductividad", v)
+                  updateForm(
+                    "observacionesProductividad",
+                    v
+                  )
                 }
               />
             </div>
@@ -1001,30 +1139,42 @@ export default function Page() {
               title="Items trabajados"
               options={ITEMS_PRODUCTIVIDAD}
               selected={form.itemsProductividad}
-              setSelected={(v) => updateForm("itemsProductividad", v)}
+              setSelected={(v) =>
+                updateForm(
+                  "itemsProductividad",
+                  v
+                )
+              }
             />
 
             <MultiSelect
               title="Acciones realizadas"
               options={ACCIONES_PRODUCTIVIDAD}
               selected={form.accionesProductividad}
-              setSelected={(v) => updateForm("accionesProductividad", v)}
+              setSelected={(v) =>
+                updateForm(
+                  "accionesProductividad",
+                  v
+                )
+              }
             />
           </section>
 
           <section className="adminSection">
             <div className="sectionNumber">04</div>
-            <h2>Tipificaciones</h2>
 
-            <p className="sectionHint">
-              Seleccioná todas las tipificaciones correspondientes.
-            </p>
+            <h2>Tipificaciones</h2>
 
             <MultiSelect
               title="Tipificaciones realizadas"
               options={TIPIFICACIONES}
               selected={form.tipificaciones}
-              setSelected={(v) => updateForm("tipificaciones", v)}
+              setSelected={(v) =>
+                updateForm(
+                  "tipificaciones",
+                  v
+                )
+              }
             />
 
             <div className="formGrid">
@@ -1032,45 +1182,82 @@ export default function Page() {
                 label="Objetivo tipificaciones"
                 type="number"
                 value={form.objetivoTipificaciones}
-                setValue={(v) => updateForm("objetivoTipificaciones", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "objetivoTipificaciones",
+                    v
+                  )
+                }
               />
 
               <SelectField
                 label="Estado tipificaciones"
                 value={form.estadoTipificaciones}
-                setValue={(v) => updateForm("estadoTipificaciones", v)}
-                options={["ALCANZADO", "EN PROCESO", "DEBAJO DEL OBJETIVO"]}
+                setValue={(v) =>
+                  updateForm(
+                    "estadoTipificaciones",
+                    v
+                  )
+                }
+                options={[
+                  "ALCANZADO",
+                  "EN PROCESO",
+                  "DEBAJO DEL OBJETIVO",
+                ]}
               />
 
               <TextField
                 label="Desvío"
                 value={form.tipificacionDesvio}
-                setValue={(v) => updateForm("tipificacionDesvio", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "tipificacionDesvio",
+                    v
+                  )
+                }
               />
 
               <TextField
                 label="Objetivo"
                 value={form.tipificacionObjetivo}
-                setValue={(v) => updateForm("tipificacionObjetivo", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "tipificacionObjetivo",
+                    v
+                  )
+                }
               />
 
               <TextField
                 label="Resultado"
                 value={form.tipificacionResultado}
-                setValue={(v) => updateForm("tipificacionResultado", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "tipificacionResultado",
+                    v
+                  )
+                }
               />
 
               <TextField
                 label="Compromiso"
                 value={form.tipificacionCompromiso}
-                setValue={(v) => updateForm("tipificacionCompromiso", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "tipificacionCompromiso",
+                    v
+                  )
+                }
               />
 
               <TextArea
                 label="Observaciones"
                 value={form.tipificacionObservaciones}
                 setValue={(v) =>
-                  updateForm("tipificacionObservaciones", v)
+                  updateForm(
+                    "tipificacionObservaciones",
+                    v
+                  )
                 }
               />
             </div>
@@ -1078,37 +1265,58 @@ export default function Page() {
 
           <section className="adminSection">
             <div className="sectionNumber">05</div>
-            <h2>Auditorías de no ventas</h2>
 
-            <p className="sectionHint">
-              Información adicional de las llamadas no convertidas.
-            </p>
+            <h2>Auditorías de no ventas</h2>
 
             <div className="formGrid">
               <TextField
                 label="Cantidad"
                 type="number"
                 value={form.cantidadNoVentas}
-                setValue={(v) => updateForm("cantidadNoVentas", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "cantidadNoVentas",
+                    v
+                  )
+                }
               />
 
               <TextField
                 label="Coaching"
                 value={form.coachingNoVentas}
-                setValue={(v) => updateForm("coachingNoVentas", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "coachingNoVentas",
+                    v
+                  )
+                }
               />
 
               <SelectField
                 label="Registro en sistema"
                 value={form.registroSistema}
-                setValue={(v) => updateForm("registroSistema", v)}
-                options={["CORRECTA", "INCORRECTA", "PENDIENTE"]}
+                setValue={(v) =>
+                  updateForm(
+                    "registroSistema",
+                    v
+                  )
+                }
+                options={[
+                  "CORRECTA",
+                  "INCORRECTA",
+                  "PENDIENTE",
+                ]}
               />
 
               <TextField
                 label="Compromiso"
                 value={form.compromisoNoVentas}
-                setValue={(v) => updateForm("compromisoNoVentas", v)}
+                setValue={(v) =>
+                  updateForm(
+                    "compromisoNoVentas",
+                    v
+                  )
+                }
               />
             </div>
 
@@ -1116,30 +1324,42 @@ export default function Page() {
               title="Principales O.M."
               options={OM}
               selected={form.omDetectadas}
-              setSelected={(v) => updateForm("omDetectadas", v)}
+              setSelected={(v) =>
+                updateForm(
+                  "omDetectadas",
+                  v
+                )
+              }
             />
 
             <MultiSelect
               title="Fortalezas"
               options={FORTALEZAS}
               selected={form.fortalezas}
-              setSelected={(v) => updateForm("fortalezas", v)}
+              setSelected={(v) =>
+                updateForm(
+                  "fortalezas",
+                  v
+                )
+              }
             />
 
             <TextArea
               label="Observaciones"
               value={form.observacionesNoVentas}
-              setValue={(v) => updateForm("observacionesNoVentas", v)}
+              setValue={(v) =>
+                updateForm(
+                  "observacionesNoVentas",
+                  v
+                )
+              }
             />
           </section>
 
           <section className="adminSection">
             <div className="sectionNumber">06</div>
-            <h2>Audio de auditoría</h2>
 
-            <p className="sectionHint">
-              El audio se carga directamente y queda asociado al reporte.
-            </p>
+            <h2>Audio de auditoría</h2>
 
             <div className="audioUpload">
               <input
@@ -1147,25 +1367,37 @@ export default function Page() {
                 type="file"
                 accept="audio/*"
                 onChange={(e) =>
-                  updateForm("audioFile", e.target.files?.[0] || null)
+                  updateForm(
+                    "audioFile",
+                    e.target.files?.[0] || null
+                  )
                 }
               />
 
               <label htmlFor="audioInput">
                 <span className="audioIcon">♪</span>
+
                 <strong>
                   {form.audioFile
                     ? form.audioFile.name
                     : "Seleccionar audio"}
                 </strong>
-                <small>MP3, WAV, M4A u otro formato compatible</small>
+
+                <small>
+                  MP3, WAV, M4A u otro formato compatible
+                </small>
               </label>
             </div>
 
             <TextArea
               label="Observaciones generales"
               value={form.observacionesGenerales}
-              setValue={(v) => updateForm("observacionesGenerales", v)}
+              setValue={(v) =>
+                updateForm(
+                  "observacionesGenerales",
+                  v
+                )
+              }
             />
           </section>
 
@@ -1173,7 +1405,7 @@ export default function Page() {
             <div
               className={
                 saveMessage.startsWith("✓")
-                  ? "successBox"
+                  ? "successBox saveBox"
                   : "errorBox saveBox"
               }
             >
@@ -1186,7 +1418,9 @@ export default function Page() {
             onClick={saveReport}
             disabled={saving}
           >
-            {saving ? "GUARDANDO..." : "GUARDAR REPORTE"}
+            {saving
+              ? "GUARDANDO..."
+              : "GUARDAR REPORTE"}
           </button>
 
           <section className="historySection">
@@ -1196,7 +1430,10 @@ export default function Page() {
                 <h2>HISTÓRICO</h2>
               </div>
 
-              <button className="secondaryButton" onClick={loadHistory}>
+              <button
+                className="secondaryButton"
+                onClick={loadHistory}
+              >
                 ACTUALIZAR
               </button>
             </div>
@@ -1215,7 +1452,10 @@ export default function Page() {
                 </div>
               ) : (
                 history.map((item) => (
-                  <div className="historyRow" key={item.id}>
+                  <div
+                    className="historyRow"
+                    key={item.id}
+                  >
                     <span>{item.asesor}</span>
                     <span>{item.semana}</span>
                     <strong>{item.nota}</strong>
@@ -1240,16 +1480,27 @@ export default function Page() {
         <main className="advisorApp">
           <header className="advisorHeader">
             <div>
-              <div className="brand small">PORTAL DE CALIDAD</div>
-              <h1>
-                Hola, {displayName}
-              </h1>
-              <p>Consultá tu evolución y tus objetivos de calidad.</p>
+              <div className="brand small">
+                PORTAL DE CALIDAD
+              </div>
+
+              <h1>Hola, {displayName}</h1>
+
+              <p>
+                Consultá tu evolución y tus objetivos
+                de calidad.
+              </p>
             </div>
 
             <div className="headerRight">
-              <span className="followBadge">EN SEGUIMIENTO</span>
-              <button className="logoutButton" onClick={logout}>
+              <span className="followBadge">
+                EN SEGUIMIENTO
+              </span>
+
+              <button
+                className="logoutButton"
+                onClick={logout}
+              >
                 Cerrar sesión
               </button>
             </div>
@@ -1267,7 +1518,9 @@ export default function Page() {
             ].map(([id, label]) => (
               <button
                 key={id}
-                className={activeTab === id ? "active" : ""}
+                className={
+                  activeTab === id ? "active" : ""
+                }
                 onClick={() => setActiveTab(id)}
               >
                 {label}
@@ -1277,9 +1530,14 @@ export default function Page() {
 
           <section className="emptyReport">
             <div className="emptyIcon">PC</div>
-            <h2>Todavía no hay un reporte cargado.</h2>
+
+            <h2>
+              Todavía no hay un reporte cargado.
+            </h2>
+
             <p>
-              Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
+              Cuando Calidad cargue tu reporte,
+              aparecerá automáticamente acá.
             </p>
           </section>
         </main>
@@ -1294,11 +1552,16 @@ export default function Page() {
       <main className="advisorApp">
         <header className="advisorHeader">
           <div>
-            <div className="brand small">PORTAL DE CALIDAD</div>
+            <div className="brand small">
+              PORTAL DE CALIDAD
+            </div>
 
             <h1>Hola, {displayName}</h1>
 
-            <p>{currentReport.semana || "Semana actual"}</p>
+            <p>
+              {currentReport.semana ||
+                "Semana actual"}
+            </p>
           </div>
 
           <div className="headerRight">
@@ -1307,10 +1570,14 @@ export default function Page() {
                 currentReport.estado_objetivo
               )}`}
             >
-              {currentReport.estado_objetivo || "EN SEGUIMIENTO"}
+              {currentReport.estado_objetivo ||
+                "EN SEGUIMIENTO"}
             </span>
 
-            <button className="logoutButton" onClick={logout}>
+            <button
+              className="logoutButton"
+              onClick={logout}
+            >
               Cerrar sesión
             </button>
           </div>
@@ -1328,7 +1595,9 @@ export default function Page() {
           ].map(([id, label]) => (
             <button
               key={id}
-              className={activeTab === id ? "active" : ""}
+              className={
+                activeTab === id ? "active" : ""
+              }
               onClick={() => setActiveTab(id)}
             >
               {label}
@@ -1342,6 +1611,7 @@ export default function Page() {
 
             <div className="cardTitle">
               <span>CALIDAD</span>
+
               <h2>
                 {currentReport.nota ?? "-"}
                 <small>/ 100</small>
@@ -1351,35 +1621,49 @@ export default function Page() {
             <div className="metricGrid">
               <div>
                 <small>OBJETIVO</small>
-                <strong>{currentReport.objetivo ?? "-"}</strong>
+                <strong>
+                  {currentReport.objetivo ?? "-"}
+                </strong>
               </div>
 
               <div>
                 <small>ESTADO</small>
                 <strong>
-                  {currentReport.estado_objetivo || "EN PROCESO"}
+                  {currentReport.estado_objetivo ||
+                    "EN PROCESO"}
                 </strong>
               </div>
 
               <div>
                 <small>PRODUCTO</small>
-                <strong>{currentReport.producto || "AP"}</strong>
+                <strong>
+                  {currentReport.producto || "AP"}
+                </strong>
               </div>
 
               <div>
                 <small>DESVÍO PRINCIPAL</small>
-                <strong>{currentReport.desvio || "-"}</strong>
+                <strong>
+                  {currentReport.desvio || "-"}
+                </strong>
               </div>
             </div>
 
             <div className="progressBlock">
               <div className="progressTop">
-                <span>Progreso hacia el objetivo</span>
+                <span>
+                  Progreso hacia el objetivo
+                </span>
+
                 <strong>
                   {currentReport.objetivo
                     ? Math.round(
-                        (Number(currentReport.nota || 0) /
-                          Number(currentReport.objetivo)) *
+                        (Number(
+                          currentReport.nota || 0
+                        ) /
+                          Number(
+                            currentReport.objetivo
+                          )) *
                           100
                       )
                     : 0}
@@ -1394,8 +1678,13 @@ export default function Page() {
                       currentReport.objetivo
                         ? Math.min(
                             100,
-                            (Number(currentReport.nota || 0) /
-                              Number(currentReport.objetivo)) *
+                            (Number(
+                              currentReport.nota ||
+                                0
+                            ) /
+                              Number(
+                                currentReport.objetivo
+                              )) *
                               100
                           )
                         : 0
@@ -1407,32 +1696,53 @@ export default function Page() {
 
             <div className="infoGrid">
               <div className="infoBox">
-                <small>CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO</small>
+                <small>
+                  CUÁNTO FALTA PARA ALCANZAR EL
+                  OBJETIVO
+                </small>
+
                 <strong>
                   {Math.max(
                     0,
-                    Number(currentReport.objetivo || 0) -
-                      Number(currentReport.nota || 0)
+                    Number(
+                      currentReport.objetivo || 0
+                    ) -
+                      Number(
+                        currentReport.nota || 0
+                      )
                   )}{" "}
                   puntos
                 </strong>
               </div>
 
               <div className="infoBox">
-                <small>COMPARATIVO SEMANAL</small>
-                <strong>Todavía no hay una semana anterior para comparar.</strong>
+                <small>
+                  COMPARATIVO SEMANAL
+                </small>
+
+                <strong>
+                  Todavía no hay una semana
+                  anterior para comparar.
+                </strong>
               </div>
             </div>
 
             <div className="contentBlock">
               <h3>DESVÍO PRINCIPAL</h3>
-              <p>{currentReport.desvio || "Sin desvíos cargados."}</p>
+
+              <p>
+                {currentReport.desvio ||
+                  "Sin desvíos cargados."}
+              </p>
             </div>
 
             <div className="contentBlock">
               <h3>ITEMS TRABAJADOS</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.items_calidad).map((item) => (
+                {parseArray(
+                  currentReport.items_calidad
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1440,8 +1750,11 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>ACCIONES REALIZADAS</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.acciones_calidad).map((item) => (
+                {parseArray(
+                  currentReport.acciones_calidad
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1449,6 +1762,7 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>AUDITORÍA</h3>
+
               <p>
                 {currentReport.auditoria ||
                   "No hay información de auditoría."}
@@ -1457,7 +1771,10 @@ export default function Page() {
               {currentReport.observaciones && (
                 <div className="observation">
                   <strong>OBSERVACIONES</strong>
-                  <p>{currentReport.observaciones}</p>
+
+                  <p>
+                    {currentReport.observaciones}
+                  </p>
                 </div>
               )}
             </div>
@@ -1465,7 +1782,11 @@ export default function Page() {
             {currentReport.audio_url && (
               <div className="audioPlayer">
                 <h3>AUDIO DE AUDITORÍA</h3>
-                <audio controls src={currentReport.audio_url}>
+
+                <audio
+                  controls
+                  src={currentReport.audio_url}
+                >
                   Tu navegador no soporta audio.
                 </audio>
               </div>
@@ -1476,47 +1797,70 @@ export default function Page() {
         {activeTab === "productividad" && (
           <section className="advisorCard">
             <div className="cardNumber">02</div>
+
             <div className="cardTitle">
               <span>PRODUCTIVIDAD</span>
-              <h2>{currentReport.sph ?? "-"}</h2>
+
+              <h2>
+                {currentReport.sph ?? "-"}
+              </h2>
             </div>
 
             <div className="metricGrid">
               <div>
                 <small>OBJETIVO SPH</small>
-                <strong>{currentReport.objetivo_sph ?? "-"}</strong>
+                <strong>
+                  {currentReport.objetivo_sph ??
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>VENTAS</small>
-                <strong>{currentReport.ventas ?? "-"}</strong>
+                <strong>
+                  {currentReport.ventas ?? "-"}
+                </strong>
               </div>
 
               <div>
                 <small>OBJETIVO VENTAS</small>
-                <strong>{currentReport.objetivo_ventas ?? "-"}</strong>
+                <strong>
+                  {currentReport.objetivo_ventas ??
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>OBJETIVO DE CAMPAÑA</small>
-                <strong>{currentReport.objetivo_campania ?? "-"}</strong>
+                <strong>
+                  {currentReport.objetivo_campania ??
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>ESTADO SPH</small>
-                <strong>{currentReport.estado_sph || "-"}</strong>
+                <strong>
+                  {currentReport.estado_sph || "-"}
+                </strong>
               </div>
 
               <div>
                 <small>ESTADO VENTAS</small>
-                <strong>{currentReport.estado_ventas || "-"}</strong>
+                <strong>
+                  {currentReport.estado_ventas ||
+                    "-"}
+                </strong>
               </div>
             </div>
 
             <div className="contentBlock">
               <h3>ITEMS TRABAJADOS</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.items_productividad).map((item) => (
+                {parseArray(
+                  currentReport.items_productividad
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1524,19 +1868,22 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>ACCIONES REALIZADAS</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.acciones_productividad).map(
-                  (item) => (
-                    <span key={item}>{item}</span>
-                  )
-                )}
+                {parseArray(
+                  currentReport.acciones_productividad
+                ).map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
               </div>
             </div>
 
             <div className="contentBlock">
               <h3>OBSERVACIONES</h3>
+
               <p>
-                {currentReport.observaciones_productividad ||
+                {currentReport
+                  .observaciones_productividad ||
                   "No hay observaciones cargadas."}
               </p>
             </div>
@@ -1546,16 +1893,22 @@ export default function Page() {
         {activeTab === "tipificaciones" && (
           <section className="advisorCard">
             <div className="cardNumber">03</div>
+
             <div className="cardTitle">
               <span>TIPIFICACIONES</span>
-              <h2>{currentReport.estado_tipificaciones || "En proceso"}</h2>
+
+              <h2>
+                {currentReport.estado_tipificaciones ||
+                  "En proceso"}
+              </h2>
             </div>
 
             <div className="metricGrid">
               <div>
                 <small>DESVÍO</small>
                 <strong>
-                  {currentReport.tipificacion_desvio || "-"}
+                  {currentReport.tipificacion_desvio ||
+                    "-"}
                 </strong>
               </div>
 
@@ -1570,21 +1923,28 @@ export default function Page() {
 
               <div>
                 <small>RESULTADO</small>
-                <strong>{currentReport.tipificacion_resultado || "-"}</strong>
+                <strong>
+                  {currentReport.tipificacion_resultado ||
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>COMPROMISO</small>
                 <strong>
-                  {currentReport.tipificacion_compromiso || "-"}
+                  {currentReport.tipificacion_compromiso ||
+                    "-"}
                 </strong>
               </div>
             </div>
 
             <div className="contentBlock">
               <h3>TIPIFICACIONES</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.tipificaciones).map((item) => (
+                {parseArray(
+                  currentReport.tipificaciones
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1592,8 +1952,10 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>OBSERVACIONES</h3>
+
               <p>
-                {currentReport.tipificacion_observaciones ||
+                {currentReport
+                  .tipificacion_observaciones ||
                   "Sin observaciones cargadas."}
               </p>
             </div>
@@ -1605,38 +1967,61 @@ export default function Page() {
             <div className="cardNumber">04</div>
 
             <div className="cardTitle">
-              <span>AUDITORÍAS DE NO VENTAS</span>
-              <h2>{currentReport.cantidad_no_ventas ?? "-"}</h2>
+              <span>
+                AUDITORÍAS DE NO VENTAS
+              </span>
+
+              <h2>
+                {currentReport.cantidad_no_ventas ??
+                  "-"}
+              </h2>
             </div>
 
             <div className="metricGrid">
               <div>
                 <small>CANTIDAD</small>
-                <strong>{currentReport.cantidad_no_ventas ?? "-"}</strong>
+                <strong>
+                  {currentReport.cantidad_no_ventas ??
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>COACHING</small>
-                <strong>{currentReport.coaching_no_ventas || "-"}</strong>
+                <strong>
+                  {currentReport.coaching_no_ventas ||
+                    "-"}
+                </strong>
               </div>
 
               <div>
-                <small>REGISTRO EN SISTEMA</small>
-                <strong>{currentReport.registro_sistema || "-"}</strong>
+                <small>
+                  REGISTRO EN SISTEMA
+                </small>
+
+                <strong>
+                  {currentReport.registro_sistema ||
+                    "-"}
+                </strong>
               </div>
 
               <div>
                 <small>COMPROMISO</small>
+
                 <strong>
-                  {currentReport.compromiso_no_ventas || "-"}
+                  {currentReport.compromiso_no_ventas ||
+                    "-"}
                 </strong>
               </div>
             </div>
 
             <div className="contentBlock">
               <h3>PRINCIPALES O.M.</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.om_detectadas).map((item) => (
+                {parseArray(
+                  currentReport.om_detectadas
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1644,8 +2029,11 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>FORTALEZAS</h3>
+
               <div className="pillList">
-                {parseArray(currentReport.fortalezas).map((item) => (
+                {parseArray(
+                  currentReport.fortalezas
+                ).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -1653,8 +2041,10 @@ export default function Page() {
 
             <div className="contentBlock">
               <h3>OBSERVACIONES</h3>
+
               <p>
-                {currentReport.observaciones_no_ventas ||
+                {currentReport
+                  .observaciones_no_ventas ||
                   "No hay observaciones cargadas."}
               </p>
             </div>
@@ -1664,15 +2054,19 @@ export default function Page() {
         {activeTab === "actividades" && (
           <section className="advisorCard">
             <div className="cardNumber">05</div>
+
             <div className="cardTitle">
               <span>ACTIVIDADES</span>
+
               <h2>Próximamente</h2>
             </div>
 
             <div className="emptyReport smallEmpty">
               <div className="emptyIcon">+</div>
+
               <p>
-                Esta sección quedará disponible para registrar y consultar
+                Esta sección quedará disponible
+                para registrar y consultar
                 actividades.
               </p>
             </div>
@@ -1685,6 +2079,7 @@ export default function Page() {
 
             <div className="cardTitle">
               <span>HISTÓRICO</span>
+
               <h2>Evolución</h2>
             </div>
 
@@ -1697,10 +2092,22 @@ export default function Page() {
               </div>
 
               <div className="historyRow">
-                <span>{currentReport.semana || "-"}</span>
-                <strong>{currentReport.nota ?? "-"}</strong>
-                <span>{currentReport.producto || "-"}</span>
-                <span>{currentReport.estado_objetivo || "-"}</span>
+                <span>
+                  {currentReport.semana || "-"}
+                </span>
+
+                <strong>
+                  {currentReport.nota ?? "-"}
+                </strong>
+
+                <span>
+                  {currentReport.producto || "-"}
+                </span>
+
+                <span>
+                  {currentReport.estado_objetivo ||
+                    "-"}
+                </span>
               </div>
             </div>
           </section>
@@ -1712,17 +2119,21 @@ export default function Page() {
 
             <div className="cardTitle">
               <span>FEEDBACK DEL ASESOR</span>
+
               <h2>Tu opinión importa</h2>
             </div>
 
             <p>
-              ¿Querés dejar algún comentario sobre tu reporte, una consulta o
-              algo que quieras trabajar con Calidad?
+              ¿Querés dejar algún comentario sobre
+              tu reporte, una consulta o algo que
+              quieras trabajar con Calidad?
             </p>
 
             <textarea
               value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
+              onChange={(e) =>
+                setFeedback(e.target.value)
+              }
               placeholder="Escribí acá tu comentario..."
             />
 
@@ -1730,7 +2141,9 @@ export default function Page() {
               className="primaryButton"
               onClick={() => {
                 setFeedback("");
-                alert("Feedback enviado correctamente.");
+                alert(
+                  "Feedback enviado correctamente."
+                );
               }}
             >
               ENVIAR FEEDBACK
@@ -1763,6 +2176,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: .65;
+  cursor: not-allowed;
 }
 
 .loginPage {
