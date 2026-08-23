@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 const ASESORES = [
   ["Acosta, Pamela", "8134", "acosta.pamela@portalcalidad.com"],
@@ -31,14 +30,6 @@ const ASESORES = [
 
 const ADMIN_EMAIL = "estecalidadbhseguros@proximo.cc";
 const ADMIN_PASSWORD = "admin123";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase =
-  SUPABASE_URL && SUPABASE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
 
 const ITEMS_CALIDAD = [
   "Información de otras compañías",
@@ -145,16 +136,23 @@ function statusClass(status) {
 
   if (s.includes("ALCANZ")) return "statusGreen";
   if (s.includes("DEBAJO")) return "statusRed";
+
   return "statusYellow";
 }
 
 function MultiSelect({ title, options, selected, setSelected }) {
+  const safeSelected = Array.isArray(selected) ? selected : [];
+
   const toggle = (option) => {
-    setSelected((prev) =>
-      prev.includes(option)
-        ? prev.filter((x) => x !== option)
-        : [...prev, option]
-    );
+    setSelected((prev) => {
+      const current = Array.isArray(prev) ? prev : [];
+
+      if (current.includes(option)) {
+        return current.filter((x) => x !== option);
+      }
+
+      return [...current, option];
+    });
   };
 
   return (
@@ -167,18 +165,19 @@ function MultiSelect({ title, options, selected, setSelected }) {
             type="button"
             key={option}
             className={`multiOption ${
-              selected.includes(option) ? "selected" : ""
+              safeSelected.includes(option) ? "selected" : ""
             }`}
             onClick={() => toggle(option)}
           >
-            <span>{selected.includes(option) ? "✓" : ""}</span>
+            <span>{safeSelected.includes(option) ? "✓" : ""}</span>
             {option}
           </button>
         ))}
       </div>
 
       <div className="selectedCount">
-        {selected.length} seleccionada{selected.length === 1 ? "" : "s"}
+        {safeSelected.length} seleccionada
+        {safeSelected.length === 1 ? "" : "s"}
       </div>
     </div>
   );
@@ -189,7 +188,7 @@ function SelectField({ label, value, setValue, options }) {
     <div className="fieldGroup">
       <label>{label}</label>
 
-      <select value={value} onChange={(e) => setValue(e.target.value)}>
+      <select value={value || ""} onChange={(e) => setValue(e.target.value)}>
         <option value="">Seleccionar</option>
 
         {options.map((option) => (
@@ -215,7 +214,7 @@ function TextField({
 
       <input
         type={type}
-        value={value}
+        value={value ?? ""}
         placeholder={placeholder}
         onChange={(e) => setValue(e.target.value)}
       />
@@ -229,7 +228,7 @@ function TextArea({ label, value, setValue, placeholder = "" }) {
       <label>{label}</label>
 
       <textarea
-        value={value}
+        value={value ?? ""}
         placeholder={placeholder}
         onChange={(e) => setValue(e.target.value)}
       />
@@ -237,109 +236,132 @@ function TextArea({ label, value, setValue, placeholder = "" }) {
   );
 }
 
+const EMPTY_FORM = {
+  asesor: "",
+  usuario: "",
+  semana: "",
+  nota: "",
+  objetivo: "",
+  estadoObjetivo: "",
+  producto: "AP",
+  desvio: "",
+  recomendacion: "",
+  objetivoTrabajo: "",
+  observaciones: "",
+
+  itemsCalidad: [],
+  accionesCalidad: [],
+
+  auditoriaEstado: "",
+  auditoriaObservaciones: "",
+
+  sph: "",
+  objetivoSph: "",
+  ventas: "",
+  objetivoVentas: "",
+  objetivoCampania: "",
+  descripcionCampania: "",
+  estadoSph: "",
+  estadoVentas: "",
+  estadoCampania: "",
+  observacionesProductividad: "",
+  itemsProductividad: [],
+  accionesProductividad: [],
+
+  objetivoTipificaciones: "",
+  tipificaciones: [],
+  estadoTipificaciones: "",
+  tipificacionDesvio: "",
+  tipificacionObjetivo: "",
+  tipificacionResultado: "",
+  tipificacionCompromiso: "",
+  tipificacionObservaciones: "",
+
+  cantidadNoVentas: "",
+  omDetectadas: [],
+  coachingNoVentas: "",
+  registroSistema: "",
+  compromisoNoVentas: "",
+  fortalezas: [],
+  observacionesNoVentas: "",
+
+  audioFile: null,
+  observacionesGenerales: "",
+};
+
 export default function Page() {
   const [screen, setScreen] = useState("login");
   const [loginType, setLoginType] = useState("advisor");
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  const [advisor, setAdvisor] = useState(null);
-  const [report, setReport] = useState(null);
-  const [loadingReport, setLoadingReport] = useState(false);
 
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
 
+  const [advisor, setAdvisor] = useState(null);
+  const [report, setReport] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+
   const [activeTab, setActiveTab] = useState("calidad");
   const [feedback, setFeedback] = useState("");
 
-  const [form, setForm] = useState({
-    asesor: "",
-    usuario: "",
-    semana: "",
-    nota: "",
-    objetivo: "",
-    estadoObjetivo: "",
-    producto: "AP",
-    desvio: "",
-    recomendacion: "",
-    objetivoTrabajo: "",
-    observaciones: "",
-
-    itemsCalidad: [],
-    accionesCalidad: [],
-
-    auditoriaEstado: "",
-    auditoriaObservaciones: "",
-
-    sph: "",
-    objetivoSph: "",
-    ventas: "",
-    objetivoVentas: "",
-    objetivoCampania: "",
-    descripcionCampania: "",
-    estadoSph: "",
-    estadoVentas: "",
-    estadoCampania: "",
-    observacionesProductividad: "",
-    itemsProductividad: [],
-    accionesProductividad: [],
-
-    objetivoTipificaciones: "",
-    tipificaciones: [],
-    estadoTipificaciones: "",
-    tipificacionDesvio: "",
-    tipificacionObjetivo: "",
-    tipificacionResultado: "",
-    tipificacionCompromiso: "",
-    tipificacionObservaciones: "",
-
-    cantidadNoVentas: "",
-    omDetectadas: [],
-    coachingNoVentas: "",
-    registroSistema: "",
-    compromisoNoVentas: "",
-    fortalezas: [],
-    observacionesNoVentas: "",
-
-    audioFile: null,
-    observacionesGenerales: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const [history, setHistory] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
+  const supabaseConfigured =
+    typeof window !== "undefined" &&
+    Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+
   const updateForm = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [key]:
+        typeof value === "function"
+          ? value(prev[key])
+          : value,
+    }));
   };
+
+  async function getSupabase() {
+    if (!supabaseConfigured) return null;
+
+    const { createClient } = await import("@supabase/supabase-js");
+
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+  }
 
   async function loadAdvisorReport(foundAdvisor) {
     setLoadingReport(true);
     setReport(null);
 
-    if (!supabase) {
-      setLoginError(
-        "No está configurada la conexión con Supabase. Revisá las variables de Vercel."
-      );
-      setLoadingReport(false);
-      return;
-    }
-
     try {
+      const supabase = await getSupabase();
+
+      if (!supabase) {
+        setLoadingReport(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("reportes")
         .select("*")
-        .eq("usuario", foundAdvisor[2])
+        .eq("usuario", foundAdvisor[1])
         .order("id", { ascending: false })
         .limit(1);
 
       if (error) {
-        console.error(error);
+        console.error("Error cargando reporte:", error);
         setReport(null);
         return;
       }
@@ -348,7 +370,8 @@ export default function Page() {
         setReport(data[0]);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error);
+      setReport(null);
     } finally {
       setLoadingReport(false);
     }
@@ -359,60 +382,30 @@ export default function Page() {
 
     const cleanEmail = normalizeEmail(email);
 
-    if (!cleanEmail || !password) {
-      setLoginError("Ingresá tu mail y tu clave.");
+    if (!cleanEmail) {
+      setLoginError("Ingresá tu mail institucional.");
       return;
     }
 
-    if (!supabase) {
+    const found = ASESORES.find(
+      (item) => normalizeEmail(item[2]) === cleanEmail
+    );
+
+    if (!found) {
       setLoginError(
-        "No está configurada la conexión con Supabase. Revisá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
+        "No encontramos ese mail. Ingresá el mail institucional asociado a tu portal."
       );
       return;
     }
 
-    setLoginLoading(true);
+    setAdvisor(found);
+    setScreen("advisor");
+    setActiveTab("calidad");
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (error) {
-        console.error(error);
-        setLoginError("El mail o la clave son incorrectos.");
-        return;
-      }
-
-      const userEmail = normalizeEmail(data?.user?.email || cleanEmail);
-
-      const found = ASESORES.find(
-        (item) => normalizeEmail(item[2]) === userEmail
-      );
-
-      if (!found) {
-        await supabase.auth.signOut();
-        setLoginError(
-          "El usuario ingresó correctamente, pero no está asociado a un asesor del portal."
-        );
-        return;
-      }
-
-      setAdvisor(found);
-      setScreen("advisor");
-      setActiveTab("calidad");
-
-      await loadAdvisorReport(found);
-    } catch (error) {
-      console.error(error);
-      setLoginError("No se pudo iniciar sesión. Intentá nuevamente.");
-    } finally {
-      setLoginLoading(false);
-    }
+    await loadAdvisorReport(found);
   }
 
-  async function loginAdmin() {
+  function loginAdmin() {
     setAdminError("");
 
     if (
@@ -420,6 +413,7 @@ export default function Page() {
       adminPassword === ADMIN_PASSWORD
     ) {
       setScreen("admin");
+      setAdminError("");
       setAdminEmail("");
       setAdminPassword("");
       return;
@@ -428,17 +422,15 @@ export default function Page() {
     setAdminError("El mail o la clave de administrador no son correctos.");
   }
 
-  async function logout() {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-
+  function logout() {
     setScreen("login");
     setAdvisor(null);
     setReport(null);
     setEmail("");
-    setPassword("");
     setLoginError("");
+    setAdminEmail("");
+    setAdminPassword("");
+    setAdminError("");
     setActiveTab("calidad");
   }
 
@@ -450,16 +442,18 @@ export default function Page() {
       return;
     }
 
-    if (!supabase) {
-      setSaveMessage(
-        "Supabase no está configurado. Revisá las variables de Vercel."
-      );
-      return;
-    }
-
     setSaving(true);
 
     try {
+      const supabase = await getSupabase();
+
+      if (!supabase) {
+        setSaveMessage(
+          "Supabase no está configurado. Revisá NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel."
+        );
+        return;
+      }
+
       let audioUrl = "";
 
       if (form.audioFile) {
@@ -481,7 +475,7 @@ export default function Page() {
           console.error(uploadError);
 
           setSaveMessage(
-            "El reporte no se pudo guardar porque no se pudo subir el audio."
+            "El reporte no se pudo guardar porque no se pudo subir el audio. Verificá que exista el bucket 'audios' en Supabase."
           );
 
           return;
@@ -500,7 +494,7 @@ export default function Page() {
 
       const payload = {
         asesor: form.asesor,
-        usuario: selectedAdvisor?.[2] || form.usuario,
+        usuario: selectedAdvisor?.[1] || form.usuario,
         semana: form.semana,
         nota: Number(form.nota),
         evolucion: "",
@@ -521,7 +515,7 @@ export default function Page() {
         estado_ventas: form.estadoVentas,
         estado_campania: form.estadoCampania,
 
-        gestion: form.accionesProductividad.join(", "),
+        gestion: parseArray(form.accionesProductividad).join(", "),
         objetivo_calidad: Number(form.objetivo || 0),
         estado_objetivo: form.estadoObjetivo,
 
@@ -560,7 +554,8 @@ export default function Page() {
         objetivo_tipificacion: form.tipificacionObjetivo,
         resultado_tipificacion: form.tipificacionResultado,
         compromiso_tipificacion: form.tipificacionCompromiso,
-        observaciones_tipificacion: form.tipificacionObservaciones,
+        observaciones_tipificacion:
+          form.tipificacionObservaciones,
 
         principales_om: form.omDetectadas,
       };
@@ -571,7 +566,7 @@ export default function Page() {
         .select();
 
       if (error) {
-        console.error(error);
+        console.error("Error guardando reporte:", error);
 
         setSaveMessage(
           `No se pudo guardar el reporte: ${
@@ -586,54 +581,9 @@ export default function Page() {
 
       setSaveMessage("✓ REPORTE GUARDADO CORRECTAMENTE");
 
-      setForm({
-        asesor: "",
-        usuario: "",
-        semana: "",
-        nota: "",
-        objetivo: "",
-        estadoObjetivo: "",
-        producto: "AP",
-        desvio: "",
-        recomendacion: "",
-        objetivoTrabajo: "",
-        observaciones: "",
-        itemsCalidad: [],
-        accionesCalidad: [],
-        auditoriaEstado: "",
-        auditoriaObservaciones: "",
-        sph: "",
-        objetivoSph: "",
-        ventas: "",
-        objetivoVentas: "",
-        objetivoCampania: "",
-        descripcionCampania: "",
-        estadoSph: "",
-        estadoVentas: "",
-        estadoCampania: "",
-        observacionesProductividad: "",
-        itemsProductividad: [],
-        accionesProductividad: [],
-        objetivoTipificaciones: "",
-        tipificaciones: [],
-        estadoTipificaciones: "",
-        tipificacionDesvio: "",
-        tipificacionObjetivo: "",
-        tipificacionResultado: "",
-        tipificacionCompromiso: "",
-        tipificacionObservaciones: "",
-        cantidadNoVentas: "",
-        omDetectadas: [],
-        coachingNoVentas: "",
-        registroSistema: "",
-        compromisoNoVentas: "",
-        fortalezas: [],
-        observacionesNoVentas: "",
-        audioFile: null,
-        observacionesGenerales: "",
-      });
+      setForm({ ...EMPTY_FORM });
     } catch (error) {
-      console.error(error);
+      console.error("Error guardando:", error);
 
       setSaveMessage(
         "No se pudo guardar el reporte. Revisá la configuración de Supabase."
@@ -644,9 +594,11 @@ export default function Page() {
   }
 
   async function loadHistory() {
-    if (!supabase) return;
-
     try {
+      const supabase = await getSupabase();
+
+      if (!supabase) return;
+
       const { data, error } = await supabase
         .from("reportes")
         .select("id, asesor, semana, nota, producto")
@@ -669,6 +621,7 @@ export default function Page() {
 
   const displayName = useMemo(() => {
     if (!advisor) return "";
+
     return advisor[0].split(",")[1]?.trim() || advisor[0];
   }, [advisor]);
 
@@ -699,6 +652,7 @@ export default function Page() {
                 onClick={() => {
                   setLoginType("advisor");
                   setLoginError("");
+                  setAdminError("");
                 }}
               >
                 Asesor
@@ -713,6 +667,7 @@ export default function Page() {
                 onClick={() => {
                   setLoginType("admin");
                   setLoginError("");
+                  setAdminError("");
                 }}
               >
                 Administración
@@ -732,22 +687,10 @@ export default function Page() {
                       setLoginError("");
                     }}
                     placeholder="nombre.apellido@portalcalidad.com"
-                  />
-                </div>
-
-                <div className="fieldGroup">
-                  <label>Clave</label>
-
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setLoginError("");
-                    }}
-                    placeholder="Ingresá tu clave"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") loginAdvisor();
+                      if (e.key === "Enter") {
+                        loginAdvisor();
+                      }
                     }}
                   />
                 </div>
@@ -759,9 +702,8 @@ export default function Page() {
                 <button
                   className="primaryButton"
                   onClick={loginAdvisor}
-                  disabled={loginLoading}
                 >
-                  {loginLoading ? "INGRESANDO..." : "INGRESAR"}
+                  INGRESAR
                 </button>
               </>
             ) : (
@@ -772,7 +714,10 @@ export default function Page() {
                   <input
                     type="email"
                     value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
+                    onChange={(e) => {
+                      setAdminEmail(e.target.value);
+                      setAdminError("");
+                    }}
                     placeholder="Mail de administración"
                   />
                 </div>
@@ -783,10 +728,15 @@ export default function Page() {
                   <input
                     type="password"
                     value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
+                    onChange={(e) => {
+                      setAdminPassword(e.target.value);
+                      setAdminError("");
+                    }}
                     placeholder="Ingresá la clave"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") loginAdmin();
+                      if (e.key === "Enter") {
+                        loginAdmin();
+                      }
                     }}
                   />
                 </div>
@@ -868,7 +818,7 @@ export default function Page() {
                     setForm((prev) => ({
                       ...prev,
                       asesor: value,
-                      usuario: selected?.[2] || "",
+                      usuario: selected?.[1] || "",
                     }));
                   }}
                 >
@@ -877,7 +827,10 @@ export default function Page() {
                   </option>
 
                   {ASESORES.map((a) => (
-                    <option key={a[1]} value={a[0]}>
+                    <option
+                      key={a[1]}
+                      value={a[0]}
+                    >
                       {a[0]} — {a[1]}
                     </option>
                   ))}
@@ -1027,6 +980,11 @@ export default function Page() {
 
             <h2>Productividad</h2>
 
+            <p className="sectionHint">
+              Información que verá el asesor en su tarjeta de
+              Productividad.
+            </p>
+
             <div className="formGrid">
               <TextField
                 label="SPH"
@@ -1165,15 +1123,17 @@ export default function Page() {
 
             <h2>Tipificaciones</h2>
 
+            <p className="sectionHint">
+              Seleccioná todas las tipificaciones
+              correspondientes.
+            </p>
+
             <MultiSelect
               title="Tipificaciones realizadas"
               options={TIPIFICACIONES}
               selected={form.tipificaciones}
               setSelected={(v) =>
-                updateForm(
-                  "tipificaciones",
-                  v
-                )
+                updateForm("tipificaciones", v)
               }
             />
 
@@ -1268,6 +1228,11 @@ export default function Page() {
 
             <h2>Auditorías de no ventas</h2>
 
+            <p className="sectionHint">
+              Información adicional de las llamadas no
+              convertidas.
+            </p>
+
             <div className="formGrid">
               <TextField
                 label="Cantidad"
@@ -1325,10 +1290,7 @@ export default function Page() {
               options={OM}
               selected={form.omDetectadas}
               setSelected={(v) =>
-                updateForm(
-                  "omDetectadas",
-                  v
-                )
+                updateForm("omDetectadas", v)
               }
             />
 
@@ -1337,10 +1299,7 @@ export default function Page() {
               options={FORTALEZAS}
               selected={form.fortalezas}
               setSelected={(v) =>
-                updateForm(
-                  "fortalezas",
-                  v
-                )
+                updateForm("fortalezas", v)
               }
             />
 
@@ -1360,6 +1319,11 @@ export default function Page() {
             <div className="sectionNumber">06</div>
 
             <h2>Audio de auditoría</h2>
+
+            <p className="sectionHint">
+              El audio se carga directamente y queda asociado
+              al reporte.
+            </p>
 
             <div className="audioUpload">
               <input
@@ -1418,9 +1382,7 @@ export default function Page() {
             onClick={saveReport}
             disabled={saving}
           >
-            {saving
-              ? "GUARDANDO..."
-              : "GUARDAR REPORTE"}
+            {saving ? "GUARDANDO..." : "GUARDAR REPORTE"}
           </button>
 
           <section className="historySection">
@@ -1487,8 +1449,8 @@ export default function Page() {
               <h1>Hola, {displayName}</h1>
 
               <p>
-                Consultá tu evolución y tus objetivos
-                de calidad.
+                Consultá tu evolución y tus objetivos de
+                calidad.
               </p>
             </div>
 
@@ -1528,18 +1490,36 @@ export default function Page() {
             ))}
           </nav>
 
-          <section className="emptyReport">
-            <div className="emptyIcon">PC</div>
+          {loadingReport ? (
+            <section className="emptyReport">
+              <div className="emptyIcon">PC</div>
 
-            <h2>
-              Todavía no hay un reporte cargado.
-            </h2>
+              <h2>Cargando tu reporte...</h2>
 
-            <p>
-              Cuando Calidad cargue tu reporte,
-              aparecerá automáticamente acá.
-            </p>
-          </section>
+              <p>
+                Estamos consultando la información de
+                Calidad.
+              </p>
+            </section>
+          ) : activeTab === "feedback" ? (
+            <FeedbackSection
+              feedback={feedback}
+              setFeedback={setFeedback}
+            />
+          ) : (
+            <section className="emptyReport">
+              <div className="emptyIcon">PC</div>
+
+              <h2>
+                Todavía no hay un reporte cargado.
+              </h2>
+
+              <p>
+                Cuando Calidad cargue tu reporte,
+                aparecerá automáticamente acá.
+              </p>
+            </section>
+          )}
         </main>
       </>
     );
@@ -1559,8 +1539,7 @@ export default function Page() {
             <h1>Hola, {displayName}</h1>
 
             <p>
-              {currentReport.semana ||
-                "Semana actual"}
+              {currentReport.semana || "Semana actual"}
             </p>
           </div>
 
@@ -1679,8 +1658,7 @@ export default function Page() {
                         ? Math.min(
                             100,
                             (Number(
-                              currentReport.nota ||
-                                0
+                              currentReport.nota || 0
                             ) /
                               Number(
                                 currentReport.objetivo
@@ -1697,8 +1675,7 @@ export default function Page() {
             <div className="infoGrid">
               <div className="infoBox">
                 <small>
-                  CUÁNTO FALTA PARA ALCANZAR EL
-                  OBJETIVO
+                  CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO
                 </small>
 
                 <strong>
@@ -1721,8 +1698,8 @@ export default function Page() {
                 </small>
 
                 <strong>
-                  Todavía no hay una semana
-                  anterior para comparar.
+                  Todavía no hay una semana anterior
+                  para comparar.
                 </strong>
               </div>
             </div>
@@ -1810,8 +1787,7 @@ export default function Page() {
               <div>
                 <small>OBJETIVO SPH</small>
                 <strong>
-                  {currentReport.objetivo_sph ??
-                    "-"}
+                  {currentReport.objetivo_sph ?? "-"}
                 </strong>
               </div>
 
@@ -1825,16 +1801,14 @@ export default function Page() {
               <div>
                 <small>OBJETIVO VENTAS</small>
                 <strong>
-                  {currentReport.objetivo_ventas ??
-                    "-"}
+                  {currentReport.objetivo_ventas ?? "-"}
                 </strong>
               </div>
 
               <div>
                 <small>OBJETIVO DE CAMPAÑA</small>
                 <strong>
-                  {currentReport.objetivo_campania ??
-                    "-"}
+                  {currentReport.objetivo_campania ?? "-"}
                 </strong>
               </div>
 
@@ -1848,8 +1822,7 @@ export default function Page() {
               <div>
                 <small>ESTADO VENTAS</small>
                 <strong>
-                  {currentReport.estado_ventas ||
-                    "-"}
+                  {currentReport.estado_ventas || "-"}
                 </strong>
               </div>
             </div>
@@ -1882,8 +1855,7 @@ export default function Page() {
               <h3>OBSERVACIONES</h3>
 
               <p>
-                {currentReport
-                  .observaciones_productividad ||
+                {currentReport.observaciones_productividad ||
                   "No hay observaciones cargadas."}
               </p>
             </div>
@@ -1906,6 +1878,7 @@ export default function Page() {
             <div className="metricGrid">
               <div>
                 <small>DESVÍO</small>
+
                 <strong>
                   {currentReport.tipificacion_desvio ||
                     "-"}
@@ -1914,6 +1887,7 @@ export default function Page() {
 
               <div>
                 <small>OBJETIVO</small>
+
                 <strong>
                   {currentReport.tipificacion_objetivo ||
                     currentReport.objetivo_tipificaciones ||
@@ -1923,6 +1897,7 @@ export default function Page() {
 
               <div>
                 <small>RESULTADO</small>
+
                 <strong>
                   {currentReport.tipificacion_resultado ||
                     "-"}
@@ -1931,6 +1906,7 @@ export default function Page() {
 
               <div>
                 <small>COMPROMISO</small>
+
                 <strong>
                   {currentReport.tipificacion_compromiso ||
                     "-"}
@@ -1954,8 +1930,7 @@ export default function Page() {
               <h3>OBSERVACIONES</h3>
 
               <p>
-                {currentReport
-                  .tipificacion_observaciones ||
+                {currentReport.tipificacion_observaciones ||
                   "Sin observaciones cargadas."}
               </p>
             </div>
@@ -1967,19 +1942,17 @@ export default function Page() {
             <div className="cardNumber">04</div>
 
             <div className="cardTitle">
-              <span>
-                AUDITORÍAS DE NO VENTAS
-              </span>
+              <span>AUDITORÍAS DE NO VENTAS</span>
 
               <h2>
-                {currentReport.cantidad_no_ventas ??
-                  "-"}
+                {currentReport.cantidad_no_ventas ?? "-"}
               </h2>
             </div>
 
             <div className="metricGrid">
               <div>
                 <small>CANTIDAD</small>
+
                 <strong>
                   {currentReport.cantidad_no_ventas ??
                     "-"}
@@ -1988,6 +1961,7 @@ export default function Page() {
 
               <div>
                 <small>COACHING</small>
+
                 <strong>
                   {currentReport.coaching_no_ventas ||
                     "-"}
@@ -1995,9 +1969,7 @@ export default function Page() {
               </div>
 
               <div>
-                <small>
-                  REGISTRO EN SISTEMA
-                </small>
+                <small>REGISTRO EN SISTEMA</small>
 
                 <strong>
                   {currentReport.registro_sistema ||
@@ -2043,8 +2015,7 @@ export default function Page() {
               <h3>OBSERVACIONES</h3>
 
               <p>
-                {currentReport
-                  .observaciones_no_ventas ||
+                {currentReport.observaciones_no_ventas ||
                   "No hay observaciones cargadas."}
               </p>
             </div>
@@ -2065,9 +2036,8 @@ export default function Page() {
               <div className="emptyIcon">+</div>
 
               <p>
-                Esta sección quedará disponible
-                para registrar y consultar
-                actividades.
+                Esta sección quedará disponible para
+                registrar y consultar actividades.
               </p>
             </div>
           </section>
@@ -2114,44 +2084,51 @@ export default function Page() {
         )}
 
         {activeTab === "feedback" && (
-          <section className="advisorCard feedbackCard">
-            <div className="cardNumber">07</div>
-
-            <div className="cardTitle">
-              <span>FEEDBACK DEL ASESOR</span>
-
-              <h2>Tu opinión importa</h2>
-            </div>
-
-            <p>
-              ¿Querés dejar algún comentario sobre
-              tu reporte, una consulta o algo que
-              quieras trabajar con Calidad?
-            </p>
-
-            <textarea
-              value={feedback}
-              onChange={(e) =>
-                setFeedback(e.target.value)
-              }
-              placeholder="Escribí acá tu comentario..."
-            />
-
-            <button
-              className="primaryButton"
-              onClick={() => {
-                setFeedback("");
-                alert(
-                  "Feedback enviado correctamente."
-                );
-              }}
-            >
-              ENVIAR FEEDBACK
-            </button>
-          </section>
+          <FeedbackSection
+            feedback={feedback}
+            setFeedback={setFeedback}
+          />
         )}
       </main>
     </>
+  );
+}
+
+function FeedbackSection({ feedback, setFeedback }) {
+  return (
+    <section className="advisorCard feedbackCard">
+      <div className="cardNumber">07</div>
+
+      <div className="cardTitle">
+        <span>FEEDBACK DEL ASESOR</span>
+
+        <h2>Tu opinión importa</h2>
+      </div>
+
+      <p>
+        ¿Querés dejar algún comentario sobre tu reporte,
+        una consulta o algo que quieras trabajar con
+        Calidad?
+      </p>
+
+      <textarea
+        value={feedback}
+        onChange={(e) =>
+          setFeedback(e.target.value)
+        }
+        placeholder="Escribí acá tu comentario..."
+      />
+
+      <button
+        className="primaryButton"
+        onClick={() => {
+          alert("Feedback enviado correctamente.");
+          setFeedback("");
+        }}
+      >
+        ENVIAR FEEDBACK
+      </button>
+    </section>
   );
 }
 
@@ -2176,11 +2153,6 @@ textarea {
 
 button {
   cursor: pointer;
-}
-
-button:disabled {
-  opacity: .65;
-  cursor: not-allowed;
 }
 
 .loginPage {
