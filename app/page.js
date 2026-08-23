@@ -1,1581 +1,1619 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const ASESORES = [
-  ["Acosta, Pamela", "8134"],
-  ["Aguilera, Trinidad", "8196"],
-  ["Bahamonde, Camila", "8135"],
-  ["Bustamante, Ailin", "8188"],
-  ["Bustos, Jesica", "8141"],
-  ["Bustos, Nicolas", "8214"],
-  ["Cabrera, Antonella", "8187"],
-  ["Contreras, Gilary", "8046"],
-  ["Cordoba, Tania", "8202"],
-  ["Diaz, Milagros", "8212"],
-  ["Gomez, Carla", "8126"],
-  ["Luna, Oriana", "8097"],
-  ["Malqui, Xiomara", "8092"],
-  ["Mercado, Chiara", "8209"],
-  ["Ojeda, Luana", "8200"],
-  ["Olmedo, Thomas", "8192"],
-  ["Peralta, Belen", "8207"],
-  ["Reartes, Maia", "8201"],
-  ["Rojek, Luna", "8213"],
-  ["Simonetta, Valentina", "8191"],
-  ["Tello, Marianela", "8042"],
-  ["Vasquez, Agustin", "8136"],
-  ["Viniegra, Agustín", "8199"],
-];
+const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
-const CLAVES = {
-  "8134": "8134",
-  "8196": "8196",
-  "8135": "8135",
-  "8188": "8188",
-  "8141": "8141",
-  "8214": "8214",
-  "8187": "8187",
-  "8046": "8046",
-  "8202": "8202",
-  "8212": "8212",
-  "8126": "8126",
-  "8097": "8097",
-  "8092": "8092",
-  "8209": "8209",
-  "8200": "8200",
-  "8192": "8192",
-  "8207": "8207",
-  "8201": "8201",
-  "8213": "8213",
-  "8191": "8191",
-  "8042": "8042",
-  "8136": "8136",
-  "8199": "8199",
-};
+const ADMIN_EMAIL = "admin@portalcalidad.com";
 
 const TABS = [
-  ["calidad", "01", "CALIDAD"],
-  ["productividad", "02", "PRODUCTIVIDAD"],
-  ["tipificaciones", "03", "TIPIFICACIONES"],
-  ["auditorias", "04", "AUDITORÍAS"],
-  ["actividades", "05", "ACTIVIDADES"],
-  ["historico", "06", "HISTÓRICO"],
-  ["feedback", "07", "FEEDBACK"],
+  "CALIDAD",
+  "PRODUCTIVIDAD",
+  "TIPIFICACIONES",
+  "AUDITORÍAS",
+  "ACTIVIDADES",
+  "HISTÓRICO",
+  "FEEDBACK",
 ];
 
-const ITEMS_CALIDAD = [
-  "Información de otras compañías",
-  "Presentación HS",
-  "Validación de datos",
-  "Cláusula de aceptación",
-  "Información",
-  "Preexistencia",
-  "Negociación",
-  "Precio",
-  "Suscripción",
-];
+function normalize(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
-const ITEMS_PRODUCTIVIDAD = [
-  "Cierre con seguridad comercial",
-  "Ofrecimiento",
-  "Rebate comercial",
-  "Rebate asertivo",
-  "Generación de interés",
-  "Escucha activa",
-  "Venta consultiva",
-  "Venta conversacional",
-  "Cambio de apertura",
-];
-
-const TIPIFICACIONES = [
-  "No conforme con sumas aseguradas",
-  "No interesado - Producto",
-  "No interesado - No informa motivo",
-  "Problemas económicos",
-  "No interesado - Precio",
-  "No interesado - Beneficios",
-  "No interesado - Cobertura",
-  "Cliente solicita información",
-  "Cliente ya posee cobertura",
-  "Otro motivo",
-];
-
-const OM = [
-  "Generación de interés",
-  "Cambio de apertura",
-  "Escucha activa",
-  "Venta consultiva",
-  "Venta conversacional",
-  "Rebate comercial",
-  "Rebate asertivo",
-  "Manejo de objeciones",
-  "Cierre",
-  "Presentación del producto",
-];
-
-const FORTALEZAS = [
-  "Adaptabilidad",
-  "Buena detección de necesidad",
-  "Claridad en explicación",
-  "Buen manejo de silencios",
-  "Correcta contención",
-  "Seguridad comercial",
-  "Buena comunicación",
-  "Correcto manejo de objeciones",
-];
-
-const ACCIONES_CALIDAD = [
-  "Escucha personalizada",
-  "Feedback individual",
-  "Espacio de coaching",
-  "Mesa de trabajo",
-  "Simulación de llamada",
-  "Transcripción de venta mediante Word con desvíos marcados",
-  "Seguimiento diario",
-];
-
-const ACCIONES_PRODUCTIVIDAD = [
-  "Simulación de llamada",
-  "Acompañamiento en línea",
-  "Devolución personalizada",
-  "Seguimiento diario",
-  "Espacio de coaching",
-  "Escucha personalizada",
-  "Mesa de trabajo",
-];
-
-function parseArray(value) {
-  if (!value) return [];
+function asArray(value) {
   if (Array.isArray(value)) return value;
 
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return String(value)
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+
+    return value
       .split(",")
-      .map((x) => x.trim())
+      .map((item) => item.trim())
       .filter(Boolean);
   }
+
+  return [];
 }
 
-function displayName(fullName) {
-  return String(fullName || "")
-    .replace(",", "")
-    .replace(/\s+/g, " ")
-    .trim();
+function porcentaje(valor, objetivo) {
+  const v = Number(valor);
+  const o = Number(objetivo);
+
+  if (!o || Number.isNaN(v)) return 0;
+
+  return Math.min(100, Math.max(0, Math.round((v / o) * 100)));
 }
 
-function formatNumber(value) {
-  if (value === null || value === undefined || value === "") return "-";
-  return String(value).replace(".", ",");
-}
+function estadoClase(estado) {
+  const texto = normalize(estado);
 
-function progress(note, objective) {
-  const n = Number(note);
-  const o = Number(objective);
+  if (texto.includes("alcanzado")) return "success";
+  if (texto.includes("debajo")) return "danger";
 
-  if (!Number.isFinite(n) || !Number.isFinite(o) || o <= 0) return 0;
-
-  return Math.min(100, Math.max(0, Math.round((n / o) * 100)));
-}
-
-function getStateClass(state) {
-  const value = String(state || "").toUpperCase();
-
-  if (value.includes("ALCANZ")) return "success";
-  if (value.includes("DEBAJO")) return "danger";
   return "warning";
 }
 
-export default function Page() {
-  const [screen, setScreen] = useState("login");
-  const [selectedAdvisor, setSelectedAdvisor] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  const [report, setReport] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("calidad");
-  const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [feedbackSent, setFeedbackSent] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("portal_asesor");
-
-    if (saved) {
-      const advisor = ASESORES.find((item) => item[1] === saved);
-
-      if (advisor) {
-        setSelectedAdvisor(advisor[1]);
-        setScreen("portal");
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (screen === "portal" && selectedAdvisor) {
-      loadReports(selectedAdvisor);
-    }
-  }, [screen, selectedAdvisor]);
-
-  async function loadReports(usuario) {
-    setLoading(true);
-
-    try {
-      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        setReport(null);
-        setHistory([]);
-        return;
-      }
-
-      const url =
-        `${SUPABASE_URL}/rest/v1/reportes` +
-        `?usuario=eq.${encodeURIComponent(usuario)}` +
-        `&order=id.desc`;
-
-      const response = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("No se pudo consultar Supabase");
-      }
-
-      const data = await response.json();
-
-      setHistory(data || []);
-      setReport(data && data.length ? data[0] : null);
-    } catch (error) {
-      console.error(error);
-      setReport(null);
-      setHistory([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function login() {
-    setLoginError("");
-
-    if (!selectedAdvisor) {
-      setLoginError("Seleccioná tu usuario.");
-      return;
-    }
-
-    if (!password.trim()) {
-      setLoginError("Ingresá tu clave.");
-      return;
-    }
-
-    if (CLAVES[selectedAdvisor] !== password.trim()) {
-      setLoginError("La clave ingresada no es correcta.");
-      return;
-    }
-
-    localStorage.setItem("portal_asesor", selectedAdvisor);
-    setScreen("portal");
-  }
-
-  function logout() {
-    localStorage.removeItem("portal_asesor");
-    setSelectedAdvisor("");
-    setPassword("");
-    setReport(null);
-    setHistory([]);
-    setActiveTab("calidad");
-    setScreen("login");
-  }
-
-  const advisor = useMemo(
-    () => ASESORES.find((item) => item[1] === selectedAdvisor),
-    [selectedAdvisor]
-  );
-
-  const advisorName = advisor ? displayName(advisor[0]) : "";
-
-  async function sendFeedback() {
-    if (!feedback.trim()) return;
-
-    setFeedbackSent(false);
-
-    try {
-      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        setFeedbackSent(true);
-        return;
-      }
-
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({
-          usuario: selectedAdvisor,
-          asesor: advisor?.[0] || "",
-          feedback: feedback.trim(),
-          creado_en: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("No se pudo guardar");
-      }
-
-      setFeedback("");
-      setFeedbackSent(true);
-    } catch (error) {
-      console.error(error);
-      setFeedbackSent(true);
-    }
-  }
-
-  if (screen === "login") {
-    return (
-      <main style={styles.loginPage}>
-        <div style={styles.loginCard}>
-          <div style={styles.logoMark}>PC</div>
-
-          <div style={styles.loginEyebrow}>PORTAL DE CALIDAD</div>
-
-          <h1 style={styles.loginTitle}>Ingresá a tu portal</h1>
-
-          <p style={styles.loginText}>
-            Consultá tu evolución, objetivos y acciones de calidad.
-          </p>
-
-          <label style={styles.label}>Asesor</label>
-
-          <select
-            value={selectedAdvisor}
-            onChange={(e) => setSelectedAdvisor(e.target.value)}
-            style={styles.input}
-          >
-            <option value="">Seleccioná tu nombre</option>
-
-            {ASESORES.map(([name, id]) => (
-              <option key={id} value={id}>
-                {displayName(name)}
-              </option>
-            ))}
-          </select>
-
-          <label style={styles.label}>Clave</label>
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") login();
-            }}
-            placeholder="Ingresá tu clave"
-            style={styles.input}
-          />
-
-          {loginError && <div style={styles.loginError}>{loginError}</div>}
-
-          <button onClick={login} style={styles.primaryButton}>
-            INGRESAR
-          </button>
-
-          <div style={styles.loginFooter}>
-            Calidad · Seguimiento · Evolución
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const note = report?.nota;
-  const objective = report?.objetivo_calidad || report?.objetivo || 70;
-  const qualityProgress = progress(note, objective);
-  const state = report?.estado_objetivo || "EN SEGUIMIENTO";
-
-  return (
-    <main style={styles.page}>
-      <div style={styles.topGlow} />
-
-      <header style={styles.header}>
-        <div>
-          <div style={styles.brand}>PORTAL DE CALIDAD</div>
-
-          <h1 style={styles.greeting}>
-            Hola, <strong>{advisorName}</strong>
-          </h1>
-
-          <div style={styles.week}>
-            {report?.semana || "Semana actual"}
-          </div>
-        </div>
-
-        <div style={styles.headerRight}>
-          <div
-            style={{
-              ...styles.statusPill,
-              ...statusStyles(state),
-            }}
-          >
-            {state}
-          </div>
-
-          <button onClick={logout} style={styles.logoutButton}>
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
-
-      <nav style={styles.tabs}>
-        {TABS.map(([key, number, title]) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            style={{
-              ...styles.tab,
-              ...(activeTab === key ? styles.tabActive : {}),
-            }}
-          >
-            <span style={styles.tabNumber}>{number}</span>
-            <span>{title}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div style={styles.divider} />
-
-      {loading ? (
-        <section style={styles.loadingBox}>Cargando tu reporte...</section>
-      ) : !report ? (
-        <section style={styles.emptyBox}>
-          <div style={styles.emptyIcon}>01</div>
-          <h2>Todavía no hay un reporte cargado.</h2>
-          <p>
-            Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
-          </p>
-        </section>
-      ) : (
-        <div style={styles.content}>
-          {activeTab === "calidad" && (
-            <section>
-              <SectionHeader number="01" title="CALIDAD" />
-
-              <div style={styles.heroGrid}>
-                <div style={styles.noteCard}>
-                  <span style={styles.miniLabel}>NOTA</span>
-
-                  <div style={styles.noteValue}>
-                    {formatNumber(report.nota)}
-                    <small>/ 100</small>
-                  </div>
-
-                  <div style={styles.objectiveLine}>
-                    OBJETIVO <strong>{formatNumber(objective)}</strong>
-                  </div>
-                </div>
-
-                <div style={styles.infoCard}>
-                  <InfoRow
-                    label="ESTADO"
-                    value={state}
-                    badge
-                    state={state}
-                  />
-
-                  <InfoRow
-                    label="PRODUCTO"
-                    value={report.producto || "AP"}
-                  />
-
-                  <InfoRow
-                    label="CUÁNTO FALTA PARA ALCANZAR EL OBJETIVO"
-                    value={
-                      Number.isFinite(Number(report.nota)) &&
-                      Number.isFinite(Number(objective))
-                        ? `${Math.max(
-                            0,
-                            Number(objective) - Number(report.nota)
-                          )} puntos`
-                        : "-"
-                    }
-                  />
-                </div>
-              </div>
-
-              <div style={styles.progressCard}>
-                <div style={styles.progressTop}>
-                  <span>Progreso hacia el objetivo</span>
-                  <strong>{qualityProgress}%</strong>
-                </div>
-
-                <div style={styles.progressTrack}>
-                  <div
-                    style={{
-                      ...styles.progressFill,
-                      width: `${qualityProgress}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.twoColumns}>
-                <InfoBlock
-                  title="DESVÍO PRINCIPAL"
-                  text={report.desvio || "No hay información cargada."}
-                />
-
-                <InfoBlock
-                  title="COMPARATIVO SEMANAL"
-                  text={
-                    report.evolucion ||
-                    "Todavía no hay una semana anterior para comparar."
-                  }
-                />
-              </div>
-
-              <MultiValueBlock
-                title="ITEMS TRABAJADOS"
-                items={parseArray(report.items_calidad)}
-              />
-
-              <MultiValueBlock
-                title="ACCIONES REALIZADAS"
-                items={parseArray(report.acciones_calidad)}
-              />
-
-              <div style={styles.card}>
-                <div style={styles.cardTitle}>AUDITORÍA</div>
-
-                <div style={styles.auditGrid}>
-                  <InfoRow
-                    label="ESTADO DE AUDITORÍA"
-                    value={report.auditoria || "Sin información"}
-                    badge
-                  />
-
-                  <InfoRow
-                    label="REFERENCIA"
-                    value={
-                      report.referencia_auditoria || "Sin información de auditoría."
-                    }
-                  />
-                </div>
-
-                {report.observaciones && (
-                  <div style={styles.observation}>
-                    <span>OBSERVACIONES</span>
-                    <p>{report.observaciones}</p>
-                  </div>
-                )}
-
-                {report.audio_url && (
-                  <div style={styles.audioBox}>
-                    <div style={styles.audioTitle}>AUDIO DE AUDITORÍA</div>
-                    <audio controls src={report.audio_url} />
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {activeTab === "productividad" && (
-            <section>
-              <SectionHeader number="02" title="PRODUCTIVIDAD" />
-
-              <div style={styles.metricsGrid}>
-                <Metric
-                  label="SPH"
-                  value={formatNumber(report.sph)}
-                  extra={`Objetivo SPH: ${formatNumber(report.objetivo_sph)}`}
-                />
-
-                <Metric
-                  label="VENTAS"
-                  value={formatNumber(report.ventas)}
-                  extra={`Objetivo ventas: ${formatNumber(
-                    report.objetivo_ventas
-                  )}`}
-                />
-
-                <Metric
-                  label="OBJETIVO DE CAMPAÑA"
-                  value={formatNumber(report.objetivo_campania)}
-                  extra={report.descripcion_campania || "En proceso"}
-                />
-              </div>
-
-              <div style={styles.card}>
-                <InfoRow
-                  label="ESTADO"
-                  value={report.estado_campania || "En proceso"}
-                  badge
-                  state={report.estado_campania}
-                />
-              </div>
-
-              <div style={styles.twoColumns}>
-                <InfoBlock
-                  title="COMPARATIVO SEMANAL"
-                  text={
-                    report.evolucion ||
-                    "Todavía no hay una semana anterior para comparar."
-                  }
-                />
-
-                <InfoBlock
-                  title="OBSERVACIONES"
-                  text={
-                    report.observaciones_productividad ||
-                    "No hay observaciones cargadas."
-                  }
-                />
-              </div>
-
-              <MultiValueBlock
-                title="ITEMS TRABAJADOS"
-                items={parseArray(report.items_productividad)}
-              />
-
-              <MultiValueBlock
-                title="ACCIONES REALIZADAS"
-                items={parseArray(report.acciones_productividad)}
-              />
-            </section>
-          )}
-
-          {activeTab === "tipificaciones" && (
-            <section>
-              <SectionHeader number="03" title="TIPIFICACIONES" />
-
-              <div style={styles.tipHero}>
-                <div>
-                  <span style={styles.miniLabel}>ESTADO</span>
-                  <h2>
-                    {report.estado_tipificaciones || "En proceso"}
-                  </h2>
-                </div>
-
-                <div>
-                  <span style={styles.miniLabel}>DESVÍO</span>
-                  <strong>{formatNumber(report.tipificacion_desvio)}</strong>
-                </div>
-
-                <div>
-                  <span style={styles.miniLabel}>OBJETIVO</span>
-                  <strong>{formatNumber(report.tipificacion_objetivo)}</strong>
-                </div>
-
-                <div>
-                  <span style={styles.miniLabel}>RESULTADO</span>
-                  <strong>{formatNumber(report.tipificacion_resultado)}</strong>
-                </div>
-              </div>
-
-              <MultiValueBlock
-                title="TIPIFICACIONES"
-                items={parseArray(report.tipificaciones)}
-              />
-
-              <InfoBlock
-                title="COMPROMISO"
-                text={report.tipificacion_compromiso || "SEGUIMIENTO"}
-              />
-
-              <InfoBlock
-                title="OBSERVACIONES"
-                text={
-                  report.tipificacion_observaciones ||
-                  "Sin observaciones cargadas."
-                }
-              />
-            </section>
-          )}
-
-          {activeTab === "auditorias" && (
-            <section>
-              <SectionHeader number="04" title="AUDITORÍAS DE NO VENTAS" />
-
-              <div style={styles.metricsGrid}>
-                <Metric
-                  label="CANTIDAD"
-                  value={formatNumber(report.cantidad_no_ventas)}
-                />
-
-                <Metric
-                  label="COACHING"
-                  value={report.coaching_no_ventas || "-"}
-                />
-
-                <Metric
-                  label="REGISTRO EN SISTEMA"
-                  value={report.registro_sistema || "-"}
-                />
-              </div>
-
-              <InfoBlock
-                title="COMPROMISO"
-                text={report.compromiso_no_ventas || "-"}
-              />
-
-              <MultiValueBlock
-                title="PRINCIPALES O.M."
-                items={parseArray(report.om_detectadas)}
-              />
-
-              <MultiValueBlock
-                title="FORTALEZAS"
-                items={parseArray(report.fortalezas)}
-              />
-
-              <InfoBlock
-                title="OBSERVACIONES"
-                text={
-                  report.observaciones_no_ventas ||
-                  "No hay observaciones cargadas."
-                }
-              />
-            </section>
-          )}
-
-          {activeTab === "actividades" && (
-            <section>
-              <SectionHeader number="05" title="ACTIVIDADES" />
-
-              <div style={styles.comingSoon}>
-                <div style={styles.plus}>+</div>
-                <h2>Próximamente</h2>
-                <p>
-                  Esta sección quedará disponible para registrar y consultar
-                  actividades.
-                </p>
-              </div>
-            </section>
-          )}
-
-          {activeTab === "historico" && (
-            <section>
-              <SectionHeader number="06" title="HISTÓRICO" />
-
-              {history.length === 0 ? (
-                <div style={styles.emptyBox}>
-                  <h2>No hay reportes históricos.</h2>
-                  <p>Cuando se carguen nuevos reportes aparecerán acá.</p>
-                </div>
-              ) : (
-                <div style={styles.historyGrid}>
-                  {history.map((item) => (
-                    <div key={item.id} style={styles.historyCard}>
-                      <div style={styles.historyWeek}>
-                        {item.semana || "Sin período"}
-                      </div>
-
-                      <div style={styles.historyScore}>
-                        {formatNumber(item.nota)}
-                        <small>/100</small>
-                      </div>
-
-                      <div style={styles.historyProduct}>
-                        {item.producto || "AP"}
-                      </div>
-
-                      <div
-                        style={{
-                          ...styles.statusPill,
-                          ...statusStyles(item.estado_objetivo),
-                        }}
-                      >
-                        {item.estado_objetivo || "EN SEGUIMIENTO"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-          {activeTab === "feedback" && (
-            <section>
-              <SectionHeader number="07" title="FEEDBACK DEL ASESOR" />
-
-              <div style={styles.feedbackCard}>
-                <h2>Tu opinión también forma parte del seguimiento.</h2>
-
-                <p>
-                  ¿Querés dejar algún comentario sobre tu reporte, una consulta
-                  o algo que quieras trabajar con Calidad?
-                </p>
-
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Escribí acá tu comentario..."
-                  style={styles.textarea}
-                />
-
-                <button
-                  onClick={sendFeedback}
-                  style={styles.primaryButton}
-                  disabled={!feedback.trim()}
-                >
-                  ENVIAR FEEDBACK
-                </button>
-
-                {feedbackSent && (
-                  <div style={styles.feedbackSuccess}>
-                    Feedback enviado correctamente.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-        </div>
-      )}
-    </main>
-  );
+function Pill({ children, type }) {
+  return <span className={`pill ${type || ""}`}>{children}</span>;
 }
 
-function SectionHeader({ number, title }) {
+function SectionTitle({ number, title, subtitle }) {
   return (
-    <div style={styles.sectionHeader}>
-      <div style={styles.sectionNumber}>{number}</div>
+    <div className="sectionTitle">
+      <div className="sectionNumber">{number}</div>
 
       <div>
-        <div style={styles.sectionEyebrow}>SEGUIMIENTO SEMANAL</div>
         <h2>{title}</h2>
+        {subtitle && <p>{subtitle}</p>}
       </div>
     </div>
   );
 }
 
-function InfoRow({ label, value, badge, state }) {
+function Metric({ label, value, small }) {
   return (
-    <div style={styles.infoRow}>
+    <div className="metric">
       <span>{label}</span>
-
-      {badge ? (
-        <strong
-          style={{
-            ...styles.inlineBadge,
-            ...statusStyles(state || value),
-          }}
-        >
-          {value || "-"}
-        </strong>
-      ) : (
-        <strong>{value || "-"}</strong>
-      )}
+      <strong className={small ? "smallMetric" : ""}>{value ?? "-"}</strong>
     </div>
   );
 }
 
-function InfoBlock({ title, text }) {
-  return (
-    <div style={styles.card}>
-      <div style={styles.cardTitle}>{title}</div>
-      <p style={styles.cardText}>{text || "-"}</p>
-    </div>
-  );
-}
+function ListBlock({ title, items }) {
+  const list = asArray(items);
 
-function MultiValueBlock({ title, items }) {
   return (
-    <div style={styles.card}>
-      <div style={styles.cardTitle}>{title}</div>
+    <div className="listBlock">
+      <h4>{title}</h4>
 
-      {items && items.length ? (
-        <div style={styles.chips}>
-          {items.map((item, index) => (
-            <span key={`${item}-${index}`} style={styles.chip}>
+      {list.length ? (
+        <div className="tagList">
+          {list.map((item, index) => (
+            <span className="tag" key={`${item}-${index}`}>
               {item}
             </span>
           ))}
         </div>
       ) : (
-        <p style={styles.cardText}>No hay información cargada.</p>
+        <div className="emptyText">No hay información cargada.</div>
       )}
     </div>
   );
 }
 
-function Metric({ label, value, extra }) {
-  return (
-    <div style={styles.metricCard}>
-      <span style={styles.miniLabel}>{label}</span>
-      <strong>{value}</strong>
+function Login({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-      {extra && <small>{extra}</small>}
-    </div>
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setError("");
+
+    if (!email.trim() || !password) {
+      setError("Ingresá tu email y contraseña.");
+      return;
+    }
+
+    if (!supabase) {
+      setError("No está configurada la conexión con Supabase.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+    if (loginError || !data?.user) {
+      setError("El email o la contraseña no son correctos.");
+      setLoading(false);
+      return;
+    }
+
+    await onLogin(data.user);
+    setLoading(false);
+  }
+
+  return (
+    <main className="loginPage">
+      <div className="loginDecor decorOne" />
+      <div className="loginDecor decorTwo" />
+
+      <div className="loginCard">
+        <div className="brandMark">PC</div>
+
+        <div className="loginBrand">PORTAL DE CALIDAD</div>
+
+        <h1>Ingresá a tu portal</h1>
+
+        <p>
+          Consultá tu evolución, objetivos y acciones de calidad.
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Ingresá tu email"
+              autoComplete="email"
+            />
+          </label>
+
+          <label>
+            Contraseña
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Ingresá tu contraseña"
+              autoComplete="current-password"
+            />
+          </label>
+
+          {error && <div className="loginError">{error}</div>}
+
+          <button className="primaryButton loginButton" disabled={loading}>
+            {loading ? "INGRESANDO..." : "INGRESAR"}
+          </button>
+        </form>
+      </div>
+    </main>
   );
 }
 
-function statusStyles(value) {
-  const state = String(value || "").toUpperCase();
+function Portal({ reporte, user, onLogout }) {
+  const [activeTab, setActiveTab] = useState("CALIDAD");
 
-  if (state.includes("ALCANZ")) {
-    return {
-      background: "#e5f4ef",
-      color: "#087f68",
-      borderColor: "#b9e2d6",
-    };
+  const nombre = useMemo(() => {
+    if (!reporte?.asesor) {
+      return user?.email?.split("@")[0] || "Asesor";
+    }
+
+    return reporte.asesor;
+  }, [reporte, user]);
+
+  if (!reporte) {
+    return (
+      <main className="portalPage">
+        <header className="topHeader">
+          <div>
+            <div className="brandSmall">PORTAL DE CALIDAD</div>
+            <h1>Hola, {nombre}</h1>
+            <p>Tu reporte de calidad</p>
+          </div>
+
+          <button className="logoutButton" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        </header>
+
+        <div className="noReport">
+          <div className="noReportIcon">01</div>
+          <h2>Todavía no hay un reporte cargado.</h2>
+          <p>
+            Cuando Calidad cargue tu reporte, aparecerá automáticamente acá.
+          </p>
+        </div>
+      </main>
+    );
   }
 
-  if (state.includes("DEBAJO")) {
-    return {
-      background: "#fcebea",
-      color: "#a53d3d",
-      borderColor: "#efc3c0",
-    };
-  }
+  const calidadProgress = porcentaje(
+    Number(reporte.nota),
+    Number(reporte.objetivo_calidad || reporte.objetivo || 70)
+  );
 
-  return {
-    background: "#fff3dc",
-    color: "#9a6a18",
-    borderColor: "#efd8a4",
-  };
+  const objetivoCalidad =
+    reporte.objetivo_calidad || reporte.objetivo || 70;
+
+  const cuantoFalta = Math.max(
+    0,
+    Number(objetivoCalidad) - Number(reporte.nota || 0)
+  );
+
+  return (
+    <main className="portalPage">
+      <header className="topHeader">
+        <div>
+          <div className="brandSmall">PORTAL DE CALIDAD</div>
+
+          <h1>Hola, {nombre}</h1>
+
+          <div className="headerInfo">
+            <span>{reporte.semana || "Semana"}</span>
+
+            <Pill type={estadoClase(reporte.estado_objetivo)}>
+              {reporte.estado_objetivo || "EN SEGUIMIENTO"}
+            </Pill>
+          </div>
+        </div>
+
+        <button className="logoutButton" onClick={onLogout}>
+          Cerrar sesión
+        </button>
+      </header>
+
+      <nav className="tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            className={activeTab === tab ? "tab active" : "tab"}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <div className="content">
+        {activeTab === "CALIDAD" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="01"
+              title="CALIDAD"
+              subtitle="Resultado y evolución de tu calidad."
+            />
+
+            <div className="heroGrid">
+              <div className="scoreCard">
+                <span>NOTA</span>
+
+                <div className="score">
+                  {reporte.nota ?? "-"}
+                  <small>/ 100</small>
+                </div>
+
+                <div className="objectiveLine">
+                  <span>OBJETIVO</span>
+                  <strong>{objetivoCalidad}</strong>
+                </div>
+
+                <Pill type={estadoClase(reporte.estado_objetivo)}>
+                  {reporte.estado_objetivo || "EN SEGUIMIENTO"}
+                </Pill>
+              </div>
+
+              <div className="progressCard">
+                <div className="progressHeader">
+                  <span>PROGRESO HACIA EL OBJETIVO</span>
+                  <strong>{calidadProgress}%</strong>
+                </div>
+
+                <div className="progressTrack">
+                  <div
+                    className="progressValue"
+                    style={{ width: `${calidadProgress}%` }}
+                  />
+                </div>
+
+                <div className="progressBottom">
+                  <span>Producto</span>
+                  <strong>{reporte.producto || "-"}</strong>
+                </div>
+
+                <div className="progressBottom">
+                  <span>Cuánto falta para alcanzar el objetivo</span>
+                  <strong>{cuantoFalta} puntos</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="infoGrid">
+              <div className="infoCard highlight">
+                <span>DESVÍO PRINCIPAL</span>
+                <strong>{reporte.desvio || "Sin información"}</strong>
+              </div>
+
+              <div className="infoCard">
+                <span>COMPARATIVO SEMANAL</span>
+                <strong>
+                  {reporte.evolucion ||
+                    "Todavía no hay una semana anterior para comparar."}
+                </strong>
+              </div>
+            </div>
+
+            <div className="twoColumns">
+              <ListBlock
+                title="ITEMS TRABAJADOS"
+                items={reporte.items_calidad}
+              />
+
+              <ListBlock
+                title="ACCIONES REALIZADAS"
+                items={reporte.acciones_calidad}
+              />
+            </div>
+
+            <div className="auditInsideQuality">
+              <div className="cardHeader">
+                <div>
+                  <span className="eyebrow">AUDITORÍA</span>
+                  <h3>
+                    {reporte.auditoria || "Sin información de auditoría"}
+                  </h3>
+                </div>
+
+                {reporte.estado_auditoria && (
+                  <Pill>{reporte.estado_auditoria}</Pill>
+                )}
+              </div>
+
+              {reporte.audio_url && (
+                <div className="audioBox">
+                  <span>AUDIO DE AUDITORÍA</span>
+                  <audio controls src={reporte.audio_url} />
+                </div>
+              )}
+
+              <div className="observation">
+                <span>OBSERVACIONES</span>
+                <p>
+                  {reporte.observaciones ||
+                    "No hay observaciones cargadas."}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "PRODUCTIVIDAD" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="02"
+              title="PRODUCTIVIDAD"
+              subtitle="Seguimiento de tus indicadores de productividad."
+            />
+
+            <div className="metricGrid">
+              <Metric label="SPH" value={reporte.sph} />
+              <Metric
+                label="OBJETIVO SPH"
+                value={reporte.objetivo_sph}
+              />
+              <Metric label="VENTAS" value={reporte.ventas} />
+              <Metric
+                label="OBJETIVO VENTAS"
+                value={reporte.objetivo_ventas}
+              />
+              <Metric
+                label="OBJETIVO DE CAMPAÑA"
+                value={reporte.objetivo_campania}
+              />
+            </div>
+
+            <div className="statusRow">
+              <div>
+                <span>ESTADO SPH</span>
+                <Pill type={estadoClase(reporte.estado_sph)}>
+                  {reporte.estado_sph || "En proceso"}
+                </Pill>
+              </div>
+
+              <div>
+                <span>ESTADO VENTAS</span>
+                <Pill type={estadoClase(reporte.estado_ventas)}>
+                  {reporte.estado_ventas || "En proceso"}
+                </Pill>
+              </div>
+
+              <div>
+                <span>ESTADO CAMPAÑA</span>
+                <Pill type={estadoClase(reporte.estado_campania)}>
+                  {reporte.estado_campania || "En proceso"}
+                </Pill>
+              </div>
+            </div>
+
+            <div className="singleCard">
+              <span className="eyebrow">COMPARATIVO SEMANAL</span>
+              <p>
+                {reporte.evolucion ||
+                  "Todavía no hay una semana anterior para comparar."}
+              </p>
+            </div>
+
+            <div className="twoColumns">
+              <ListBlock
+                title="ITEMS TRABAJADOS"
+                items={reporte.items_productividad}
+              />
+
+              <ListBlock
+                title="ACCIONES REALIZADAS"
+                items={reporte.acciones_productividad}
+              />
+            </div>
+
+            <div className="observationCard">
+              <span>OBSERVACIONES</span>
+              <p>
+                {reporte.observaciones_productividad ||
+                  "No hay observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "TIPIFICACIONES" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="03"
+              title="TIPIFICACIONES"
+              subtitle="Seguimiento de las tipificaciones realizadas."
+            />
+
+            <div className="tipTop">
+              <Pill type={estadoClase(reporte.estado_tipificaciones)}>
+                {reporte.estado_tipificaciones || "En proceso"}
+              </Pill>
+
+              <Metric
+                label="DESVÍO"
+                value={
+                  reporte.tipificacion_desvio ??
+                  reporte.desvio_tipificacion ??
+                  "-"
+                }
+              />
+
+              <Metric
+                label="OBJETIVO"
+                value={
+                  reporte.tipificacion_objetivo ??
+                  reporte.objetivo_tipificacion ??
+                  "-"
+                }
+              />
+
+              <Metric
+                label="RESULTADO"
+                value={
+                  reporte.tipificacion_resultado ??
+                  reporte.resultado_tipificacion ??
+                  "-"
+                }
+              />
+            </div>
+
+            <ListBlock
+              title="TIPIFICACIONES"
+              items={reporte.tipificaciones}
+            />
+
+            <div className="singleCard">
+              <span className="eyebrow">COMPROMISO</span>
+              <strong>
+                {reporte.tipificacion_compromiso ||
+                  reporte.compromiso_tipificacion ||
+                  "-"}
+              </strong>
+            </div>
+
+            <div className="observationCard">
+              <span>OBSERVACIONES</span>
+              <p>
+                {reporte.tipificacion_observaciones ||
+                  reporte.observaciones_tipificacion ||
+                  "Sin observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "AUDITORÍAS" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="04"
+              title="AUDITORÍAS DE NO VENTAS"
+              subtitle="Seguimiento de las llamadas no convertidas."
+            />
+
+            <div className="metricGrid">
+              <Metric
+                label="CANTIDAD"
+                value={reporte.cantidad_no_ventas}
+              />
+
+              <Metric
+                label="COACHING"
+                value={reporte.coaching_no_ventas}
+              />
+
+              <Metric
+                label="REGISTRO EN SISTEMA"
+                value={reporte.registro_sistema}
+              />
+
+              <Metric
+                label="COMPROMISO"
+                value={reporte.compromiso_no_ventas}
+              />
+            </div>
+
+            <div className="twoColumns">
+              <ListBlock
+                title="PRINCIPALES O.M."
+                items={
+                  reporte.om_detectadas ||
+                  reporte.principales_om
+                }
+              />
+
+              <ListBlock
+                title="FORTALEZAS"
+                items={reporte.fortalezas}
+              />
+            </div>
+
+            <div className="observationCard">
+              <span>OBSERVACIONES</span>
+              <p>
+                {reporte.observaciones_no_ventas ||
+                  "No hay observaciones cargadas."}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "ACTIVIDADES" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="05"
+              title="ACTIVIDADES"
+              subtitle="Espacio destinado a registrar y consultar actividades."
+            />
+
+            <div className="comingSoon">
+              <div className="plusCircle">+</div>
+              <h3>Próximamente</h3>
+              <p>
+                Esta sección quedará disponible para registrar y consultar
+                actividades.
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "HISTÓRICO" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="06"
+              title="HISTÓRICO"
+              subtitle="Evolución de tus reportes."
+            />
+
+            <div className="comingSoon">
+              <div className="historyIcon">↗</div>
+              <h3>Histórico</h3>
+              <p>
+                Acá podrás consultar la evolución de tus reportes
+                semanales.
+              </p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "FEEDBACK" && (
+          <section className="tabContent">
+            <SectionTitle
+              number="07"
+              title="FEEDBACK DEL ASESOR"
+              subtitle="Tu espacio para comunicarte con Calidad."
+            />
+
+            <div className="feedbackCard">
+              <h3>¿Querés dejar algún comentario?</h3>
+
+              <p>
+                Dejá una consulta, comentario o algo que quieras trabajar
+                con Calidad.
+              </p>
+
+              <textarea
+                placeholder="Escribí tu comentario..."
+                rows={7}
+              />
+
+              <button className="primaryButton">
+                ENVIAR FEEDBACK
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
+    </main>
+  );
 }
 
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#f4f7f7",
-    color: "#17383b",
-    fontFamily:
-      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  topGlow: {
-    position: "absolute",
-    top: "-180px",
-    right: "-160px",
-    width: "500px",
-    height: "500px",
-    borderRadius: "50%",
-    background: "rgba(28, 105, 109, 0.08)",
-    pointerEvents: "none",
-  },
-
-  header: {
-    position: "relative",
-    maxWidth: "1180px",
-    margin: "0 auto",
-    padding: "42px 28px 28px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "30px",
-  },
-
-  brand: {
-    color: "#0b6b70",
-    fontSize: "13px",
-    fontWeight: "800",
-    letterSpacing: "2px",
-    marginBottom: "10px",
-  },
-
-  greeting: {
-    margin: 0,
-    fontSize: "38px",
-    lineHeight: 1.1,
-    letterSpacing: "-1.2px",
-    color: "#15383b",
-  },
-
-  week: {
-    marginTop: "10px",
-    color: "#6b7f80",
-    fontSize: "15px",
-    fontWeight: "600",
-  },
-
-  headerRight: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-    gap: "12px",
-  },
-
-  statusPill: {
-    border: "1px solid",
-    borderRadius: "999px",
-    padding: "8px 14px",
-    fontSize: "11px",
-    fontWeight: "900",
-    letterSpacing: "0.6px",
-    whiteSpace: "nowrap",
-  },
-
-  logoutButton: {
-    border: "none",
-    background: "transparent",
-    color: "#6b7f80",
-    fontSize: "13px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  tabs: {
-    maxWidth: "1180px",
-    margin: "0 auto",
-    padding: "0 28px",
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-  },
-
-  tab: {
-    border: "1px solid #d5e2e2",
-    background: "#ffffff",
-    color: "#607778",
-    borderRadius: "12px",
-    padding: "11px 14px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "12px",
-    fontWeight: "800",
-    letterSpacing: "0.3px",
-  },
-
-  tabActive: {
-    background: "#0b6b70",
-    borderColor: "#0b6b70",
-    color: "#ffffff",
-    boxShadow: "0 8px 20px rgba(11, 107, 112, 0.18)",
-  },
-
-  tabNumber: {
-    opacity: 0.7,
-    fontSize: "10px",
-  },
-
-  divider: {
-    maxWidth: "1180px",
-    margin: "24px auto 0",
-    borderTop: "1px solid #d9e5e5",
-  },
-
-  content: {
-    maxWidth: "1180px",
-    margin: "0 auto",
-    padding: "36px 28px 70px",
-    position: "relative",
-  },
-
-  sectionHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "18px",
-    marginBottom: "28px",
-  },
-
-  sectionNumber: {
-    width: "46px",
-    height: "46px",
-    borderRadius: "14px",
-    background: "#0b6b70",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "900",
-    fontSize: "13px",
-    boxShadow: "0 8px 20px rgba(11, 107, 112, 0.18)",
-  },
-
-  sectionEyebrow: {
-    color: "#6b7f80",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "1.4px",
-    marginBottom: "4px",
-  },
-
-  sectionHeaderH2: {},
-
-  heroGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1.5fr",
-    gap: "18px",
-    marginBottom: "18px",
-  },
-
-  noteCard: {
-    background: "#0b6b70",
-    color: "#ffffff",
-    borderRadius: "22px",
-    padding: "28px",
-    minHeight: "190px",
-    boxShadow: "0 14px 35px rgba(11, 107, 112, 0.18)",
-  },
-
-  miniLabel: {
-    display: "block",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "1.5px",
-    color: "#719092",
-    marginBottom: "9px",
-  },
-
-  noteCardMini: {},
-
-  noteValue: {
-    fontSize: "58px",
-    lineHeight: 1,
-    fontWeight: "900",
-    letterSpacing: "-3px",
-    margin: "14px 0 20px",
-  },
-
-  noteValueSmall: {},
-
-  objectiveLine: {
-    fontSize: "11px",
-    fontWeight: "700",
-    letterSpacing: "0.6px",
-    opacity: 0.8,
-  },
-
-  infoCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "22px",
-    padding: "24px",
-    boxShadow: "0 8px 25px rgba(22, 56, 59, 0.05)",
-  },
-
-  infoRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "20px",
-    padding: "14px 0",
-    borderBottom: "1px solid #edf2f2",
-  },
-
-  inlineBadge: {
-    border: "1px solid",
-    borderRadius: "999px",
-    padding: "6px 10px",
-    fontSize: "10px",
-    fontWeight: "900",
-  },
-
-  progressCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "18px",
-    padding: "20px 22px",
-    marginBottom: "18px",
-  },
-
-  progressTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "12px",
-    fontWeight: "800",
-    color: "#557071",
-    marginBottom: "12px",
-  },
-
-  progressTrack: {
-    height: "9px",
-    background: "#e6eeee",
-    borderRadius: "999px",
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: "100%",
-    background: "#0b6b70",
-    borderRadius: "999px",
-    transition: "width 0.4s ease",
-  },
-
-  twoColumns: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "18px",
-    marginBottom: "18px",
-  },
-
-  card: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "18px",
-    padding: "22px",
-    marginBottom: "18px",
-    boxShadow: "0 7px 22px rgba(22, 56, 59, 0.04)",
-  },
-
-  cardTitle: {
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "1.4px",
-    color: "#0b6b70",
-    marginBottom: "12px",
-  },
-
-  cardText: {
-    margin: 0,
-    color: "#536b6c",
-    fontSize: "14px",
-    lineHeight: 1.65,
-  },
-
-  chips: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "9px",
-  },
-
-  chip: {
-    background: "#edf6f5",
-    color: "#225e61",
-    border: "1px solid #d5e9e7",
-    padding: "9px 12px",
-    borderRadius: "10px",
-    fontSize: "12px",
-    fontWeight: "700",
-  },
-
-  auditGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px 25px",
-  },
-
-  observation: {
-    marginTop: "18px",
-    paddingTop: "18px",
-    borderTop: "1px solid #edf2f2",
-  },
-
-  observationSpan: {},
-
-  observation: {
-    marginTop: "18px",
-    paddingTop: "18px",
-    borderTop: "1px solid #edf2f2",
-  },
-
-  observation: {
-    marginTop: "18px",
-    paddingTop: "18px",
-    borderTop: "1px solid #edf2f2",
-  },
-
-  audioBox: {
-    marginTop: "18px",
-    paddingTop: "18px",
-    borderTop: "1px solid #edf2f2",
-  },
-
-  audioTitle: {
-    color: "#0b6b70",
-    fontSize: "10px",
-    fontWeight: "900",
-    letterSpacing: "1.4px",
-    marginBottom: "10px",
-  },
-
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "18px",
-    marginBottom: "18px",
-  },
-
-  metricCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "18px",
-    padding: "24px",
-    boxShadow: "0 7px 22px rgba(22, 56, 59, 0.04)",
-  },
-
-  metricCardStrong: {},
-
-  metricCardValue: {},
-
-  metricCardExtra: {},
-
-  metricCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "18px",
-    padding: "24px",
-    boxShadow: "0 7px 22px rgba(22, 56, 59, 0.04)",
-    display: "flex",
-    flexDirection: "column",
-  },
-
-  tipHero: {
-    display: "grid",
-    gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
-    gap: "14px",
-    marginBottom: "18px",
-  },
-
-  tipHero: {
-    display: "grid",
-    gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
-    gap: "14px",
-    marginBottom: "18px",
-  },
-
-  comingSoon: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "22px",
-    padding: "70px 30px",
-    textAlign: "center",
-    boxShadow: "0 8px 25px rgba(22, 56, 59, 0.04)",
-  },
-
-  plus: {
-    width: "54px",
-    height: "54px",
-    borderRadius: "50%",
-    background: "#edf6f5",
-    color: "#0b6b70",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 auto 18px",
-    fontSize: "30px",
-    fontWeight: "400",
-  },
-
-  comingSoonH2: {},
-
-  historyGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "18px",
-  },
-
-  historyCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "18px",
-    padding: "22px",
-    boxShadow: "0 7px 22px rgba(22, 56, 59, 0.04)",
-  },
-
-  historyWeek: {
-    color: "#6b7f80",
-    fontSize: "12px",
-    fontWeight: "800",
-    marginBottom: "12px",
-  },
-
-  historyScore: {
-    fontSize: "42px",
-    fontWeight: "900",
-    color: "#0b6b70",
-    letterSpacing: "-2px",
-  },
-
-  historyScoreSmall: {},
-
-  historyProduct: {
-    fontSize: "12px",
-    fontWeight: "800",
-    margin: "8px 0 15px",
-  },
-
-  feedbackCard: {
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "22px",
-    padding: "30px",
-    boxShadow: "0 8px 25px rgba(22, 56, 59, 0.04)",
-  },
-
-  textarea: {
-    width: "100%",
-    minHeight: "170px",
-    resize: "vertical",
-    border: "1px solid #cfdddd",
-    borderRadius: "14px",
-    padding: "15px",
-    margin: "20px 0",
-    fontFamily: "inherit",
-    fontSize: "14px",
-    color: "#17383b",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-
-  primaryButton: {
-    border: "none",
-    background: "#0b6b70",
-    color: "#ffffff",
-    borderRadius: "12px",
-    padding: "13px 20px",
-    fontSize: "12px",
-    fontWeight: "900",
-    letterSpacing: "0.7px",
-    cursor: "pointer",
-  },
-
-  feedbackSuccess: {
-    marginTop: "15px",
-    background: "#e5f4ef",
-    color: "#087f68",
-    border: "1px solid #b9e2d6",
-    borderRadius: "10px",
-    padding: "12px 14px",
-    fontSize: "12px",
-    fontWeight: "800",
-  },
-
-  emptyBox: {
-    maxWidth: "1180px",
-    margin: "50px auto",
-    padding: "55px 28px",
-    background: "#ffffff",
-    border: "1px solid #dce7e7",
-    borderRadius: "22px",
-    textAlign: "center",
-    color: "#5c7273",
-  },
-
-  emptyIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "14px",
-    background: "#edf6f5",
-    color: "#0b6b70",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 auto 15px",
-    fontWeight: "900",
-  },
-
-  loadingBox: {
-    maxWidth: "1180px",
-    margin: "50px auto",
-    padding: "50px",
-    textAlign: "center",
-    color: "#5c7273",
-  },
-
-  loginPage: {
-    minHeight: "100vh",
-    background:
-      "linear-gradient(135deg, #eaf3f2 0%, #f7faf9 48%, #dceceb 100%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "25px",
-    fontFamily:
-      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-  },
-
-  loginCard: {
-    width: "100%",
-    maxWidth: "430px",
-    background: "#ffffff",
-    border: "1px solid #d8e5e4",
-    borderRadius: "28px",
-    padding: "42px",
-    boxShadow: "0 25px 70px rgba(23, 56, 59, 0.13)",
-    boxSizing: "border-box",
-  },
-
-  logoMark: {
-    width: "54px",
-    height: "54px",
-    borderRadius: "16px",
-    background: "#0b6b70",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "14px",
-    fontWeight: "900",
-    marginBottom: "25px",
-    boxShadow: "0 10px 25px rgba(11, 107, 112, 0.2)",
-  },
-
-  loginEyebrow: {
-    color: "#0b6b70",
-    fontSize: "12px",
-    fontWeight: "900",
-    letterSpacing: "2px",
-    marginBottom: "9px",
-  },
-
-  loginTitle: {
-    margin: 0,
-    color: "#17383b",
-    fontSize: "32px",
-    letterSpacing: "-1px",
-  },
-
-  loginText: {
-    color: "#6b7f80",
-    fontSize: "14px",
-    lineHeight: 1.6,
-    margin: "10px 0 28px",
-  },
-
-  label: {
-    display: "block",
-    color: "#3e5b5d",
-    fontSize: "12px",
-    fontWeight: "800",
-    marginBottom: "7px",
-    marginTop: "16px",
-  },
-
-  input: {
-    width: "100%",
-    height: "48px",
-    border: "1px solid #cfdddd",
-    borderRadius: "12px",
-    background: "#fbfdfd",
-    color: "#17383b",
-    padding: "0 13px",
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-
-  loginError: {
-    marginTop: "12px",
-    background: "#fcebea",
-    border: "1px solid #efc3c0",
-    color: "#a53d3d",
-    borderRadius: "10px",
-    padding: "11px 13px",
-    fontSize: "12px",
-    fontWeight: "700",
-  },
-
-  loginCardPrimary: {},
-
-  loginFooter: {
-    textAlign: "center",
-    marginTop: "22px",
-    color: "#9aabab",
-    fontSize: "11px",
-  },
-};
+export default function Page() {
+  const [session, setSession] = useState(null);
+  const [reporte, setReporte] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function cargarReporte(user) {
+    if (!supabase || !user) return null;
+
+    const email = normalize(user.email);
+
+    if (email === normalize(ADMIN_EMAIL)) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("reportes")
+      .select("*")
+      .eq("usuario", email)
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error cargando reporte:", error);
+      return null;
+    }
+
+    return data;
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function init() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      setSession(currentSession);
+
+      if (currentSession?.user) {
+        const data = await cargarReporte(currentSession.user);
+
+        if (mounted) {
+          setReporte(data);
+        }
+      }
+
+      if (mounted) {
+        setLoading(false);
+      }
+    }
+
+    init();
+
+    const {
+      data: { subscription },
+    } = supabase
+      ? supabase.auth.onAuthStateChange(async (_event, newSession) => {
+          if (!mounted) return;
+
+          setSession(newSession);
+
+          if (newSession?.user) {
+            const data = await cargarReporte(newSession.user);
+
+            if (mounted) {
+              setReporte(data);
+            }
+          } else {
+            setReporte(null);
+          }
+        })
+      : { data: { subscription: null } };
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  async function handleLogin() {
+    if (!supabase) return;
+
+    const {
+      data: { session: currentSession },
+    } = await supabase.auth.getSession();
+
+    setSession(currentSession);
+
+    if (currentSession?.user) {
+      const data = await cargarReporte(currentSession.user);
+      setReporte(data);
+    }
+  }
+
+  async function handleLogout() {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+
+    setSession(null);
+    setReporte(null);
+  }
+
+  if (loading) {
+    return (
+      <main className="loadingPage">
+        <div className="loader" />
+        <p>Cargando Portal de Calidad...</p>
+      </main>
+    );
+  }
+
+  if (!session) {
+    return (
+      <>
+        <Login onLogin={handleLogin} />
+        <Styles />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Portal
+        reporte={reporte}
+        user={session.user}
+        onLogout={handleLogout}
+      />
+      <Styles />
+    </>
+  );
+}
+
+function Styles() {
+  return (
+    <style jsx global>{`
+      :root {
+        --petroleo: #0d4f5c;
+        --petroleo-dark: #083b45;
+        --petroleo-light: #e8f3f4;
+        --aqua: #2a7f89;
+        --cream: #f5f7f6;
+        --white: #ffffff;
+        --text: #17343a;
+        --muted: #6f8589;
+        --border: #dce8e9;
+        --success: #26765c;
+        --success-bg: #e6f4ee;
+        --warning: #a86f17;
+        --warning-bg: #fff4df;
+        --danger: #a94747;
+        --danger-bg: #fceaea;
+        --shadow: 0 18px 50px rgba(13, 79, 92, 0.09);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--cream);
+        color: var(--text);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .loginPage {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+        background:
+          radial-gradient(
+            circle at 15% 20%,
+            rgba(42, 127, 137, 0.12),
+            transparent 30%
+          ),
+          linear-gradient(135deg, #f4f8f8, #eaf2f2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .loginDecor {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .decorOne {
+        width: 360px;
+        height: 360px;
+        right: -130px;
+        top: -100px;
+        background: rgba(13, 79, 92, 0.08);
+      }
+
+      .decorTwo {
+        width: 250px;
+        height: 250px;
+        left: -100px;
+        bottom: -80px;
+        background: rgba(42, 127, 137, 0.08);
+      }
+
+      .loginCard {
+        width: min(450px, 100%);
+        background: var(--white);
+        border-radius: 28px;
+        padding: 42px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(13, 79, 92, 0.08);
+        position: relative;
+        z-index: 2;
+      }
+
+      .brandMark {
+        width: 52px;
+        height: 52px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--petroleo);
+        color: white;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        margin-bottom: 20px;
+      }
+
+      .loginBrand,
+      .brandSmall {
+        color: var(--petroleo);
+        font-weight: 900;
+        letter-spacing: 1.5px;
+        font-size: 12px;
+      }
+
+      .loginCard h1 {
+        margin: 12px 0 8px;
+        font-size: 34px;
+        line-height: 1.1;
+        color: var(--petroleo-dark);
+      }
+
+      .loginCard > p {
+        margin: 0 0 30px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 18px;
+        color: var(--petroleo-dark);
+        font-weight: 800;
+        font-size: 13px;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        margin-top: 8px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 15px;
+        outline: none;
+        background: #fbfdfd;
+        color: var(--text);
+        transition: 0.2s ease;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: var(--aqua);
+        box-shadow: 0 0 0 4px rgba(42, 127, 137, 0.1);
+      }
+
+      .loginError {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border: 1px solid rgba(169, 71, 71, 0.15);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin: 5px 0 15px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .primaryButton {
+        border: 0;
+        background: var(--petroleo);
+        color: white;
+        border-radius: 12px;
+        padding: 14px 20px;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        transition: 0.2s ease;
+      }
+
+      .primaryButton:hover {
+        background: var(--petroleo-dark);
+        transform: translateY(-1px);
+      }
+
+      .primaryButton:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .loginButton {
+        width: 100%;
+        margin-top: 5px;
+      }
+
+      .portalPage {
+        min-height: 100vh;
+        background: var(--cream);
+      }
+
+      .topHeader {
+        background: white;
+        padding: 35px max(25px, calc((100vw - 1180px) / 2));
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 25px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topHeader h1 {
+        margin: 8px 0 5px;
+        font-size: clamp(28px, 4vw, 42px);
+        color: var(--petroleo-dark);
+        letter-spacing: -1.2px;
+      }
+
+      .topHeader p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .headerInfo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .logoutButton {
+        background: white;
+        border: 1px solid var(--border);
+        color: var(--petroleo);
+        border-radius: 10px;
+        padding: 11px 15px;
+        font-weight: 800;
+      }
+
+      .tabs {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        padding: 8px 15px;
+        overflow-x: auto;
+      }
+
+      .tab {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        padding: 13px 15px;
+        border-radius: 9px;
+        font-weight: 900;
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+      }
+
+      .tab:hover {
+        color: var(--petroleo);
+        background: var(--petroleo-light);
+      }
+
+      .tab.active {
+        color: white;
+        background: var(--petroleo);
+      }
+
+      .content {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+        padding: 35px 0 70px;
+      }
+
+      .tabContent {
+        animation: appear 0.2s ease;
+      }
+
+      @keyframes appear {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .sectionTitle {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 28px;
+      }
+
+      .sectionNumber {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        background: var(--petroleo);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+      }
+
+      .sectionTitle h2 {
+        margin: 0;
+        color: var(--petroleo-dark);
+        font-size: 26px;
+      }
+
+      .sectionTitle p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .heroGrid {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 18px;
+      }
+
+      .scoreCard,
+      .progressCard,
+      .infoCard,
+      .listBlock,
+      .auditInsideQuality,
+      .singleCard,
+      .observationCard,
+      .feedbackCard,
+      .comingSoon {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 8px 30px rgba(13, 79, 92, 0.045);
+      }
+
+      .scoreCard {
+        padding: 28px;
+      }
+
+      .scoreCard > span,
+      .infoCard > span,
+      .metric > span,
+      .progressHeader span,
+      .progressBottom span,
+      .observation span,
+      .observationCard > span,
+      .listBlock h4,
+      .eyebrow {
+        font-size: 10px;
+        letter-spacing: 1px;
+        font-weight: 900;
+        color: var(--muted);
+      }
+
+      .score {
+        font-size: 62px;
+        line-height: 1;
+        font-weight: 950;
+        color: var(--petroleo);
+        margin: 12px 0 20px;
+      }
+
+      .score small {
+        font-size: 17px;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      .objectiveLine {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+        padding-top: 15px;
+        margin-bottom: 18px;
+      }
+
+      .objectiveLine span {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 900;
+      }
+
+      .objectiveLine strong {
+        color: var(--petroleo-dark);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 7px 11px;
+        background: var(--warning-bg);
+        color: var(--warning);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .pill.success {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+
+      .pill.danger {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+
+      .progressCard {
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .progressHeader {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .progressHeader strong {
+        font-size: 22px;
+        color: var(--petroleo);
+      }
+
+      .progressTrack {
+        height: 12px;
+        background: #e6eeee;
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 17px 0 25px;
+      }
+
+      .progressValue {
+        height: 100%;
+        background: var(--aqua);
+        border-radius: inherit;
+      }
+
+      .progressBottom {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 10px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .progressBottom strong {
+        color: var(--petroleo-dark);
+      }
+
+      .infoGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .infoCard {
+        padding: 22px;
+      }
+
+      .infoCard strong {
+        display: block;
+        margin-top: 9px;
+        font-size: 16px;
+        color: var(--petroleo-dark);
+        line-height: 1.45;
+      }
+
+      .infoCard.highlight {
+        border-left: 5px solid var(--aqua);
+      }
+
+      .twoColumns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .listBlock {
+        padding: 22px;
+      }
+
+      .listBlock h4 {
+        margin: 0 0 15px;
+      }
+
+      .tagList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        background: var(--petroleo-light);
+        color: var(--petroleo-dark);
+        padding: 9px 11px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .emptyText {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .auditInsideQuality {
+        margin-top: 18px;
+        padding: 24px;
+      }
+
+      .cardHeader {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .cardHeader h3 {
+        margin: 6px 0 0;
+        color: var(--petroleo-dark);
+      }
+
+      .audioBox {
+        margin-top: 20px;
+        padding: 16px;
+        background: var(--petroleo-light);
+        border-radius: 12px;
+      }
+
+      .audioBox span {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 10px;
+        font-weight: 900;
+        color: var(--petroleo);
+      }
+
+      audio {
+        width: 100%;
+      }
+
+      .observation {
+        margin-top: 20px;
+        border-top: 1px solid var(--border);
+        padding-top: 18px;
+      }
+
+      .observation p,
+      .observationCard p,
+      .singleCard p {
+        margin: 8px 0 0;
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      .metricGrid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+      }
+
+      .metric {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        padding: 20px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 28px;
+        color: var(--petroleo);
+      }
+
+      .smallMetric {
+        font-size: 18px !important;
+      }
+
+      .statusRow {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 18px;
+      }
+
+      .statusRow > div {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        padding: 18px;
+      }
+
+      .statusRow span {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 10px;
+        font-weight: 900;
+        color: var(--muted);
+      }
+
+      .singleCard,
+      .observationCard {
+        padding: 22px;
+        margin-top: 18px;
+      }
+
+      .singleCard strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--petroleo-dark);
+      }
+
+      .tipTop {
+        display: grid;
+        grid-template-columns: 1fr repeat(3, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .tipTop > .pill {
+        min-height: 90px;
+        border-radius: 15px;
+      }
+
+      .comingSoon {
+        padding: 70px 30px;
+        text-align: center;
+      }
+
+      .plusCircle,
+      .historyIcon {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+        margin: 0 auto 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--petroleo-light);
+        color: var(--petroleo);
+        font-size: 28px;
+        font-weight: 900;
+      }
+
+      .comingSoon h3 {
+        margin: 0 0 8px;
+        color: var(--petroleo-dark);
+      }
+
+      .comingSoon p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .feedbackCard {
+        padding: 30px;
+        max-width: 850px;
+      }
+
+      .feedbackCard h3 {
+        margin: 0 0 8px;
+        color: var(--petroleo-dark);
+        font-size: 23px;
+      }
+
+      .feedbackCard p {
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+
+      .feedbackCard .primaryButton {
+        margin-top: 15px;
+      }
+
+      .noReport {
+        width: min(800px, calc(100% - 36px));
+        margin: 55px auto;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 55px;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+
+      .noReportIcon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: var(--petroleo-light);
+        color: var(--petroleo);
+        font-weight: 900;
+      }
+
+      .noReport h2 {
+        color: var(--petroleo-dark);
+        margin: 0 0 10px;
+      }
+
+      .noReport p {
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .loadingPage {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        color: var(--muted);
+      }
+
+      .loader {
+        width: 38px;
+        height: 38px;
+        border: 4px solid #dce8e9;
+        border-top-color: var(--petroleo);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .heroGrid,
+        .infoGrid,
+        .twoColumns {
+          grid-template-columns: 1fr;
+        }
+
+        .metricGrid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tipTop {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 650px) {
+        .loginCard {
+          padding: 30px 22px;
+        }
+
+        .topHeader {
+          padding: 25px 18px;
+        }
+
+        .topHeader {
+          flex-direction: column;
+        }
+
+        .content {
+          width: min(100% - 24px, 1180px);
+          padding-top: 25px;
+        }
+
+        .metricGrid,
+        .statusRow,
+        .tipTop {
+          grid-template-columns: 1fr;
+        }
+
+        .score {
+          font-size: 52px;
+        }
+      }
+    `}</style>
+  );
+}
